@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
+docs/
+reference_docs/
+build_deck.js
+# Large media — serve from CDN or Vercel instead
+site/*.mp4
+site/*.webm

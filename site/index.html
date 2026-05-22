@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VERDICT — Trade Prediction Markets. Keep Your Profits.</title>
+  <meta name="description" content="The prediction market trading platform. Pass our evaluation and unlock a live account with up to $10K in buying power. Trade real Polymarket odds. Withdraw your profits." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- ============ LANDING SPLASH styles ============ -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
+
+    #verdict-splash{
+      position:fixed; inset:0; z-index:9999;
+      overflow:hidden; background:#000;
+      transform-origin:center center;
+      transition:opacity 1.4s cubic-bezier(.6,.05,.2,1), transform 1.4s cubic-bezier(.6,.05,.2,1), visibility 1.4s;
+    }
+    body.splash-active{ overflow:hidden !important; height:100vh; }
+    #verdict-splash.exiting{
+      opacity:0; transform:scale(1.15); pointer-events:none; visibility:hidden;
+    }
+    #verdict-splash video{
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover;
+      filter:brightness(0.85) contrast(1.08) saturate(0.95);
+    }
+    #verdict-splash::after{
+      content:""; position:absolute; inset:0;
+      background:
+        radial-gradient(70% 80% at 50% 50%, rgba(5,11,17,0) 0%, rgba(5,11,17,0.35) 100%),
+        linear-gradient(180deg, rgba(11,18,24,0.20) 0%, rgba(11,18,24,0.08) 50%, rgba(11,18,24,0.50) 100%);
+      pointer-events:none;
+    }
+    #verdict-splash .vs-inner{
+      position:relative; z-index:2; height:100%;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:24px;
+    }
+    #verdict-splash .vs-mark{
+      font-family:'Archivo Black','Inter',sans-serif;
+      font-weight:900;
+      font-size:clamp(72px,16vw,220px);
+      letter-spacing:0.02em;
+      color:#fff; line-height:0.95;
+      text-shadow:0 4px 40px rgba(0,0,0,0.5);
+      opacity:0;
+      animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 3.2s both;
+    }
+    #verdict-splash .vs-sub{
+      margin-top:18px;
+      font-family:'Inter',sans-serif;
+      font-size:clamp(13px,1.4vw,16px);
+      letter-spacing:0.4em; text-transform:uppercase;
+      color:rgba(255,255,255,0.8); font-weight:500;
+      opacity:0;
+      animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 3.4s both;
+    }
+    #verdict-splash .vs-buttons{
+      margin-top:56px;
+      display:flex; gap:16px; align-items:center; justify-content:center;
+      flex-wrap:wrap;
+      opacity:0;
+      animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 3.7s both;
+    }
+    #verdict-splash .vs-enter{
+      display:inline-flex; align-items:center; gap:14px;
+      padding:18px 40px;
+      border:1.5px solid rgba(255,255,255,0.6);
+      background:rgba(255,255,255,0.06);
+      backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+      color:#fff;
+      font-family:'Inter',sans-serif;
+      font-weight:700; font-size:14px;
+      letter-spacing:0.3em; text-transform:uppercase;
+      cursor:pointer; border-radius:2px;
+      transition:all 0.35s cubic-bezier(.2,.7,.2,1);
+      text-decoration:none;
+    }
+    #verdict-splash .vs-enter:hover{
+      background:#fff; color:#000; border-color:#fff; transform:translateY(-2px);
+    }
+    #verdict-splash .vs-signup{
+      background:rgba(255,255,255,0.15);
+      border-color:rgba(255,255,255,0.35);
+    }
+    #verdict-splash .vs-signup:hover{
+      background:rgba(255,255,255,0.9); color:#000; border-color:#fff;
+    }
+    #verdict-splash .vs-arrow{ display:inline-block; transition:transform 0.35s cubic-bezier(.2,.7,.2,1); }
+    #verdict-splash .vs-enter:hover .vs-arrow{ transform:translateX(6px); }
+    #verdict-splash .vs-foot{
+      position:absolute; left:0; right:0; bottom:28px;
+      text-align:center;
+      font-family:'Inter',sans-serif;
+      font-size:11px; letter-spacing:0.3em;
+      color:rgba(255,255,255,0.55); text-transform:uppercase;
+      z-index:2;
+      opacity:0;
+      animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 4.0s both;
+    }
+    /* Splash login form */
+    .vs-login-form{
+      display:none; flex-direction:column; align-items:center; gap:14px;
+      width:100%; max-width:360px;
+      animation:vsFadeUp 0.8s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .vs-login-form input{
+      width:100%; padding:16px 20px;
+      background:rgba(255,255,255,0.08);
+      border:1.5px solid rgba(255,255,255,0.25);
+      border-radius:4px; color:#fff;
+      font-family:'Inter',sans-serif; font-size:15px; font-weight:500;
+      outline:none; transition:all 0.25s;
+      backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    }
+    .vs-login-form input::placeholder{color:rgba(255,255,255,0.5)}
+    .vs-login-form input:focus{border-color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.12)}
+    .vs-login-submit{
+      width:100%; padding:16px;
+      background:#fff; color:#000; border:none;
+      font-family:'Inter',sans-serif; font-weight:700; font-size:14px;
+      letter-spacing:0.15em; text-transform:uppercase;
+      cursor:pointer; border-radius:2px;
+      transition:all 0.25s;
+    }
+    .vs-login-submit:hover{background:rgba(255,255,255,0.9);transform:translateY(-1px)}
+    .vs-login-submit:disabled{opacity:0.5;cursor:wait}
+    .vs-login-error{
+      color:#E07A7F; font-size:13px; font-weight:500; min-height:20px;
+    }
+    .vs-login-back{
+      color:rgba(255,255,255,0.6); font-size:12px; cursor:pointer;
+      letter-spacing:0.15em; text-transform:uppercase; font-weight:600;
+      background:none; border:none; font-family:'Inter',sans-serif;
+      margin-top:8px; transition:color 0.2s;
+    }
+    .vs-login-back:hover{color:#fff}
+    .vs-fade-out{
+      opacity:0 !important; transform:translateY(-20px) !important;
+      transition:all 0.5s cubic-bezier(.6,.05,.2,1) !important;
+      pointer-events:none !important;
+    }
+    #verdict-splash .vs-chip{
+      position:absolute; top:24px; right:24px; z-index:3;
+      width:42px; height:42px;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(255,255,255,0.3);
+      border-radius:50%;
+      color:#fff;
+      font-family:'Inter',sans-serif;
+      font-size:11px; letter-spacing:0.1em;
+      background:rgba(0,0,0,0.25); backdrop-filter:blur(8px);
+      font-weight:700;
+      opacity:0;
+      animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 3.2s both;
+    }
+    @keyframes vsFadeUp{
+      from{ opacity:0; transform:translateY(28px); }
+      to  { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body class="splash-active">
+
+  <!-- ============ LANDING SPLASH ============ -->
+  <section id="verdict-splash" aria-label="Welcome to VERDICT">
+    <video autoplay muted loop playsinline preload="auto">
+      <source src="verdict_bg.mp4" type="video/mp4" />
+    </video>
+    <div class="vs-inner">
+      <div class="vs-mark" id="vsMark">VERDICT</div>
+      <div class="vs-sub" id="vsSub">The prediction market trading platform</div>
+      <div class="vs-buttons" id="vsButtons">
+        <button class="vs-enter" id="vsLoginBtn">
+          <span>LOG IN</span>
+          <span class="vs-arrow">→</span>
+        </button>
+        <a href="#" class="vs-enter vs-signup" id="vsSignupBtn">
+          <span>SIGN UP</span>
+          <span class="vs-arrow">→</span>
+        </a>
+      </div>
+      <!-- Inline login form (hidden until LOG IN clicked) -->
+      <form class="vs-login-form" id="vsLoginForm" autocomplete="on">
+        <input type="email" id="vsEmail" placeholder="Email" autocomplete="email" required />
+        <input type="password" id="vsPassword" placeholder="Password" autocomplete="current-password" required />
+        <div class="vs-login-error" id="vsLoginError"></div>
+        <button type="submit" class="vs-login-submit" id="vsLoginSubmit">LOG IN</button>
+        <button type="button" class="vs-login-back" id="vsLoginBack">← BACK</button>
+      </form>
+    </div>
+    <div class="vs-foot" id="vsFoot">Existing traders log in · New traders sign up to learn more</div>
+  </section>
+
+  <script>
+    (function(){
+      var splash    = document.getElementById('verdict-splash');
+      var loginBtn  = document.getElementById('vsLoginBtn');
+      var signupBtn = document.getElementById('vsSignupBtn');
+      var video     = splash.querySelector('video');
+      var leaving   = false;
+
+      // Login form elements
+      var vsMark      = document.getElementById('vsMark');
+      var vsSub       = document.getElementById('vsSub');
+      var vsButtons   = document.getElementById('vsButtons');
+      var vsFoot      = document.getElementById('vsFoot');
+      var loginForm   = document.getElementById('vsLoginForm');
+      var loginError  = document.getElementById('vsLoginError');
+      var loginBack   = document.getElementById('vsLoginBack');
+
+      if (video){
+        var tryPlay = function(){ video.play().catch(function(){}); };
+        tryPlay();
+        document.addEventListener('visibilitychange', function(){ if(!document.hidden) tryPlay(); });
+      }
+
+      // Dismiss splash and reveal landing page beneath
+      function revealLanding(){
+        if (leaving) return;
+        leaving = true;
+        splash.classList.add('exiting');
+        document.body.classList.remove('splash-active');
+        setTimeout(function(){
+          try { video && video.pause(); } catch(e){}
+          try { splash.parentNode && splash.parentNode.removeChild(splash); } catch(e){}
+        }, 1500);
+      }
+
+      // Sign Up → dismiss splash, show the landing page
+      signupBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        revealLanding();
+      });
+
+      // Log In → fade out VERDICT title, show login form on splash
+      loginBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        // Fade out the mark, subtitle, buttons, footer
+        vsMark.classList.add('vs-fade-out');
+        vsSub.classList.add('vs-fade-out');
+        vsButtons.classList.add('vs-fade-out');
+        vsFoot.classList.add('vs-fade-out');
+        // After fade, show login form
+        setTimeout(function(){
+          vsMark.style.display = 'none';
+          vsSub.style.display = 'none';
+          vsButtons.style.display = 'none';
+          vsFoot.style.display = 'none';
+          loginForm.style.display = 'flex';
+          document.getElementById('vsEmail').focus();
+        }, 500);
+      });
+
+      // Back button → restore splash
+      loginBack.addEventListener('click', function(){
+        loginForm.style.display = 'none';
+        loginError.textContent = '';
+        vsMark.style.display = '';
+        vsSub.style.display = '';
+        vsButtons.style.display = '';
+        vsFoot.style.display = '';
+        // Remove fade-out classes (trigger re-animation)
+        setTimeout(function(){
+          vsMark.classList.remove('vs-fade-out');
+          vsSub.classList.remove('vs-fade-out');
+          vsButtons.classList.remove('vs-fade-out');
+          vsFoot.classList.remove('vs-fade-out');
+        }, 10);
+      });
+
+      // Login form submit
+      loginForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        var email    = document.getElementById('vsEmail').value.trim();
+        var password = document.getElementById('vsPassword').value;
+        var btn      = document.getElementById('vsLoginSubmit');
+
+        loginError.textContent = '';
+        if (!email || !password) { loginError.textContent = 'Enter email and password'; return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Logging in...';
+
+        try {
+          var r = await fetch('/api/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, password: password }),
+          });
+          var data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Login failed');
+
+          localStorage.setItem('verdict_token', data.token);
+          localStorage.setItem('verdict_user', JSON.stringify(data.user));
+          window.location.href = 'trade.html';
+        } catch (err) {
+          loginError.textContent = err.message || 'Invalid credentials';
+          btn.disabled = false;
+          btn.textContent = 'LOG IN';
+        }
+      });
+    })();
+  </script>
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-text">VERDICT</span>
+      </a>
+      <div class="nav-links">
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="#leaderboard" class="nav-link">Leaderboard</a>
+        <a href="#proof" class="nav-link">Transparency</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </div>
+      <div class="nav-actions">
+        <a href="signin.html" class="btn btn-ghost">Log In</a><!-- fallback for post-splash -->
+        <a href="#pricing" class="btn btn-primary">Start Trading &mdash; $49/mo</a>
+      </div>
+      <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#how-it-works" class="mobile-link">How It Works</a>
+    <a href="#pricing" class="mobile-link">Pricing</a>
+    <a href="#leaderboard" class="mobile-link">Leaderboard</a>
+    <a href="#proof" class="mobile-link">Transparency</a>
+    <a href="#faq" class="mobile-link">FAQ</a>
+    <a href="#pricing" class="btn btn-primary" style="margin-top:1rem;width:100%;text-align:center">Start Your Eval</a>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="hero">
+    <canvas id="heroCanvas"></canvas>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-badge animate-in">
+        <span class="badge-dot"></span>
+        <span>Now live on Polymarket</span>
+      </div>
+      <h1 class="hero-title animate-in delay-1">
+        Trade prediction markets.<br />
+        <span class="text-gradient">Keep your profits.</span>
+      </h1>
+      <p class="hero-sub animate-in delay-2">
+        Pass our evaluation and unlock a live trading account with up to $10K in buying power on Polymarket. Keep 80% of your profits. Withdraw anytime.
+      </p>
+      <div class="hero-ctas animate-in delay-3">
+        <a href="#pricing" class="btn btn-primary btn-lg">
+          Start your eval &mdash; $39
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#how-it-works" class="btn btn-ghost btn-lg">
+          Watch how it works
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="hero-stats animate-in delay-4">
+      <div class="stat">
+        <span class="stat-number" data-target="2847">0</span>
+        <span class="stat-label">Active Traders</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-number" data-prefix="$" data-target="4200000" data-suffix="">0</span>
+        <span class="stat-label">Total Payouts</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-number" data-suffix="%" data-target="80">0</span>
+        <span class="stat-label">Profit Split</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIVE TICKER ============ -->
+  <section class="ticker-section">
+    <div class="ticker-track">
+      <div class="ticker-content">
+        <span class="ticker-item"><span class="ticker-name">@sharp_trader</span> just got paid <span class="ticker-amount">$480</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@quantum_edge</span> just got paid <span class="ticker-amount">$1,120</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@macro_whale</span> just got paid <span class="ticker-amount">$890</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@degen_reformed</span> just got paid <span class="ticker-amount">$640</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@polysharp</span> just got paid <span class="ticker-amount">$310</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@event_alpha</span> just got paid <span class="ticker-amount">$1,580</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@sharp_trader</span> just got paid <span class="ticker-amount">$480</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@quantum_edge</span> just got paid <span class="ticker-amount">$1,120</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@macro_whale</span> just got paid <span class="ticker-amount">$890</span></span>
+        <span class="ticker-dot"></span>
+        <span class="ticker-item"><span class="ticker-name">@degen_reformed</span> just got paid <span class="ticker-amount">$640</span></span>
+        <span class="ticker-dot"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Process</span>
+        <h2 class="section-title">Three steps to live.</h2>
+        <p class="section-sub">No hidden phases. No activation fees. No surprises.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card" data-step="01">
+          <div class="step-number">01</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M12 16l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3 class="step-title">Buy the Eval</h3>
+          <p class="step-desc">Choose your account size ($1K&ndash;$10K). Subscribe starting at $49/mo. Get instant access to our simulated Polymarket trading environment.</p>
+        </div>
+        <div class="step-card" data-step="02">
+          <div class="step-number">02</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 24V12l8-8 8 8v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 28h24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 20h8v8h-8z" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <h3 class="step-title">Prove Your Edge</h3>
+          <p class="step-desc">Hit +10% profit in 14 days without losing more than 10%. Trade real Polymarket odds across sports, macro, crypto, and geopolitics.</p>
+        </div>
+        <div class="step-card" data-step="03">
+          <div class="step-number">03</div>
+          <div class="step-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="1.5"/><path d="M16 10v6l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3 class="step-title">Go Live</h3>
+          <p class="step-desc">Unlock your live trading account. Trade real Polymarket odds with full buying power. Keep 80% of your profits. Withdraw anytime via crypto, PayPal, or bank transfer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="section section-dark" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Why VERDICT</span>
+        <h2 class="section-title">Built different. Verifiably.</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card feature-card-lg">
+          <div class="feature-visual">
+            <div class="chain-proof-visual">
+              <div class="proof-block">
+                <span class="proof-label">Trade #4,291</span>
+                <code class="proof-hash">0x7a3f...e291</code>
+                <div class="proof-bar"></div>
+              </div>
+              <div class="proof-block">
+                <span class="proof-label">Payout #1,847</span>
+                <code class="proof-hash">0x9c1d...b403</code>
+                <div class="proof-bar"></div>
+              </div>
+            </div>
+          </div>
+          <h3>Full Trade Transparency</h3>
+          <p>Every position, every fill, every payout request &mdash; tracked in your dashboard with complete history. Real-time P&amp;L, detailed fill logs, and a full audit trail you can export anytime.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>80/20 Profit Split</h3>
+          <p>Keep 80% from dollar one. No ladders, no caps, no clawbacks. Your profits, your withdrawal.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Doxxed Team</h3>
+          <p>Real founders, real LinkedIn profiles, real accountability. No anonymous offshore operators.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h3>Weekly USDC Payouts</h3>
+          <p>On-demand after 14 days. USDC on Polygon (instant), Ethereum, or ACH. Min $125.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <h3>Multi-Venue</h3>
+          <p>Polymarket at launch. Kalshi integration coming. One dashboard, multiple prediction markets.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EVAL RULES ============ -->
+  <section class="section" id="rules">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Mechanics</span>
+        <h2 class="section-title">Fair rules. Real edge.</h2>
+        <p class="section-sub">Designed for prediction markets, not ported from futures.</p>
+      </div>
+      <div class="rules-grid">
+        <div class="rule-card">
+          <div class="rule-metric">
+            <span class="rule-value">+10%</span>
+            <span class="rule-label">Profit Target</span>
+          </div>
+          <p>Grow your account by 10% to pass. Hit it early? Pass early. No tricks, no hidden rules.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-metric">
+            <span class="rule-value">10%</span>
+            <span class="rule-label">Max Loss</span>
+          </div>
+          <p>Lose 10% of your starting balance and the eval ends. Simple. No trailing drawdowns, no daily limits.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-metric">
+            <span class="rule-value">14</span>
+            <span class="rule-label">Days</span>
+          </div>
+          <p>14 calendar days to hit your target. Must trade on at least 3 distinct days to prove consistency.</p>
+        </div>
+        <div class="rule-card">
+          <div class="rule-metric">
+            <span class="rule-value">80/20</span>
+            <span class="rule-label">Your Split</span>
+          </div>
+          <p>Keep 80% of your profits from dollar one. Request a payout anytime after passing your eval.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section class="section section-dark" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Pricing</span>
+        <h2 class="section-title">Choose your account size.</h2>
+        <p class="section-sub">Simple monthly subscription. Cancel anytime. No hidden fees.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-tier">Starter</div>
+          <div class="pricing-amount">
+            <span class="pricing-account">$1,000</span>
+            <span class="pricing-label">account size</span>
+          </div>
+          <div class="pricing-price">
+            <span class="price-currency">$</span>
+            <span class="price-value">49</span>
+            <span class="pricing-period">/mo</span>
+          </div>
+          <ul class="pricing-features">
+            <li>10% profit target ($100)</li>
+            <li>10% max loss ($100)</li>
+            <li>80/20 profit split</li>
+            <li>Withdraw profits anytime</li>
+          </ul>
+          <a href="signup.html?plan=starter&amp;size=1000" class="btn btn-outline btn-full">Get Started</a>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-tier">Standard</div>
+          <div class="pricing-amount">
+            <span class="pricing-account">$2,500</span>
+            <span class="pricing-label">account size</span>
+          </div>
+          <div class="pricing-price">
+            <span class="price-currency">$</span>
+            <span class="price-value">79</span>
+            <span class="pricing-period">/mo</span>
+          </div>
+          <ul class="pricing-features">
+            <li>10% profit target ($250)</li>
+            <li>10% max loss ($250)</li>
+            <li>80/20 profit split</li>
+            <li>Withdraw profits anytime</li>
+          </ul>
+          <a href="signup.html?plan=standard&amp;size=2500" class="btn btn-outline btn-full">Get Started</a>
+        </div>
+
+        <div class="pricing-card pricing-popular">
+          <div class="popular-badge">Most Popular</div>
+          <div class="pricing-tier">Pro</div>
+          <div class="pricing-amount">
+            <span class="pricing-account">$5,000</span>
+            <span class="pricing-label">account size</span>
+          </div>
+          <div class="pricing-price">
+            <span class="price-currency">$</span>
+            <span class="price-value">149</span>
+            <span class="pricing-period">/mo</span>
+          </div>
+          <ul class="pricing-features">
+            <li>10% profit target ($500)</li>
+            <li>10% max loss ($500)</li>
+            <li>80/20 profit split</li>
+            <li>Withdraw profits anytime</li>
+          </ul>
+          <a href="signup.html?plan=pro&amp;size=5000" class="btn btn-primary btn-full">Get Started</a>
+        </div>
+
+        <div class="pricing-card">
+          <div class="pricing-tier">Elite</div>
+          <div class="pricing-amount">
+            <span class="pricing-account">$10,000</span>
+            <span class="pricing-label">account size</span>
+          </div>
+          <div class="pricing-price">
+            <span class="price-currency">$</span>
+            <span class="price-value">249</span>
+            <span class="pricing-period">/mo</span>
+          </div>
+          <ul class="pricing-features">
+            <li>10% profit target ($1,000)</li>
+            <li>10% max loss ($1,000)</li>
+            <li>80/20 profit split</li>
+            <li>Withdraw profits anytime</li>
+          </ul>
+          <a href="signup.html?plan=elite&amp;size=10000" class="btn btn-outline btn-full">Get Started</a>
+        </div>
+      </div>
+
+      <!-- Add-ons -->
+      <div class="addons-section">
+        <h3 class="addons-title">Pro Add-Ons</h3>
+        <div class="addons-grid">
+          <div class="addon-card">
+            <span class="addon-name">Reset Credit</span>
+            <span class="addon-price">from $19</span>
+            <span class="addon-desc">One-tap restart at any point</span>
+          </div>
+          <div class="addon-card">
+            <span class="addon-name">+15 Days</span>
+            <span class="addon-price">from $9</span>
+            <span class="addon-desc">Extend the 30-day clock</span>
+          </div>
+          <div class="addon-card">
+            <span class="addon-name">No Consistency</span>
+            <span class="addon-price">from $29</span>
+            <span class="addon-desc">Disable the 50% best-day cap</span>
+          </div>
+          <div class="addon-card">
+            <span class="addon-name">90/10 Split</span>
+            <span class="addon-price">from $49</span>
+            <span class="addon-desc">Lifetime upgrade to 90% split</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LEADERBOARD ============ -->
+  <section class="section" id="leaderboard">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Leaderboard</span>
+        <h2 class="section-title">Top traders this month.</h2>
+        <p class="section-sub">Ranked by profit on live accounts.</p>
+      </div>
+      <div class="leaderboard-table-wrap">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Trader</th>
+              <th>Account</th>
+              <th>P&L</th>
+              <th>Win Rate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="rank rank-1">1</span></td>
+              <td class="trader-name">@macro_whale</td>
+              <td>$10K</td>
+              <td class="pnl-positive">+$2,840</td>
+              <td>72%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank rank-2">2</span></td>
+              <td class="trader-name">@sharp_trader</td>
+              <td>$10K</td>
+              <td class="pnl-positive">+$2,190</td>
+              <td>68%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank rank-3">3</span></td>
+              <td class="trader-name">@event_alpha</td>
+              <td>$5K</td>
+              <td class="pnl-positive">+$1,730</td>
+              <td>74%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">4</span></td>
+              <td class="trader-name">@quantum_edge</td>
+              <td>$5K</td>
+              <td class="pnl-positive">+$1,415</td>
+              <td>65%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">5</span></td>
+              <td class="trader-name">@polysharp</td>
+              <td>$2.5K</td>
+              <td class="pnl-positive">+$980</td>
+              <td>71%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">6</span></td>
+              <td class="trader-name">@degen_reformed</td>
+              <td>$5K</td>
+              <td class="pnl-positive">+$870</td>
+              <td>63%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">7</span></td>
+              <td class="trader-name">@fed_watcher</td>
+              <td>$10K</td>
+              <td class="pnl-positive">+$710</td>
+              <td>69%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">8</span></td>
+              <td class="trader-name">@sports_quant</td>
+              <td>$2.5K</td>
+              <td class="pnl-positive">+$580</td>
+              <td>66%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">9</span></td>
+              <td class="trader-name">@niche_hunter</td>
+              <td>$1K</td>
+              <td class="pnl-positive">+$420</td>
+              <td>78%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+            <tr>
+              <td><span class="rank">10</span></td>
+              <td class="trader-name">@geo_alpha</td>
+              <td>$5K</td>
+              <td class="pnl-positive">+$340</td>
+              <td>62%</td>
+              <td><span class="pnl-positive">Live</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ON-CHAIN PROOF ============ -->
+  <section class="section section-dark" id="proof">
+    <div class="container">
+      <div class="proof-split">
+        <div class="proof-text">
+          <span class="section-tag">Transparent</span>
+          <h2 class="section-title">Full visibility. Always.</h2>
+          <p class="proof-description">Every trade you place uses real Polymarket odds. Your dashboard shows every position, every fill, every resolution in real time. Complete trade history you can export and verify.</p>
+          <p class="proof-description">No black boxes. No hidden rules. Your P&amp;L is calculated transparently with published slippage rates and clear fee structures.</p>
+          <a href="#leaderboard" class="btn btn-outline" style="margin-top:1.5rem">Browse the leaderboard</a>
+        </div>
+        <div class="proof-visual">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">VERDICT &mdash; Trade History</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line"><span class="t-key">Account:</span> <span class="t-val">Pro $100K</span></div>
+              <div class="terminal-line"><span class="t-key">Balance:</span> <span class="t-val">$124,891.42</span></div>
+              <div class="terminal-line">&nbsp;</div>
+              <div class="terminal-line t-header">Recent Trades</div>
+              <div class="terminal-line"><span class="t-hash">Fill #4291</span> <span class="t-action">BUY YES</span> <span class="t-market">Fed Rate Hold Jun</span> <span class="t-amount t-green">+$2,140</span></div>
+              <div class="terminal-line"><span class="t-hash">Fill #4290</span> <span class="t-action">SELL NO</span> <span class="t-market">BTC &gt; $120K Jul</span> <span class="t-amount t-green">+$890</span></div>
+              <div class="terminal-line"><span class="t-hash">Fill #4289</span> <span class="t-action">BUY YES</span> <span class="t-market">Lakers Win Finals</span> <span class="t-amount t-red">-$340</span></div>
+              <div class="terminal-line"><span class="t-hash">Payout</span> <span class="t-action">WITHDRAW</span> <span class="t-market">&mdash;</span> <span class="t-amount t-blue">$5,100 paid</span></div>
+              <div class="terminal-line"><span class="t-hash">Fill #4288</span> <span class="t-action">BUY NO</span> <span class="t-market">Trump Tariff China</span> <span class="t-amount t-green">+$1,670</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARISON ============ -->
+  <section class="section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Comparison</span>
+        <h2 class="section-title">VERDICT vs. the rest.</h2>
+      </div>
+      <div class="comparison-table-wrap">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight-col">VERDICT</th>
+              <th>PropMarket</th>
+              <th>Topstep (futures)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Entry Price</td>
+              <td class="highlight-col"><strong>$39</strong></td>
+              <td>$59</td>
+              <td>$49 + $149 activation</td>
+            </tr>
+            <tr>
+              <td>Profit Target</td>
+              <td class="highlight-col"><strong>10%</strong></td>
+              <td>20%</td>
+              <td>6%</td>
+            </tr>
+            <tr>
+              <td>Max Drawdown</td>
+              <td class="highlight-col"><strong>6%</strong></td>
+              <td>10%</td>
+              <td>4% trailing</td>
+            </tr>
+            <tr>
+              <td>Default Split</td>
+              <td class="highlight-col"><strong>80/20</strong></td>
+              <td>80/20</td>
+              <td>90/10</td>
+            </tr>
+            <tr>
+              <td>Full Transparency</td>
+              <td class="highlight-col"><span class="check">&#10003;</span></td>
+              <td><span class="cross">&#10007;</span></td>
+              <td>N/A</td>
+            </tr>
+            <tr>
+              <td>Doxxed Team</td>
+              <td class="highlight-col"><span class="check">&#10003;</span></td>
+              <td><span class="cross">&#10007;</span></td>
+              <td><span class="check">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Mobile App</td>
+              <td class="highlight-col"><span class="check">&#10003;</span></td>
+              <td><span class="cross">&#10007;</span></td>
+              <td><span class="check">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td>Multi-Venue</td>
+              <td class="highlight-col"><strong>Polymarket + Kalshi</strong></td>
+              <td>Polymarket only</td>
+              <td>CME only</td>
+            </tr>
+            <tr>
+              <td>Payout Speed</td>
+              <td class="highlight-col"><strong>Weekly USDC</strong></td>
+              <td>Bi-weekly (est.)</td>
+              <td>Weekly ACH</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MARKETS ============ -->
+  <section class="section section-dark" id="markets">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Markets</span>
+        <h2 class="section-title">Trade what you know.</h2>
+        <p class="section-sub">Access every Polymarket category with depth-tiered position limits.</p>
+      </div>
+      <div class="markets-grid">
+        <div class="market-card">
+          <div class="market-emoji">&#9917;</div>
+          <h3>Sports</h3>
+          <p>NFL, NBA, MLB, soccer, tennis. The largest category by volume.</p>
+          <span class="market-fee">0.75% taker fee</span>
+        </div>
+        <div class="market-card">
+          <div class="market-emoji">&#128200;</div>
+          <h3>Economics</h3>
+          <p>Fed rates, jobs reports, GDP, CPI. High-skill, low resolution risk.</p>
+          <span class="market-fee">1.50% taker fee</span>
+        </div>
+        <div class="market-card">
+          <div class="market-emoji">&#128187;</div>
+          <h3>Tech</h3>
+          <p>Earnings, product launches, M&A. Well-defined resolution criteria.</p>
+          <span class="market-fee">1.00% taker fee</span>
+        </div>
+        <div class="market-card">
+          <div class="market-emoji">&#8383;</div>
+          <h3>Crypto</h3>
+          <p>BTC, ETH, SOL milestones. Subject to 1.8% taker fee &mdash; tighter edge.</p>
+          <span class="market-fee">1.80% taker fee</span>
+        </div>
+        <div class="market-card">
+          <div class="market-emoji">&#127758;</div>
+          <h3>Geopolitics</h3>
+          <p>Conflicts, treaties, sanctions. 0% taker fee &mdash; widest edge.</p>
+          <span class="market-fee">0% taker fee</span>
+        </div>
+        <div class="market-card">
+          <div class="market-emoji">&#127909;</div>
+          <h3>Culture</h3>
+          <p>Awards, viral moments, celebrity events. Fun markets, real money.</p>
+          <span class="market-fee">1.25% taker fee</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="container container-narrow">
+      <div class="section-header">
+        <span class="section-tag">FAQ</span>
+        <h2 class="section-title">Questions you'll ask.</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What is VERDICT?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>VERDICT is a prediction market trading platform. Prove your edge through our evaluation, then unlock a live trading account. Trade real Polymarket odds, keep 80% of your profits, and withdraw anytime.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Is this legal in the US?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Polymarket re-entered the US in December 2025 as a CFTC-Designated Contract Market. VERDICT operates as a skill-based evaluation and trading platform &mdash; similar to the framework used by Topstep and Apex for futures. We geoblock restricted states and work with counsel. See our legal disclosures for full details.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How is this different from PropMarket?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>VERDICT has a doxxed founding team, full trade transparency, more achievable evaluation targets (10% vs. 20%), and multi-venue support. PropMarket has anonymous founders, no payout proof, and an opaque trading phase.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What happens if a market resolution is disputed?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Polymarket uses UMA's optimistic oracle for resolution. If a market enters a dispute, we hold your relevant P&L for up to 14 days post-final-resolution before crediting. This protects both you and VERDICT from resolution flips.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>How do payouts work?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>On-demand after 14 days from first profit, then weekly. Minimum $125. Methods: USDC on Polygon (instant, no fee), USDC on Ethereum ($5 fee), ACH ($0 fee, 2-3 business days), or wire ($25 fee, same-day).</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Is the evaluation simulated or real?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>The evaluation uses real-time Polymarket odds with realistic fills and fees. It's a pure skill assessment. Once you pass, you unlock a live trading account where your profits are withdrawable.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What markets can I trade during the eval?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Sports, economics, tech, crypto, geopolitics, and culture markets on Polymarket. Election/politics markets are disabled at US launch pending state-by-state clearance. Position sizes are tiered by market depth.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>What's the tax treatment?</span>
+            <svg class="faq-chevron" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-answer">
+            <p>Payouts are 1099-NEC independent contractor income (not capital gains). You'll receive a 1099-NEC for US tax filing. International traders complete a W-8 BEN. We provide a tax FAQ when your account goes live.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOUNDERS ============ -->
+  <section class="section section-dark" id="founders">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">The Team</span>
+        <h2 class="section-title">Real founders. Real names.</h2>
+        <p class="section-sub">We believe the prediction market trading platform of the future starts with trust &mdash; and trust starts with accountability.</p>
+      </div>
+      <div class="founders-grid">
+        <div class="founder-card">
+          <div class="founder-avatar">
+            <div class="avatar-placeholder">DI</div>
+          </div>
+          <h3 class="founder-name">Devin Itzikman</h3>
+          <p class="founder-role">Co-Founder & CEO</p>
+          <div class="founder-links">
+            <a href="#" class="founder-link">LinkedIn</a>
+            <a href="#" class="founder-link">Twitter/X</a>
+          </div>
+        </div>
+        <div class="founder-card">
+          <div class="founder-avatar">
+            <div class="avatar-placeholder">TBA</div>
+          </div>
+          <h3 class="founder-name">Co-Founder</h3>
+          <p class="founder-role">Co-Founder & CTO</p>
+          <div class="founder-links">
+            <a href="#" class="founder-link">LinkedIn</a>
+            <a href="#" class="founder-link">Twitter/X</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="section cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="cta-title">The verdict is in.<br/><span class="text-gradient">You have an edge.</span></h2>
+        <p class="cta-sub">$39 to prove it. Up to $500K in buying power when you pass.</p>
+        <a href="#pricing" class="btn btn-primary btn-xl">
+          Start your eval
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12m0 0l-4-4m4 4l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo-text">VERDICT</span>
+          <p class="footer-tagline">The prediction market trading platform.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#rules">Eval Rules</a>
+          <a href="#markets">Markets</a>
+        </div>
+        <div class="footer-col">
+          <h4>Community</h4>
+          <a href="#">Discord</a>
+          <a href="#">Twitter/X</a>
+          <a href="#leaderboard">Leaderboard</a>
+          <a href="#">Affiliate Program</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">Terms of Service</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Risk Disclosure</a>
+          <a href="#">Trader Agreement</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 VERDICT Holdings, Inc. All rights reserved. Delaware C-Corp.</p>
+        <p class="footer-disclaimer">VERDICT is a skill-based evaluation and trading platform, not a brokerage, investment advisor, or gambling service. Eval fees are non-refundable. Payouts are 1099-NEC contractor compensation. Past performance does not guarantee future results. Trading prediction markets involves risk.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

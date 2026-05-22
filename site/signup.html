@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign Up · VERDICT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+<main class="auth-shell">
+
+  <!-- LEFT -->
+  <section class="auth-left">
+    <header class="auth-topbar">
+      <a href="index.html" class="auth-logo">VERDICT</a>
+      <a href="index.html" class="auth-back">← Back to site</a>
+    </header>
+
+    <div class="auth-form-wrap">
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-subtitle" id="planLine">Start your evaluation and unlock a live trading account.</p>
+      <script>
+        // read ?plan=&size=&fee= and reflect the selection
+        (function(){
+          var qs = new URLSearchParams(location.search);
+          var plan = qs.get('plan'), size = qs.get('size'), fee = qs.get('fee');
+          if (plan && size && fee){
+            var line = document.getElementById('planLine');
+            var planLabel = plan.charAt(0).toUpperCase()+plan.slice(1);
+            var sizeStr = '$' + Number(size).toLocaleString();
+            line.innerHTML = '<b style="color:#EAF0F5">'+planLabel+' · '+sizeStr+' account</b> · $'+fee+' one-time eval fee · 7-day window';
+          }
+        })();
+      </script>
+
+      <button type="button" class="oauth-btn">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.61z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider">or sign up with email</div>
+
+      <form id="signupForm" novalidate>
+        <div class="field">
+          <label class="field-label" for="suName">Full name</label>
+          <input class="field-input" type="text" id="suName" name="name" placeholder="Your full name" autocomplete="name" required />
+          <div class="field-error"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="suEmail">Email</label>
+          <input class="field-input" type="email" id="suEmail" name="email" placeholder="you@email.com" autocomplete="email" required />
+          <div class="field-error"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="suPassword">Password</label>
+          <input class="field-input has-toggle" type="password" id="suPassword" name="password" placeholder="Create a password" autocomplete="new-password" required />
+          <button type="button" class="field-toggle" aria-label="Show password">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+          <div class="pw-strength">
+            <div class="pw-strength-bar"></div>
+            <div class="pw-strength-bar"></div>
+            <div class="pw-strength-bar"></div>
+            <div class="pw-strength-bar"></div>
+          </div>
+          <div class="pw-strength-label">Too weak</div>
+          <input id="pwInput" type="hidden" />
+          <div class="field-error"></div>
+        </div>
+        <script>
+          // mirror password into the hidden strength tracker
+          document.getElementById('suPassword').addEventListener('input', function(){
+            var hidden = document.getElementById('pwInput');
+            hidden.value = this.value;
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        </script>
+
+        <div class="field">
+          <label class="field-label" for="suConfirm">Confirm password</label>
+          <input class="field-input has-toggle" type="password" id="suConfirm" name="confirm" placeholder="Confirm your password" autocomplete="new-password" required />
+          <button type="button" class="field-toggle" aria-label="Show password">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+          <div class="field-error"></div>
+        </div>
+
+        <div class="legal-block">
+          <label class="cbx">
+            <input type="checkbox" id="agreeTerms" />
+            <span>I agree to the <a href="#" class="link">Terms of Service</a> and <a href="#" class="link">Privacy Policy</a>.</span>
+          </label>
+          <label class="cbx">
+            <input type="checkbox" id="agreeRisk" />
+            <span>I understand evaluation fees are non-refundable and trading prediction markets involves risk. I have read the <a href="#" class="link">Risk Disclosure</a>.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="submit-btn" id="signupBtn">
+          <span class="submit-label">Create account</span>
+        </button>
+
+        <p class="auth-footer-line">
+          Already have an account? <a href="signin.html" class="link">Sign in</a>
+        </p>
+      </form>
+    </div>
+
+    <footer class="auth-leftfoot">
+      <div>VERDICT · EST · 26</div>
+      <nav>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Risk Disclosure</a>
+      </nav>
+    </footer>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="auth-right">
+    <div class="dashboard-mock">
+      <div class="glow-frame">
+        <div class="dm-head">
+          <div class="dm-title">Eval · $5K · Day 5 of 14</div>
+          <div class="dm-pill">● In progress</div>
+        </div>
+        <div class="dm-meta">
+          <div>
+            <div class="dm-stat-num green">+$380</div>
+            <div class="dm-stat-label">PnL · 76% to 10% target</div>
+          </div>
+          <div style="text-align:right">
+            <div class="dm-stat-num">8.4%</div>
+            <div class="dm-stat-label">Loss buffer remaining</div>
+          </div>
+        </div>
+        <div class="dm-chart" id="dmChart"></div>
+        <div class="dm-rows">
+          <div class="dm-row"><span class="dm-rank">·</span><span class="dm-handle">NFL · KC vs BUF</span><span class="dm-acct">YES @ 0.62</span><span class="dm-pnl">+$85</span></div>
+          <div class="dm-row"><span class="dm-rank">·</span><span class="dm-handle">Fed cuts in Sep</span><span class="dm-acct">NO @ 0.41</span><span class="dm-pnl">+$180</span></div>
+          <div class="dm-row"><span class="dm-rank">·</span><span class="dm-handle">BTC > $130K Q3</span><span class="dm-acct">YES @ 0.28</span><span class="dm-pnl">+$115</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-tagline">
+      <div class="right-tagline-mark">Prove your edge.</div>
+      <div class="right-tagline-sub">Up to $10K to trade with. From $49/mo.</div>
+    </div>
+  </aside>
+
+</main>
+<script src="auth.js"></script>
+</body>
+</html>

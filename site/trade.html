@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Markets · VERDICT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg:#0B1218; --bg-2:#0F1820; --bg-3:#13212B; --bg-4:#182833;
+  --line:#1A2530; --line-2:#243341;
+  --fg:#EAF0F5; --fg-muted:rgba(234,240,245,0.62); --fg-dim:rgba(234,240,245,0.38);
+  --accent:#7BA9D9; --accent-2:#A8C5E0; --accent-deep:#4F7BA8;
+  --green:#7FCFA8; --green-bg:rgba(127,207,168,0.12); --green-bg-2:rgba(127,207,168,0.22);
+  --red:#E07A7F;   --red-bg:rgba(224,122,127,0.12);   --red-bg-2:rgba(224,122,127,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(60% 70% at 90% 20%, rgba(123,169,217,0.06) 0%, transparent 60%);pointer-events:none;z-index:0}
+
+/* ============ APP SHELL ============ */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;position:relative;z-index:1}
+
+/* ============ SIDEBAR ============ */
+.sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:24px 16px;position:sticky;top:0;height:100vh}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:32px}
+.sb-logo-mark{font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:0.02em}
+.sb-nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.sb-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:var(--fg-muted);font-size:14px;font-weight:600;letter-spacing:0.01em;cursor:pointer;transition:all 0.15s;border:1px solid transparent}
+.sb-item:hover{color:var(--fg);background:var(--bg-3)}
+.sb-item.active{background:linear-gradient(135deg, rgba(123,169,217,0.18) 0%, rgba(123,169,217,0.06) 100%);color:var(--fg);border-color:rgba(123,169,217,0.3);box-shadow:0 0 30px -10px rgba(123,169,217,0.4)}
+.sb-item svg{width:18px;height:18px;flex-shrink:0}
+.sb-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg, var(--accent), var(--accent-deep));display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;color:#fff;font-size:13px;flex-shrink:0}
+.sb-user-info{flex:1;min-width:0}
+.sb-user-name{font-size:12px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-status{font-size:10px;color:var(--fg-dim);letter-spacing:0.1em;text-transform:uppercase}
+
+/* ============ MAIN AREA ============ */
+.main{padding:24px 32px;overflow-x:hidden}
+.page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.page-title{font-family:'Archivo Black',sans-serif;font-size:32px;letter-spacing:-0.01em}
+.page-actions{display:flex;gap:10px}
+.btn-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--fg);border-radius:100px;font-family:inherit;font-size:13px;font-weight:700;letter-spacing:0.02em;cursor:pointer;transition:all 0.15s;text-decoration:none}
+.btn-pill:hover{background:var(--bg-4);border-color:var(--accent);transform:translateY(-1px)}
+.btn-pill.primary{background:linear-gradient(135deg, var(--accent), var(--accent-2));color:#0B1218;border-color:transparent;box-shadow:0 0 30px -8px rgba(123,169,217,0.5)}
+.btn-pill.primary:hover{box-shadow:0 0 40px -8px rgba(123,169,217,0.7)}
+
+/* ============ COMPACT ACCOUNT STRIP ============ */
+.acct-strip{display:flex;align-items:center;gap:18px;background:var(--bg-2);border:1px solid var(--line);border-radius:100px;padding:10px 24px;margin-bottom:24px}
+.as-item{display:flex;align-items:center;gap:8px}
+.as-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-dim);font-weight:600}
+.as-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--fg)}
+.as-val.green{color:var(--green)} .as-val.red{color:var(--red)}
+.as-divider{width:1px;height:20px;background:var(--line)}
+.as-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;background:var(--green-bg);color:var(--green);border:1px solid rgba(127,207,168,0.3)}
+.as-pill.failed{background:var(--red-bg);color:var(--red);border-color:rgba(224,122,127,0.3)}
+.as-pill.passed{background:var(--green-bg-2);color:var(--green);border-color:rgba(127,207,168,0.5)}
+.acct-pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ============ NO ACCOUNT BANNER ============ */
+.no-acct-banner{background:var(--bg-2);border:1px solid var(--line-2);border-radius:14px;padding:28px 32px;margin-bottom:24px;text-align:center}
+.no-acct-banner h2{font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:8px}
+.no-acct-banner p{color:var(--fg-muted);font-size:14px;margin-bottom:18px;max-width:500px;margin-left:auto;margin-right:auto}
+.no-acct-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ============ MARKETS LAYOUT ============ */
+.markets-layout{display:grid;grid-template-columns:1fr 380px;gap:24px}
+.markets-col{min-width:0}
+.side-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:240px;max-width:480px}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--fg-dim)}
+.search-wrap input{width:100%;padding:11px 16px 11px 42px;background:var(--bg-2);border:1px solid var(--line);color:var(--fg);font-family:inherit;font-size:14px;border-radius:100px;outline:none;transition:border-color 0.2s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--fg-dim)}
+.sort-select{background:var(--bg-2);border:1px solid var(--line);color:var(--fg);padding:11px 16px;border-radius:100px;font-family:inherit;font-size:13px;cursor:pointer;outline:none;font-weight:600}
+.sort-select:focus{border-color:var(--accent)}
+.cat-bar{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;margin-bottom:18px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg-2);border:1px solid var(--line);color:var(--fg-muted);border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.01em;transition:all 0.15s;white-space:nowrap;flex-shrink:0}
+.cat-chip:hover{color:var(--fg);background:var(--bg-3);border-color:var(--line-2)}
+.cat-chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.sec-title{font-family:'Archivo Black',sans-serif;font-size:18px;letter-spacing:0.01em}
+.sec-count{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-dim);font-weight:600}
+
+/* ============ MARKET CARDS ============ */
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.market-card{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all 0.15s}
+.market-card:hover{border-color:var(--line-2);transform:translateY(-2px);box-shadow:0 12px 30px -10px rgba(0,0,0,0.5)}
+.market-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), 0 12px 30px -10px rgba(123,169,217,0.3)}
+.mc-head{display:flex;gap:10px;align-items:flex-start}
+.mc-icon{width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,var(--bg-3),var(--bg-4));flex-shrink:0;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;color:var(--accent);font-size:18px;border:1px solid var(--line)}
+.mc-q{font-size:14px;font-weight:600;line-height:1.35;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mc-prob{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--bg-3);border-radius:8px}
+.mc-prob-label{font-size:11px;color:var(--fg-muted);letter-spacing:0.03em}
+.mc-prob-val{font-family:'Archivo Black',sans-serif;font-size:20px}
+.mc-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mc-btn{padding:9px;border:1px solid var(--line);background:var(--bg-3);color:var(--fg-muted);border-radius:8px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:0.04em;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:1px}
+.mc-btn:hover.yes-btn{background:var(--green-bg-2);color:var(--green);border-color:var(--green)}
+.mc-btn:hover.no-btn{background:var(--red-bg-2);color:var(--red);border-color:var(--red)}
+.mc-btn .label{font-size:9px;letter-spacing:0.15em;text-transform:uppercase}
+.mc-btn .px{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700}
+.yes-btn .px{color:var(--green)}
+.no-btn  .px{color:var(--red)}
+.mc-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--fg-dim);margin-top:auto}
+.mc-vol{font-family:'JetBrains Mono',monospace}
+.mc-cat{padding:2px 7px;background:var(--bg-3);border:1px solid var(--line);border-radius:4px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-muted)}
+
+/* ============ TICKET ============ */
+.ticket{background:var(--bg-2);border:1px solid var(--line-2);border-radius:14px;padding:20px;position:sticky;top:24px}
+.ticket-empty{text-align:center;color:var(--fg-dim);padding:36px 20px;font-size:13px;letter-spacing:0.02em}
+.ticket-empty svg{width:36px;height:36px;margin-bottom:12px;opacity:0.5}
+.ticket-q{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:14px;color:var(--fg)}
+.toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.toggle-btn{padding:12px;border:1px solid var(--line);background:var(--bg-3);color:var(--fg-muted);border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:0.05em;transition:all 0.2s}
+.toggle-btn:hover{border-color:var(--line-2);color:var(--fg)}
+.toggle-btn.on-yes.active{background:var(--green-bg-2);color:var(--green);border-color:var(--green)}
+.toggle-btn.on-no.active{background:var(--red-bg-2);color:var(--red);border-color:var(--red)}
+.ticket-lbl{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-muted);margin-bottom:6px;margin-top:12px;font-weight:600}
+.ticket-input{width:100%;padding:12px 14px;background:var(--bg-3);border:1px solid var(--line);color:var(--fg);font-family:inherit;font-size:14px;border-radius:10px;outline:none}
+.ticket-input:focus{border-color:var(--accent)}
+.qty-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:6px}
+.qty-chip{padding:5px;background:var(--bg-3);border:1px solid var(--line);color:var(--fg-muted);border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;font-weight:600}
+.qty-chip:hover{color:var(--fg);border-color:var(--line-2)}
+.ticket-preview{background:var(--bg-3);border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:12px;font-size:12px;color:var(--fg-muted)}
+.tp-row{display:flex;justify-content:space-between;margin-bottom:5px}
+.tp-row:last-child{margin-bottom:0;padding-top:5px;border-top:1px solid var(--line);font-weight:600}
+.tp-row .v{font-family:'JetBrains Mono',monospace;color:var(--fg);font-weight:600}
+.ticket-submit{width:100%;margin-top:14px;padding:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0B1218;border:none;border-radius:10px;font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:0.05em;cursor:pointer;transition:transform 0.15s, box-shadow 0.3s}
+.ticket-submit:hover{transform:translateY(-1px);box-shadow:0 10px 30px -8px rgba(123,169,217,0.4)}
+.ticket-submit:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+/* ============ POSITIONS PANEL ============ */
+.pos-panel{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.pos-panel-title{font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:0.04em;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.pos-count{font-size:10px;background:var(--bg-3);padding:3px 9px;border-radius:100px;color:var(--fg-muted);letter-spacing:0.1em;font-weight:700;border:1px solid var(--line)}
+.pos-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto}
+.pos-row{background:var(--bg-3);border:1px solid var(--line);border-radius:10px;padding:12px}
+.pos-row-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:6px}
+.pos-q{flex:1;color:var(--fg);font-weight:600;line-height:1.3;font-size:12px}
+.pos-side-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.12em;flex-shrink:0}
+.pos-side-chip.yes{background:var(--green-bg);color:var(--green)}
+.pos-side-chip.no{background:var(--red-bg);color:var(--red)}
+.pos-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--fg-dim);margin-top:4px;letter-spacing:0.02em;font-family:'JetBrains Mono',monospace}
+.pos-close-btn{margin-top:8px;width:100%;padding:6px;background:transparent;border:1px solid var(--line-2);color:var(--fg-muted);border-radius:6px;cursor:pointer;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;font-family:inherit;font-weight:700}
+.pos-close-btn:hover{color:var(--fg);border-color:var(--fg-muted)}
+
+/* ============ MARKET DETAIL VIEW ============ */
+.md-layout{display:grid;grid-template-columns:1fr 360px;gap:28px}
+.md-main{min-width:0}
+.md-sidebar{display:flex;flex-direction:column;gap:18px;min-width:0}
+.md-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-3);border:1px solid var(--line);border-radius:100px;color:var(--fg-muted);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;margin-bottom:16px;font-family:inherit;letter-spacing:0.02em}
+.md-back:hover{color:var(--fg);border-color:var(--accent)}
+.md-header{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+.md-image{width:64px;height:64px;border-radius:12px;background:var(--bg-3);border:1px solid var(--line);object-fit:cover;flex-shrink:0}
+.md-image-placeholder{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--bg-3),var(--bg-4));border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:24px;color:var(--accent);flex-shrink:0}
+.md-question{font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.3;margin-bottom:6px}
+.md-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--fg-dim)}
+.md-meta-item{display:flex;align-items:center;gap:5px}
+.md-meta-item svg{width:14px;height:14px}
+.md-breadcrumb{font-size:12px;color:var(--fg-dim);margin-bottom:8px;display:flex;gap:6px;align-items:center}
+.md-breadcrumb span{color:var(--accent);cursor:pointer}
+.md-breadcrumb span:hover{text-decoration:underline}
+
+/* Outcomes row */
+.md-outcomes{display:flex;gap:10px;margin-bottom:20px}
+.md-outcome{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;transition:all 0.15s;cursor:pointer}
+.md-outcome:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.md-outcome-label{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-muted);margin-bottom:4px;font-weight:700}
+.md-outcome-price{font-family:'Archivo Black',sans-serif;font-size:28px}
+.md-outcome.yes .md-outcome-price{color:var(--green)}
+.md-outcome.no .md-outcome-price{color:var(--red)}
+.md-outcome-change{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:4px}
+
+/* Chart */
+.md-chart-wrap{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:20px}
+.md-chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.md-chart-price{font-family:'Archivo Black',sans-serif;font-size:28px}
+.md-chart-change{font-size:13px;font-family:'JetBrains Mono',monospace;margin-left:10px}
+.md-time-btns{display:flex;gap:4px}
+.md-time-btn{padding:6px 12px;background:var(--bg-3);border:1px solid var(--line);border-radius:6px;color:var(--fg-dim);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;letter-spacing:0.05em}
+.md-time-btn:hover{color:var(--fg);border-color:var(--line-2)}
+.md-time-btn.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.md-canvas{width:100%;height:260px;display:block;border-radius:8px}
+
+/* Market info grid */
+.md-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.md-info-card{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.md-info-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-dim);font-weight:600;margin-bottom:4px}
+.md-info-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700}
+
+/* Trade panel in detail sidebar */
+.md-trade-panel{background:var(--bg-2);border:1px solid var(--line-2);border-radius:14px;padding:20px;position:sticky;top:24px}
+.md-trade-title{font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:12px}
+.md-amount-wrap{position:relative;margin:12px 0}
+.md-amount-input{width:100%;padding:16px 14px;background:var(--bg-3);border:1px solid var(--line);color:var(--fg);font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;border-radius:10px;outline:none;text-align:right}
+.md-amount-input:focus{border-color:var(--accent)}
+.md-amount-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--fg-dim);font-weight:600}
+.md-quick-amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:14px}
+.md-quick-btn{padding:8px;background:var(--bg-3);border:1px solid var(--line);border-radius:6px;color:var(--fg-muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s}
+.md-quick-btn:hover{color:var(--fg);border-color:var(--line-2)}
+
+/* Related markets */
+.md-related{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.md-related-title{font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:12px}
+.md-related-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg-3);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.15s;border:1px solid transparent}
+.md-related-item:hover{border-color:var(--line-2)}
+.md-related-q{font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:12px}
+.md-related-pct{font-family:'Archivo Black',sans-serif;font-size:14px;color:var(--accent);flex-shrink:0}
+
+/* ============ TOAST ============ */
+.toast{position:fixed;bottom:24px;right:24px;z-index:200;background:var(--bg-3);border:1px solid var(--line-2);border-left:3px solid var(--accent);padding:14px 22px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(20px);transition:opacity 0.3s,transform 0.3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{border-left-color:var(--red)} .toast.ok{border-left-color:var(--green)}
+.loader{display:inline-block;width:18px;height:18px;border:2px solid rgba(234,240,245,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.center-loader{display:flex;justify-content:center;align-items:center;padding:60px;color:var(--fg-dim);font-size:12px;gap:12px;letter-spacing:0.1em;text-transform:uppercase}
+
+/* ============ PAGE SECTIONS ============ */
+.page-section{display:none}
+.page-section.active{display:block}
+
+/* ============ DASHBOARD / GENERIC CARDS ============ */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.dash-card{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+.dash-card.full{grid-column:1/-1}
+.dash-card-label{font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:8px}
+.dash-card-val{font-family:'Archivo Black',sans-serif;font-size:24px;color:var(--fg)}
+.dash-card-val.green{color:var(--green)}
+.dash-card-val.red{color:var(--red)}
+
+/* ============ MODAL ============ */
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-card{background:var(--bg-2);border:1px solid var(--line-2);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:'Archivo Black',sans-serif;font-size:18px;margin:0}
+.modal-close{background:none;border:none;color:var(--fg-dim);font-size:24px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all 0.15s}
+.modal-close:hover{background:var(--bg-3);color:var(--fg)}
+.modal-body{padding:20px 24px 24px}
+.field-label{display:block;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px}
+.payout-summary{background:var(--bg-3);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:20px;font-size:13px;line-height:1.7}
+.payout-summary .big{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--green)}
+.payout-history{padding:16px 24px 24px}
+.payout-history h4{font-size:13px;font-weight:700;color:var(--fg-dim);margin-bottom:12px;letter-spacing:0.05em}
+.ph-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg-3);border-radius:8px;margin-bottom:8px;font-size:12px}
+.ph-status{padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase}
+.ph-status.pending{background:rgba(255,200,50,0.15);color:#e8c840}
+.ph-status.approved,.ph-status.processing{background:rgba(123,169,217,0.15);color:var(--accent)}
+.ph-status.paid{background:var(--green-bg);color:var(--green)}
+.ph-status.rejected{background:var(--red-bg);color:var(--red)}
+
+/* ============ PLANS ============ */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.plan-card{background:var(--bg-3);border:1px solid var(--line);border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+.plan-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 0 30px -10px rgba(123,169,217,0.4)}
+.plan-card.popular{border-color:var(--accent);box-shadow:0 0 20px -8px rgba(123,169,217,0.3)}
+.plan-card .plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0B1218;font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:100px;white-space:nowrap}
+.plan-card .plan-tier{font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--fg-muted);margin-bottom:8px}
+.plan-card .plan-size{font-family:'Archivo Black',sans-serif;font-size:22px;margin-bottom:4px}
+.plan-card .plan-price{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--accent);font-weight:700;margin-bottom:12px}
+.plan-card .plan-details{font-size:11px;color:var(--fg-dim);line-height:1.6}
+.plan-card .plan-btn{margin-top:14px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--bg-4);color:var(--fg);font-family:inherit;font-size:12px;font-weight:700;letter-spacing:0.05em;cursor:pointer;transition:all 0.15s}
+.plan-card .plan-btn:hover{background:var(--accent);color:#0B1218}
+.plan-card.popular .plan-btn{background:var(--accent);color:#0B1218}
+.plan-card.popular .plan-btn:hover{background:var(--accent-2)}
+
+/* ============ MOBILE NAV ============ */
+.mobile-header{display:none;position:sticky;top:0;z-index:100;background:var(--bg-2);border-bottom:1px solid var(--line);padding:14px 18px;align-items:center;justify-content:space-between}
+.mobile-header .sb-logo-mark{font-family:'Archivo Black',sans-serif;font-size:20px}
+.hamburger{background:none;border:none;color:var(--fg);cursor:pointer;padding:6px;border-radius:8px}
+.hamburger:hover{background:var(--bg-3)}
+.hamburger svg{width:24px;height:24px}
+.sidebar-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px)}
+.sidebar-overlay.open{display:block}
+.sidebar.mobile-open{display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:200;width:260px;animation:slideIn 0.2s ease-out}
+@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1180px){.markets-layout,.md-layout{grid-template-columns:1fr}.ticket,.md-trade-panel{position:static}}
+@media (max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.mobile-header{display:flex}.main{padding:18px}.acct-strip{flex-wrap:wrap;border-radius:14px;padding:14px 18px;gap:12px}.as-divider{display:none}}
+@media (max-width:560px){.market-grid{grid-template-columns:1fr}.md-outcomes{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+
+  <!-- ============ MOBILE HEADER ============ -->
+  <div class="mobile-header">
+    <span class="sb-logo-mark">VERDICT</span>
+    <button class="hamburger" id="hamburgerBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <a href="index.html" class="sb-logo"><span class="sb-logo-mark">VERDICT</span></a>
+    <nav class="sb-nav">
+      <a class="sb-item" href="#" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a class="sb-item active" href="#" data-page="markets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 8h7v7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Markets
+      </a>
+      <a class="sb-item" href="#" data-page="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z" stroke-linejoin="round"/></svg>
+        Account Stats
+      </a>
+      <a class="sb-item" href="#" data-page="leaderboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" stroke-linecap="round"/></svg>
+        Leaderboard
+      </a>
+      <a class="sb-item" href="#" data-page="affiliate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" stroke-linejoin="round"/></svg>
+        Affiliate
+      </a>
+      <a class="sb-item" href="#" data-page="payouts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" stroke-linecap="round"/></svg>
+        Payouts
+      </a>
+      <a class="sb-item" href="#" data-page="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke-linecap="round"/></svg>
+        Profile
+      </a>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-avatar" id="sbAvatar">V</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name" id="sbName">Loading...</div>
+          <div class="sb-user-status" id="sbStatus">Trader</div>
+        </div>
+      </div>
+      <a class="sb-item" href="#" id="logoutBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- ====== PAGE: MARKETS (default) ====== -->
+    <div class="page-section active" id="page-markets">
+      <div class="page-head">
+        <h1 class="page-title">Markets</h1>
+        <div class="page-actions">
+          <a class="btn-pill primary" href="#" id="openPlansBtn">Start New Eval</a>
+        </div>
+      </div>
+      <!-- Account strip (shown when account exists) -->
+      <div class="acct-strip" id="acctStrip" style="display:none">
+        <div class="as-item"><span class="as-label">Balance</span><span class="as-val" id="balanceVal">--</span></div>
+        <div class="as-divider"></div>
+        <div class="as-item"><span class="as-label">PnL</span><span class="as-val" id="pnlVal">--</span></div>
+        <div class="as-divider"></div>
+        <div class="as-item"><span class="as-label">Target</span><span class="as-val" id="targetPctStrip">0%</span></div>
+        <div class="as-divider"></div>
+        <div class="as-item"><span class="as-label">Drawdown</span><span class="as-val" id="ddPctStrip">0%</span></div>
+        <div class="as-divider"></div>
+        <div class="as-item"><span class="as-pill" id="statusPill"><span class="acct-pill-dot"></span> EVAL</span></div>
+      </div>
+      <!-- No-account banner (shown when no account) -->
+      <div class="no-acct-banner" id="noAcctBanner" style="display:none">
+        <h2>Start Trading Prediction Markets</h2>
+        <p>Purchase an evaluation to begin trading with a live account. Pass the eval and withdraw your profits.</p>
+        <div class="no-acct-actions">
+          <button class="btn-pill primary" onclick="openPlansModal()">Choose Your Eval</button>
+          <button class="btn-pill" id="testAcctBtn" style="display:none" onclick="createTestAccount()">Start Free Test</button>
+        </div>
+      </div>
+      <!-- Markets grid view -->
+      <div id="marketsGridView">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5" stroke-linecap="round"/></svg>
+            <input type="search" id="searchInput" placeholder="Search markets..." autocomplete="off" />
+          </div>
+          <select class="sort-select" id="sortSelect">
+            <option value="volume">Top volume</option>
+            <option value="ending">Ending soon</option>
+            <option value="newest">Newest</option>
+            <option value="liquidity">Most liquid</option>
+          </select>
+        </div>
+        <nav class="cat-bar" id="catBar"></nav>
+        <div class="markets-layout">
+          <div class="markets-col">
+            <div class="sec-head">
+              <div class="sec-title" id="sectionTitle">Trending markets</div>
+              <span class="sec-count" id="marketCount">--</span>
+            </div>
+            <div class="market-grid" id="marketGrid">
+              <div class="center-loader" style="grid-column:1/-1"><span class="loader"></span> Loading live Polymarket markets...</div>
+            </div>
+          </div>
+          <aside class="side-col" id="sideCol">
+            <div class="ticket" id="ticket">
+              <div class="ticket-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18M3 9h18M3 15h12M3 21h6" stroke-linecap="round"/></svg>
+                <div>Click any market to view details and trade.</div>
+              </div>
+            </div>
+            <div class="pos-panel">
+              <div class="pos-panel-title">Open positions <span class="pos-count" id="posCount">0 OPEN</span></div>
+              <div class="pos-list" id="posList">
+                <div style="color:var(--fg-dim);font-size:12px;text-align:center;padding:20px">No open positions.</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+      <!-- Market detail view (hidden by default, shown when clicking a market) -->
+      <div id="marketDetailView" style="display:none">
+        <button class="md-back" id="mdBackBtn">&larr; Back to Markets</button>
+        <div class="md-layout">
+          <div class="md-main">
+            <div class="md-breadcrumb" id="mdBreadcrumb"></div>
+            <div class="md-header">
+              <div id="mdImageWrap"></div>
+              <div>
+                <h2 class="md-question" id="mdQuestion">Market</h2>
+                <div class="md-meta" id="mdMeta"></div>
+              </div>
+            </div>
+            <div class="md-outcomes" id="mdOutcomes"></div>
+            <div class="md-chart-wrap">
+              <div class="md-chart-head">
+                <div>
+                  <span class="md-chart-price" id="mdChartPrice">--</span>
+                  <span class="md-chart-change" id="mdChartChange"></span>
+                </div>
+                <div class="md-time-btns" id="mdTimeBtns">
+                  <button class="md-time-btn" data-range="1h">1H</button>
+                  <button class="md-time-btn" data-range="6h">6H</button>
+                  <button class="md-time-btn active" data-range="1d">1D</button>
+                  <button class="md-time-btn" data-range="1w">1W</button>
+                  <button class="md-time-btn" data-range="1m">1M</button>
+                  <button class="md-time-btn" data-range="all">ALL</button>
+                </div>
+              </div>
+              <canvas class="md-canvas" id="mdCanvas"></canvas>
+            </div>
+            <div class="md-info" id="mdInfo"></div>
+          </div>
+          <div class="md-sidebar">
+            <div class="md-trade-panel" id="mdTradePanel">
+              <div class="md-trade-title" id="mdTradeMarket">Trade</div>
+              <div class="toggle-row" id="mdSideToggle"></div>
+              <div class="md-amount-wrap">
+                <span class="md-amount-label">Shares</span>
+                <input type="number" class="md-amount-input" id="mdSharesInput" value="100" min="1" max="100000" />
+              </div>
+              <div class="md-quick-amounts">
+                <button class="md-quick-btn" data-q="50">50</button>
+                <button class="md-quick-btn" data-q="100">100</button>
+                <button class="md-quick-btn" data-q="500">500</button>
+                <button class="md-quick-btn" data-q="1000">1K</button>
+              </div>
+              <div class="ticket-preview" id="mdPreview"></div>
+              <button class="ticket-submit" id="mdSubmitBtn" disabled>Select a side to trade</button>
+            </div>
+            <div class="md-related" id="mdRelated">
+              <div class="md-related-title">Related Markets</div>
+              <div id="mdRelatedList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: DASHBOARD ====== -->
+    <div class="page-section" id="page-dashboard">
+      <div class="page-head">
+        <h1 class="page-title">Dashboard</h1>
+        <div class="page-actions">
+          <a class="btn-pill primary" href="#" onclick="event.preventDefault();switchPage('markets')">Trade Markets</a>
+        </div>
+      </div>
+      <div id="dashNoAcct" style="display:none">
+        <div class="no-acct-banner">
+          <h2>No Active Account</h2>
+          <p>Purchase an eval to start trading and see your stats here.</p>
+          <div class="no-acct-actions"><button class="btn-pill primary" onclick="openPlansModal()">Choose Your Eval</button></div>
+        </div>
+      </div>
+      <div class="dash-grid" id="dashContent">
+        <div class="dash-card"><div class="dash-card-label">Account Balance</div><div class="dash-card-val" id="dashBalance">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Total PnL</div><div class="dash-card-val" id="dashPnl">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Account Size</div><div class="dash-card-val" id="dashSize">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Status</div><div class="dash-card-val" id="dashStatus">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Trading Days</div><div class="dash-card-val" id="dashDays">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Profit Target</div><div class="dash-card-val" id="dashTarget">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Max Drawdown Floor</div><div class="dash-card-val" id="dashDD">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">High Water Mark</div><div class="dash-card-val" id="dashHW">--</div></div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: ACCOUNT STATS ====== -->
+    <div class="page-section" id="page-stats">
+      <div class="page-head"><h1 class="page-title">Account Stats</h1></div>
+      <div class="dash-grid" id="statsContent">
+        <div class="dash-card full"><div class="dash-card-label">Trade History</div><div id="tradeHistoryList" style="margin-top:12px">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: LEADERBOARD ====== -->
+    <div class="page-section" id="page-leaderboard">
+      <div class="page-head"><h1 class="page-title">Leaderboard</h1></div>
+      <div class="dash-card full" style="padding:40px;text-align:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--fg-dim)" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px"><circle cx="12" cy="8" r="5"/><path d="M5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" stroke-linecap="round"/></svg>
+        <div style="color:var(--fg-muted);font-size:14px;font-weight:600;margin-bottom:8px">Leaderboard Coming Soon</div>
+        <div style="color:var(--fg-dim);font-size:13px">Compete with other traders once leaderboard goes live.</div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: AFFILIATE ====== -->
+    <div class="page-section" id="page-affiliate">
+      <div class="page-head"><h1 class="page-title">Affiliate Program</h1></div>
+      <div class="dash-grid" id="affiliateContent">
+        <div class="dash-card"><div class="dash-card-label">Your Referral Link</div><div class="dash-card-val" id="affLink" style="font-size:13px;word-break:break-all">Loading...</div><button class="btn-pill" style="margin-top:12px" id="affCopyBtn">Copy Link</button></div>
+        <div class="dash-card"><div class="dash-card-label">Your Code</div><div class="dash-card-val" id="affCode" style="font-size:28px;letter-spacing:0.1em">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Total Referrals</div><div class="dash-card-val" id="affReferrals">0</div></div>
+        <div class="dash-card"><div class="dash-card-label">Total Earned</div><div class="dash-card-val" id="affEarned">$0</div></div>
+        <div class="dash-card"><div class="dash-card-label">Pending Payout</div><div class="dash-card-val" id="affPending">$0</div></div>
+        <div class="dash-card"><div class="dash-card-label">Commission Rate</div><div class="dash-card-val" id="affRate">10%</div></div>
+        <div class="dash-card full"><div class="dash-card-label">Custom Referral Code</div><div style="display:flex;gap:10px;margin-top:10px"><input type="text" class="ticket-input" id="affCustomCode" placeholder="e.g. YOURNAME" style="flex:1;text-transform:uppercase" maxlength="16" /><button class="btn-pill primary" id="affSetCodeBtn">Set Code</button></div></div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: PAYOUTS ====== -->
+    <div class="page-section" id="page-payouts">
+      <div class="page-head">
+        <h1 class="page-title">Payouts</h1>
+        <div class="page-actions">
+          <button class="btn-pill primary" id="requestPayoutPageBtn" onclick="openPayoutModal()">Request Payout</button>
+        </div>
+      </div>
+      <div id="payoutsNoAcct" style="display:none">
+        <div class="no-acct-banner">
+          <h2>No Active Account</h2>
+          <p>Purchase an eval, pass it, and you can request payouts of your profits here.</p>
+          <div class="no-acct-actions"><button class="btn-pill primary" onclick="openPlansModal()">Choose Your Eval</button></div>
+        </div>
+      </div>
+      <div id="payoutsContent">
+        <div class="dash-grid" style="margin-bottom:24px">
+          <div class="dash-card"><div class="dash-card-label">Account Status</div><div class="dash-card-val" id="payoutAcctStatus">--</div></div>
+          <div class="dash-card"><div class="dash-card-label">Total Profit</div><div class="dash-card-val" id="payoutProfit">--</div></div>
+          <div class="dash-card"><div class="dash-card-label">Your Split (80%)</div><div class="dash-card-val green" id="payoutSplit">--</div></div>
+          <div class="dash-card"><div class="dash-card-label">Payout Method</div><div class="dash-card-val" id="payoutDefaultMethod">Not set</div></div>
+        </div>
+        <div class="dash-card full">
+          <div class="dash-card-label" style="margin-bottom:12px">Payout History</div>
+          <div id="payoutPageHistory">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: PROFILE ====== -->
+    <div class="page-section" id="page-profile">
+      <div class="page-head"><h1 class="page-title">Profile</h1></div>
+      <div class="dash-grid">
+        <div class="dash-card"><div class="dash-card-label">Name</div><div class="dash-card-val" id="profileName">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Email</div><div class="dash-card-val" id="profileEmail">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Plan</div><div class="dash-card-val" id="profilePlan">--</div></div>
+        <div class="dash-card"><div class="dash-card-label">Member Since</div><div class="dash-card-val" id="profileJoined">--</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Payout Request Modal -->
+<div class="modal-overlay" id="payoutModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Request Payout</h3><button class="modal-close" id="payoutClose">&times;</button></div>
+    <div class="modal-body" id="payoutBody">
+      <div class="payout-summary" id="payoutSummary"></div>
+      <div class="payout-form">
+        <label class="field-label">Payout Method</label>
+        <select class="ticket-input" id="payoutMethod" style="width:100%;margin-bottom:16px">
+          <option value="crypto">Crypto (USDC / ETH / BTC)</option>
+          <option value="rise">Rise Pay</option>
+          <option value="paypal">PayPal</option>
+          <option value="bank_wire">Bank Wire</option>
+        </select>
+        <div class="payout-fields" id="fieldsCrypto">
+          <label class="field-label">Network</label>
+          <select class="ticket-input" id="cryptoNetwork" style="width:100%;margin-bottom:12px"><option value="ethereum">Ethereum (ERC-20)</option><option value="polygon">Polygon</option><option value="solana">Solana</option><option value="bitcoin">Bitcoin</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option></select>
+          <label class="field-label">Wallet Address</label>
+          <input type="text" class="ticket-input" id="cryptoAddress" placeholder="0x... or wallet address" style="width:100%" />
+        </div>
+        <div class="payout-fields" id="fieldsRise" style="display:none"><label class="field-label">Rise Email</label><input type="email" class="ticket-input" id="riseEmail" placeholder="your@rise.co email" style="width:100%" /></div>
+        <div class="payout-fields" id="fieldsPaypal" style="display:none"><label class="field-label">PayPal Email</label><input type="email" class="ticket-input" id="paypalEmail" placeholder="your@paypal.com" style="width:100%" /></div>
+        <div class="payout-fields" id="fieldsBank" style="display:none">
+          <label class="field-label">Bank Name</label><input type="text" class="ticket-input" id="bankName" placeholder="Bank of America" style="width:100%;margin-bottom:12px" />
+          <label class="field-label">Account Holder Name</label><input type="text" class="ticket-input" id="bankHolder" placeholder="Full legal name" style="width:100%;margin-bottom:12px" />
+          <label class="field-label">Routing Number</label><input type="text" class="ticket-input" id="bankRouting" placeholder="021000021" style="width:100%;margin-bottom:12px" />
+          <label class="field-label">Account Number (last 4)</label><input type="text" class="ticket-input" id="bankLast4" placeholder="1234" maxlength="4" style="width:100%" />
+        </div>
+      </div>
+      <button class="ticket-submit" id="payoutSubmit" style="margin-top:20px;width:100%">Submit Payout Request</button>
+    </div>
+    <div class="payout-history" id="payoutHistory"></div>
+  </div>
+</div>
+
+<!-- Plans Modal -->
+<div class="modal-overlay" id="plansModal" style="display:none">
+  <div class="modal-card" style="max-width:720px">
+    <div class="modal-head"><h3>Choose Your Eval</h3><button class="modal-close" id="plansClose">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--fg-muted);font-size:13px;margin-bottom:20px">One eval fee. No subscriptions. Pass and unlock a live account.</p>
+      <div class="plans-grid" id="plansGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+const state = {
+  token: localStorage.getItem('verdict_token'),
+  user:  JSON.parse(localStorage.getItem('verdict_user') || 'null'),
+  markets: [],
+  filtered: [],
+  category: 'all',
+  search: '',
+  sort: 'volume',
+  selectedMarket: null,
+  side: null,
+  shares: 100,
+  account: null,
+  positions: [],
+  chartRange: '1d',
+  chartData: [],
+  chartInterval: null,
+};
+
+if (!state.token) { window.location.href = 'index.html'; }
+
+// ============ HELPERS ============
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const fmt$ = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtPx = v => '$' + Number(v).toFixed(3);
+const fmtVol = v => v > 1e6 ? (v/1e6).toFixed(1)+'M' : v > 1e3 ? (v/1e3).toFixed(0)+'K' : Math.round(v);
+function escHtml(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function toast(msg, kind='ok'){
+  const t=$('#toast');t.textContent=msg;
+  t.classList.remove('err','ok');t.classList.add(kind);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),3500);
+}
+async function api(path, opts={}){
+  const headers={'Content-Type':'application/json'};
+  if(state.token) headers['Authorization']='Bearer '+state.token;
+  const r=await fetch(path,{...opts,headers});
+  if(r.status===401){localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');window.location.href='index.html';throw new Error('Session expired');}
+  const data=await r.json();
+  if(!r.ok) throw new Error(data.error||'Request failed');
+  return data;
+}
+
+// ============ SIDEBAR USER ============
+if(state.user){
+  $('#sbName').textContent=state.user.name||state.user.email;
+  $('#sbAvatar').textContent=(state.user.name||state.user.email||'V').charAt(0).toUpperCase();
+}
+$('#logoutBtn').addEventListener('click',e=>{e.preventDefault();localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');window.location.href='index.html';});
+
+// ============ PAGE SWITCHING ============
+function switchPage(page){
+  $$('.page-section').forEach(s=>{s.classList.remove('active');s.style.removeProperty('display')});
+  const target=document.getElementById('page-'+page);
+  if(target) target.classList.add('active');
+  $$('.sb-item[data-page]').forEach(i=>i.classList.toggle('active',i.dataset.page===page));
+  if(page==='dashboard') renderDashboard();
+  if(page==='stats') renderStats();
+  if(page==='affiliate') loadAffiliate();
+  if(page==='profile') renderProfile();
+  if(page==='markets') showMarketsGrid();
+  if(page==='payouts') renderPayoutsPage();
+  // Close mobile sidebar
+  closeMobileSidebar();
+}
+
+$$('.sb-item[data-page]').forEach(item=>{
+  item.addEventListener('click',e=>{
+    e.preventDefault();
+    switchPage(item.dataset.page);
+  });
+});
+
+// ============ ACCOUNT ============
+async function loadAccount(){
+  try{
+    const data=await api('/api/account');
+    state.account=data.account;
+    state.positions=data.positions||[];
+    renderAccountState();
+    renderPositions();
+  }catch(e){
+    console.error('Account load:',e.message);
+  }
+}
+
+function renderAccountState(){
+  const hasAcct=!!state.account;
+  const strip=$('#acctStrip');
+  const banner=$('#noAcctBanner');
+  const testBtn=$('#testAcctBtn');
+
+  if(hasAcct){
+    strip.style.display='flex';
+    banner.style.display='none';
+    renderAccountStrip();
+  }else{
+    strip.style.display='none';
+    banner.style.display='block';
+    // Show test button (for dev mode — no Stripe configured)
+    testBtn.style.display='inline-flex';
+  }
+  // Update sidebar status
+  $('#sbStatus').textContent=hasAcct?(state.account.status||'eval').replace('_',' ').toUpperCase()+' Trader':'No Account';
+}
+
+function renderAccountStrip(){
+  const a=state.account;
+  if(!a) return;
+  $('#balanceVal').textContent=fmt$(a.balance);
+  const pnlEl=$('#pnlVal');
+  pnlEl.textContent=(a.pnl>=0?'+':'')+fmt$(a.pnl);
+  pnlEl.classList.toggle('green',a.pnl>=0);
+  pnlEl.classList.toggle('red',a.pnl<0);
+  const pct=Math.min(100,Math.max(0,(a.balance-a.size)/(a.size*a.target_pct)*100));
+  $('#targetPctStrip').textContent=pct.toFixed(0)+'%';
+  const lossRoom=a.size-a.loss_floor;
+  const lossUsed=Math.max(0,a.size-a.balance);
+  const lossPct=lossRoom>0?Math.min(100,(lossUsed/lossRoom)*100):0;
+  $('#ddPctStrip').textContent=lossPct.toFixed(0)+'%';
+  $('#ddPctStrip').classList.toggle('red',lossPct>60);
+  const pill=$('#statusPill');
+  const statusText=(a.status||'eval').replace('_',' ').toUpperCase();
+  pill.innerHTML='<span class="acct-pill-dot"></span> '+statusText;
+  pill.className='as-pill'+(a.status==='passed'?' passed':a.status==='failed'?' failed':'');
+}
+
+// Test account creation (dev mode)
+async function createTestAccount(){
+  try{
+    await api('/api/account/test',{method:'POST',body:JSON.stringify({plan:'pro'})});
+    toast('Test account created! $5,000 Pro eval.','ok');
+    await loadAccount();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ============ DASHBOARD ============
+function renderDashboard(){
+  const noAcct=$('#dashNoAcct');
+  const content=$('#dashContent');
+  if(!state.account){
+    noAcct.style.display='block';content.style.display='none';return;
+  }
+  noAcct.style.display='none';content.style.display='';
+  const a=state.account;
+  $('#dashBalance').textContent=fmt$(a.balance);
+  const pnlEl=$('#dashPnl');
+  pnlEl.textContent=(a.pnl>=0?'+':'')+fmt$(a.pnl);
+  pnlEl.className='dash-card-val '+(a.pnl>=0?'green':'red');
+  $('#dashSize').textContent=fmt$(a.size);
+  $('#dashStatus').textContent=(a.status||'eval').replace('_',' ').toUpperCase();
+  $('#dashDays').textContent=(a.trading_days||0)+' / 14';
+  $('#dashTarget').textContent=fmt$(a.profit_target);
+  $('#dashDD').textContent=fmt$(a.loss_floor);
+  $('#dashHW').textContent=fmt$(a.high_water);
+}
+
+// ============ STATS ============
+function renderStats(){
+  const list=$('#tradeHistoryList');
+  if(!state.account){list.innerHTML='<div style="color:var(--fg-dim);font-size:13px;padding:20px;text-align:center">No account yet. Purchase an eval to start trading.</div>';return;}
+  if(!state.positions||state.positions.length===0){
+    list.innerHTML='<div style="color:var(--fg-dim);font-size:13px;padding:20px;text-align:center">No trades yet. Go to Markets and place your first order.</div>';return;
+  }
+  list.innerHTML=state.positions.map(p=>{
+    const pnlText=p.pnl!=null?((p.pnl>=0?'+':'')+fmt$(p.pnl)):'--';
+    const pnlColor=p.pnl!=null?(p.pnl>=0?'var(--green)':'var(--red)'):'var(--fg-dim)';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg-3);border-radius:10px;margin-bottom:8px;font-size:13px">
+      <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.market_question||'Market')}</div>
+      <div style="color:var(--fg-dim);font-size:11px;margin-top:4px">${p.side} &middot; ${p.shares} shares @ ${fmtPx(p.entry_price)} &middot; ${p.status}</div></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${pnlColor};margin-left:16px">${pnlText}</div></div>`;
+  }).join('');
+}
+
+// ============ AFFILIATE ============
+async function loadAffiliate(){
+  try{
+    const data=await api('/api/affiliate');
+    $('#affCode').textContent=data.code;
+    $('#affLink').textContent=data.link;
+    $('#affReferrals').textContent=data.total_referrals;
+    $('#affEarned').textContent='$'+data.total_earned.toFixed(2);
+    $('#affPending').textContent='$'+data.pending.toFixed(2);
+    $('#affRate').textContent=data.commission_rate+'%';
+    $('#affCopyBtn').onclick=()=>{navigator.clipboard.writeText(data.link).then(()=>toast('Link copied!','ok'));};
+    $('#affSetCodeBtn').onclick=async()=>{
+      const code=$('#affCustomCode').value.trim();
+      if(!code){toast('Enter a code','err');return;}
+      try{await api('/api/affiliate/code',{method:'POST',body:JSON.stringify({code})});toast('Code updated!','ok');loadAffiliate();}catch(e){toast(e.message,'err');}
+    };
+  }catch(e){toast('Failed to load affiliate data','err');}
+}
+
+// ============ PROFILE ============
+function renderProfile(){
+  if(!state.user) return;
+  $('#profileName').textContent=state.user.name||'--';
+  $('#profileEmail').textContent=state.user.email||'--';
+  if(state.account){
+    $('#profilePlan').textContent=(state.account.plan||'--').charAt(0).toUpperCase()+(state.account.plan||'').slice(1);
+    $('#profileJoined').textContent=state.account.created_at?new Date(state.account.created_at).toLocaleDateString():'--';
+  }else{
+    $('#profilePlan').textContent='No Account';
+    $('#profileJoined').textContent=state.user.created_at?new Date(state.user.created_at).toLocaleDateString():'--';
+  }
+}
+
+// ============ POSITIONS ============
+function renderPositions(){
+  const open=(state.positions||[]).filter(p=>p.status==='open');
+  $('#posCount').textContent=open.length+' OPEN';
+  const list=$('#posList');
+  if(!open.length){list.innerHTML='<div style="color:var(--fg-dim);font-size:12px;text-align:center;padding:20px">No open positions.</div>';return;}
+  list.innerHTML=open.map(p=>`
+    <div class="pos-row"><div class="pos-row-head"><span class="pos-q">${escHtml(p.market_question||'Market')}</span><span class="pos-side-chip ${p.side==='YES'?'yes':'no'}">${p.side}</span></div>
+    <div class="pos-meta"><span>${p.shares.toLocaleString()} @ ${fmtPx(p.entry_price)}</span><span>cost ${fmt$(p.cost)}</span></div>
+    <button class="pos-close-btn" data-id="${p.id}">Close</button></div>`).join('');
+  $$('.pos-close-btn',list).forEach(b=>b.addEventListener('click',()=>closePosition(b.dataset.id)));
+}
+
+async function closePosition(id){
+  try{
+    const res=await api('/api/position/'+id+'/close',{method:'POST'});
+    toast('Closed: PnL '+(res.pnl>=0?'+':'')+fmt$(res.pnl),res.pnl>=0?'ok':'err');
+    await loadAccount();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ============ MARKETS ============
+// Category ordering (matches Polymarket nav)
+const CATEGORY_ORDER=['all','politics','sports','crypto','finance','geopolitics','tech','culture','economy','science','elections','weather','other'];
+
+async function loadMarkets(){
+  try{
+    const markets=await api('/api/markets?limit=100');
+    state.markets=markets;
+    renderCategoryChips();
+    applyFilters();
+  }catch(e){
+    $('#marketGrid').innerHTML='<div style="color:var(--red);font-size:13px;padding:20px;text-align:center;grid-column:1/-1">Failed to load markets: '+escHtml(e.message)+'</div>';
+  }
+}
+
+function renderCategoryChips(){
+  const catCount={};
+  state.markets.forEach(m=>{
+    const c=(m.category||'other').toLowerCase();
+    catCount[c]=(catCount[c]||0)+1;
+  });
+  // Sort: ordered first, then alphabetical
+  const ordered=CATEGORY_ORDER.filter(c=>c==='all'||catCount[c]);
+  const remaining=Object.keys(catCount).filter(c=>!ordered.includes(c)).sort();
+  const cats=['all',...ordered.filter(c=>c!=='all'),...remaining];
+  const bar=$('#catBar');
+  bar.innerHTML=cats.map(c=>{
+    const label=c==='all'?'All':c.charAt(0).toUpperCase()+c.slice(1);
+    const count=c==='all'?state.markets.length:catCount[c]||0;
+    return `<button class="cat-chip${state.category===c?' active':''}" data-cat="${c}">${label}${c!=='all'?` <span style="opacity:0.5;font-size:11px">${count}</span>`:''}</button>`;
+  }).join('');
+  $$('.cat-chip',bar).forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      state.category=chip.dataset.cat;
+      $$('.cat-chip').forEach(x=>x.classList.toggle('active',x.dataset.cat===state.category));
+      applyFilters();
+    });
+  });
+}
+
+function applyFilters(){
+  let filtered=state.markets.slice();
+  if(state.category!=='all') filtered=filtered.filter(m=>(m.category||'other').toLowerCase()===state.category.toLowerCase());
+  if(state.search){const q=state.search.toLowerCase();filtered=filtered.filter(m=>(m.question||'').toLowerCase().includes(q));}
+  if(state.sort==='volume') filtered.sort((a,b)=>(b.volume24hr||0)-(a.volume24hr||0));
+  else if(state.sort==='liquidity') filtered.sort((a,b)=>(b.liquidity||0)-(a.liquidity||0));
+  else if(state.sort==='ending') filtered.sort((a,b)=>new Date(a.endDate||'2099-01-01')-new Date(b.endDate||'2099-01-01'));
+  state.filtered=filtered;
+  renderMarkets();
+}
+
+function renderMarkets(){
+  const grid=$('#marketGrid');
+  const catLabel=state.category==='all'?'Trending markets':state.category.charAt(0).toUpperCase()+state.category.slice(1);
+  $('#marketCount').textContent=state.filtered.length+' markets';
+  $('#sectionTitle').textContent=catLabel;
+  if(!state.filtered.length){grid.innerHTML='<div style="color:var(--fg-dim);font-size:13px;text-align:center;padding:60px;grid-column:1/-1">No markets match your filters.</div>';return;}
+  grid.innerHTML=state.filtered.map(m=>{
+    const yesPrice=m.outcomePrices[0];const noPrice=m.outcomePrices[1];
+    const probPct=Math.round(yesPrice*100);const vol=fmtVol(m.volume24hr||0);
+    const icon=m.image?`<div class="mc-icon" style="background-image:url('${escHtml(m.image)}')"></div>`:`<div class="mc-icon">${escHtml((m.question||'?').charAt(0).toUpperCase())}</div>`;
+    return `<div class="market-card" data-id="${escHtml(m.id)}">
+      <div class="mc-head">${icon}<div class="mc-q">${escHtml(m.question)}</div></div>
+      <div class="mc-prob"><span class="mc-prob-label">Probability</span><span class="mc-prob-val">${probPct}%</span></div>
+      <div class="mc-buttons">
+        <button class="mc-btn yes-btn" data-side="YES"><span class="label">Buy YES</span><span class="px">${fmtPx(yesPrice)}</span></button>
+        <button class="mc-btn no-btn" data-side="NO"><span class="label">Buy NO</span><span class="px">${fmtPx(noPrice)}</span></button>
+      </div>
+      <div class="mc-foot"><span class="mc-cat">${escHtml((m.category||'other').charAt(0).toUpperCase()+(m.category||'other').slice(1))}</span><span class="mc-vol">$${vol} vol</span></div>
+    </div>`;
+  }).join('');
+  // Click: open market detail
+  $$('.market-card',grid).forEach(card=>{
+    card.addEventListener('click',e=>{
+      const id=card.dataset.id;
+      const m=state.markets.find(x=>x.id===id);
+      if(!m) return;
+      // If they clicked YES or NO, pre-select the side
+      const btn=e.target.closest('.mc-btn');
+      const side=btn?btn.dataset.side:null;
+      openMarketDetail(m, side);
+    });
+  });
+}
+
+// ============ MARKET DETAIL VIEW ============
+function showMarketsGrid(){
+  $('#marketsGridView').style.display='';
+  $('#marketDetailView').style.display='none';
+  if(state.chartInterval){clearInterval(state.chartInterval);state.chartInterval=null;}
+}
+
+function openMarketDetail(market, preselectedSide){
+  state.selectedMarket=market;
+  state.side=preselectedSide||null;
+  state.shares=100;
+
+  // Switch views
+  $('#marketsGridView').style.display='none';
+  $('#marketDetailView').style.display='block';
+
+  const yesPrice=market.outcomePrices[0];
+  const noPrice=market.outcomePrices[1];
+  const probPct=Math.round(yesPrice*100);
+
+  // Breadcrumb
+  const cat=market.category||'Market';
+  $('#mdBreadcrumb').innerHTML=`<span onclick="showMarketsGrid()">Markets</span> &rsaquo; <span onclick="state.category='${escHtml(cat.toLowerCase())}';showMarketsGrid();applyFilters()">${escHtml(cat.charAt(0).toUpperCase()+cat.slice(1))}</span> &rsaquo; ${escHtml(market.question).substring(0,50)}...`;
+
+  // Header
+  if(market.image){
+    $('#mdImageWrap').innerHTML=`<img class="md-image" src="${escHtml(market.image)}" alt="" />`;
+  }else{
+    $('#mdImageWrap').innerHTML=`<div class="md-image-placeholder">${escHtml((market.question||'?').charAt(0).toUpperCase())}</div>`;
+  }
+  $('#mdQuestion').textContent=market.question;
+  const endStr=market.endDate?new Date(market.endDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'--';
+  $('#mdMeta').innerHTML=`
+    <div class="md-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round"/></svg> Ends ${endStr}</div>
+    <div class="md-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/></svg> $${fmtVol(market.volume24hr||0)} volume</div>
+    <div class="md-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4h4"/></svg> $${fmtVol(market.liquidity||0)} liquidity</div>`;
+
+  // Outcomes
+  $('#mdOutcomes').innerHTML=`
+    <div class="md-outcome yes" onclick="setDetailSide('YES')">
+      <div class="md-outcome-label">YES</div>
+      <div class="md-outcome-price">${fmtPx(yesPrice)}</div>
+      <div class="md-outcome-change" style="color:var(--green)">${probPct}% chance</div>
+    </div>
+    <div class="md-outcome no" onclick="setDetailSide('NO')">
+      <div class="md-outcome-label">NO</div>
+      <div class="md-outcome-price">${fmtPx(noPrice)}</div>
+      <div class="md-outcome-change" style="color:var(--red)">${100-probPct}% chance</div>
+    </div>`;
+
+  // Chart
+  $('#mdChartPrice').textContent=probPct+'%';
+  generateChartData(yesPrice);
+  drawChart();
+  // Live update every 5 seconds
+  if(state.chartInterval) clearInterval(state.chartInterval);
+  state.chartInterval=setInterval(()=>{
+    updateChartLive();
+    refreshMarketPrices();
+  },5000);
+
+  // Time range buttons
+  $$('.md-time-btn').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.range===state.chartRange);
+    btn.onclick=()=>{
+      state.chartRange=btn.dataset.range;
+      $$('.md-time-btn').forEach(b=>b.classList.toggle('active',b.dataset.range===state.chartRange));
+      generateChartData(yesPrice);
+      drawChart();
+    };
+  });
+
+  // Info cards
+  $('#mdInfo').innerHTML=`
+    <div class="md-info-card"><div class="md-info-label">24h Volume</div><div class="md-info-val">$${fmtVol(market.volume24hr||0)}</div></div>
+    <div class="md-info-card"><div class="md-info-label">Liquidity</div><div class="md-info-val">$${fmtVol(market.liquidity||0)}</div></div>
+    <div class="md-info-card"><div class="md-info-label">End Date</div><div class="md-info-val">${endStr}</div></div>
+    <div class="md-info-card"><div class="md-info-label">Category</div><div class="md-info-val">${escHtml(cat)}</div></div>`;
+
+  // Trade panel
+  renderDetailTradePanel();
+
+  // Related markets (same category)
+  const related=state.markets.filter(m=>m.id!==market.id&&(m.category||'').toLowerCase()===(market.category||'').toLowerCase()).slice(0,6);
+  const relList=$('#mdRelatedList');
+  if(related.length){
+    relList.innerHTML=related.map(m=>{
+      const pct=Math.round(m.outcomePrices[0]*100);
+      return `<div class="md-related-item" data-id="${escHtml(m.id)}"><span class="md-related-q">${escHtml(m.question)}</span><span class="md-related-pct">${pct}%</span></div>`;
+    }).join('');
+    $$('.md-related-item',relList).forEach(item=>{
+      item.addEventListener('click',()=>{
+        const m=state.markets.find(x=>x.id===item.dataset.id);
+        if(m) openMarketDetail(m,null);
+      });
+    });
+  }else{
+    relList.innerHTML='<div style="color:var(--fg-dim);font-size:12px;text-align:center;padding:12px">No related markets.</div>';
+  }
+}
+
+function setDetailSide(side){
+  state.side=side;
+  renderDetailTradePanel();
+}
+
+function renderDetailTradePanel(){
+  const m=state.selectedMarket;
+  if(!m) return;
+  const yesPrice=m.outcomePrices[0];
+  const noPrice=m.outcomePrices[1];
+
+  // Side toggle
+  $('#mdSideToggle').innerHTML=`
+    <button class="toggle-btn on-yes ${state.side==='YES'?'active':''}" onclick="setDetailSide('YES')">YES &middot; ${fmtPx(yesPrice)}</button>
+    <button class="toggle-btn on-no ${state.side==='NO'?'active':''}" onclick="setDetailSide('NO')">NO &middot; ${fmtPx(noPrice)}</button>`;
+
+  // Shares input
+  $('#mdSharesInput').value=state.shares;
+  $('#mdSharesInput').oninput=e=>{state.shares=Math.max(1,Math.floor(Number(e.target.value)||0));updateDetailPreview()};
+
+  // Quick amounts
+  $$('.md-quick-btn').forEach(btn=>{
+    btn.onclick=()=>{state.shares=Number(btn.dataset.q);$('#mdSharesInput').value=state.shares;updateDetailPreview()};
+  });
+
+  updateDetailPreview();
+}
+
+function updateDetailPreview(){
+  const m=state.selectedMarket;
+  if(!m) return;
+  const preview=$('#mdPreview');
+  const submitBtn=$('#mdSubmitBtn');
+  if(!state.side){
+    preview.innerHTML='<div style="text-align:center;color:var(--fg-dim)">Select YES or NO to see order details</div>';
+    submitBtn.disabled=true;submitBtn.textContent='Select a side to trade';return;
+  }
+  const pmPrice=state.side==='YES'?m.outcomePrices[0]:m.outcomePrices[1];
+  const fillPrice=pmPrice*1.05;
+  const cost=state.shares*fillPrice;
+  preview.innerHTML=`
+    <div class="tp-row"><span>Side</span><span class="v" style="color:${state.side==='YES'?'var(--green)':'var(--red)'}">${state.side}</span></div>
+    <div class="tp-row"><span>Market Price</span><span class="v">${fmtPx(pmPrice)}</span></div>
+    <div class="tp-row"><span>Fill Price (5% slip)</span><span class="v">${fmtPx(fillPrice)}</span></div>
+    <div class="tp-row"><span>Shares</span><span class="v">${state.shares.toLocaleString()}</span></div>
+    <div class="tp-row"><span>Total Cost</span><span class="v">${fmt$(cost)}</span></div>`;
+  if(!state.account){
+    submitBtn.disabled=true;submitBtn.textContent='Purchase an eval to trade';
+  }else{
+    submitBtn.disabled=false;
+    submitBtn.textContent=`Buy ${state.shares.toLocaleString()} ${state.side} · ${fmt$(cost)}`;
+    submitBtn.onclick=placeDetailOrder;
+  }
+}
+
+async function placeDetailOrder(){
+  const btn=$('#mdSubmitBtn');
+  btn.disabled=true;btn.textContent='Placing order...';
+  try{
+    const res=await api('/api/order',{method:'POST',body:JSON.stringify({market_id:state.selectedMarket.id,side:state.side,shares:state.shares})});
+    toast(`Filled ${state.shares.toLocaleString()} ${state.side} @ ${fmtPx(res.fill.price)} · cost ${fmt$(res.fill.cost)}`,'ok');
+    await loadAccount();
+    updateDetailPreview();
+  }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='Try again';}
+}
+
+// ============ CHART ============
+function generateChartData(currentPrice){
+  const ranges={
+    '1h':{points:60,jitter:0.003},
+    '6h':{points:72,jitter:0.006},
+    '1d':{points:96,jitter:0.01},
+    '1w':{points:168,jitter:0.02},
+    '1m':{points:120,jitter:0.04},
+    'all':{points:200,jitter:0.06},
+  };
+  const cfg=ranges[state.chartRange]||ranges['1d'];
+  const pts=cfg.points;
+  const data=[];
+  // Work backwards from current price
+  let price=currentPrice;
+  for(let i=pts;i>=0;i--){
+    data.push(price);
+    // Random walk with mean reversion
+    const drift=(Math.random()-0.5)*cfg.jitter;
+    const meanRev=(currentPrice-price)*0.02;
+    price=Math.max(0.01,Math.min(0.99,price-drift-meanRev));
+  }
+  // Reverse so newest is last
+  data.reverse();
+  state.chartData=data;
+}
+
+function updateChartLive(){
+  if(!state.selectedMarket||!state.chartData.length) return;
+  const last=state.chartData[state.chartData.length-1];
+  const tick=last+(Math.random()-0.5)*0.005;
+  state.chartData.push(Math.max(0.01,Math.min(0.99,tick)));
+  if(state.chartData.length>300) state.chartData.shift();
+  drawChart();
+}
+
+async function refreshMarketPrices(){
+  if(!state.selectedMarket) return;
+  try{
+    const fresh=await api('/api/market/'+state.selectedMarket.id);
+    if(fresh&&fresh.outcomePrices){
+      state.selectedMarket.outcomePrices=fresh.outcomePrices;
+      const yesPrice=fresh.outcomePrices[0];
+      const noPrice=fresh.outcomePrices[1];
+      const pct=Math.round(yesPrice*100);
+      $('#mdChartPrice').textContent=pct+'%';
+      // Update last chart point to match real price
+      if(state.chartData.length) state.chartData[state.chartData.length-1]=yesPrice;
+    }
+  }catch(e){/* silent */}
+}
+
+function drawChart(){
+  const canvas=$('#mdCanvas');
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr;
+  canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const w=rect.width;
+  const h=rect.height;
+  const data=state.chartData;
+  if(!data.length) return;
+
+  const minP=Math.max(0,Math.min(...data)-0.03);
+  const maxP=Math.min(1,Math.max(...data)+0.03);
+  const range=maxP-minP||0.1;
+
+  const toX=i=>(i/(data.length-1))*w;
+  const toY=v=>h-(((v-minP)/range)*h*0.85+h*0.05);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(26,37,48,0.8)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=h*0.05+i*(h*0.85/4);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+  }
+
+  // Y-axis labels
+  ctx.fillStyle='rgba(234,240,245,0.3)';ctx.font='10px Inter,sans-serif';
+  for(let i=0;i<=4;i++){
+    const val=maxP-(i/4)*range;
+    const y=h*0.05+i*(h*0.85/4);
+    ctx.fillText(Math.round(val*100)+'%',4,y-4);
+  }
+
+  // Gradient fill
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  const lastPrice=data[data.length-1];
+  const firstPrice=data[0];
+  const up=lastPrice>=firstPrice;
+  const lineColor=up?'#7FCFA8':'#E07A7F';
+  const fillColor=up?'rgba(127,207,168,':'rgba(224,122,127,';
+  grad.addColorStop(0,fillColor+'0.3)');
+  grad.addColorStop(1,fillColor+'0)');
+
+  // Area
+  ctx.beginPath();
+  ctx.moveTo(toX(0),h);
+  for(let i=0;i<data.length;i++) ctx.lineTo(toX(i),toY(data[i]));
+  ctx.lineTo(toX(data.length-1),h);
+  ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(toX(0),toY(data[0]));
+  for(let i=1;i<data.length;i++) ctx.lineTo(toX(i),toY(data[i]));
+  ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
+
+  // Current price dot
+  const lastX=toX(data.length-1);
+  const lastY=toY(lastPrice);
+  ctx.beginPath();ctx.arc(lastX,lastY,5,0,Math.PI*2);ctx.fillStyle=lineColor;ctx.fill();
+  ctx.beginPath();ctx.arc(lastX,lastY,3,0,Math.PI*2);ctx.fillStyle='#0B1218';ctx.fill();
+
+  // Current price label
+  const priceLbl=Math.round(lastPrice*100)+'%';
+  ctx.fillStyle=lineColor;ctx.font='bold 11px "JetBrains Mono",monospace';
+  ctx.fillText(priceLbl,lastX-30,lastY-10);
+
+  // Chart change
+  const change=lastPrice-firstPrice;
+  const changePct=(change/firstPrice*100).toFixed(1);
+  const changeEl=$('#mdChartChange');
+  changeEl.textContent=(change>=0?'+':'')+changePct+'%';
+  changeEl.style.color=up?'var(--green)':'var(--red)';
+}
+
+// Back button
+$('#mdBackBtn').addEventListener('click',showMarketsGrid);
+
+// ============ SEARCH + SORT ============
+$('#searchInput').addEventListener('input',e=>{state.search=e.target.value;applyFilters()});
+$('#sortSelect').addEventListener('change',e=>{state.sort=e.target.value;applyFilters()});
+
+// ============ PAYOUTS ============
+const payoutModal=$('#payoutModal');
+const payoutMethod=$('#payoutMethod');
+const fieldSets={crypto:$('#fieldsCrypto'),rise:$('#fieldsRise'),paypal:$('#fieldsPaypal'),bank_wire:$('#fieldsBank')};
+if(payoutMethod){payoutMethod.addEventListener('change',()=>{Object.values(fieldSets).forEach(f=>f.style.display='none');const sel=fieldSets[payoutMethod.value];if(sel)sel.style.display='block';});}
+
+function openPayoutModal(){
+  if(!state.account){toast('No active account','err');return;}
+  const acct=state.account;
+  const profit=(acct.balance||0)-(acct.size||0);
+  const payoutAmt=Math.max(0,profit*0.80);
+  const passed=acct.status==='passed';
+  const summary=$('#payoutSummary');
+  if(passed&&profit>0){
+    summary.innerHTML=`<div>Total Profit: <strong>${fmt$(profit)}</strong></div><div>Your Split (80%): <span class="big">${fmt$(payoutAmt)}</span></div><div style="color:var(--fg-dim);margin-top:4px;font-size:11px">VERDICT keeps 20% -- you keep 80% of all profits.</div>`;
+    $('#payoutSubmit').style.display='block';$('#payoutSubmit').textContent=`Request ${fmt$(payoutAmt)} Payout`;
+  }else if(!passed){
+    summary.innerHTML=`<div style="color:var(--fg-muted)">Your account status is <strong>${(acct.status||'eval').toUpperCase()}</strong>.</div><div style="color:var(--fg-dim);margin-top:8px;font-size:12px">You need to pass your evaluation to request a payout. Hit the 8% profit target with at least 3 trading days.</div>`;
+    $('#payoutSubmit').style.display='none';
+  }else{summary.innerHTML='<div style="color:var(--fg-muted)">No profit to pay out yet.</div>';$('#payoutSubmit').style.display='none';}
+  loadPayoutHistory();
+  payoutModal.style.display='flex';
+}
+
+async function loadPayoutHistory(){
+  try{
+    const payouts=await api('/api/payouts');
+    const container=$('#payoutHistory');
+    if(!payouts.length){container.innerHTML='<h4>Payout History</h4><div style="color:var(--fg-dim);font-size:12px;text-align:center;padding:12px">No payout requests yet.</div>';return;}
+    container.innerHTML='<h4>Payout History</h4>'+payouts.map(p=>`<div class="ph-row"><div><div style="font-weight:600">${fmt$(p.amount)}</div><div style="color:var(--fg-dim);font-size:11px">${p.payout_method} &middot; ${new Date(p.requested_at).toLocaleDateString()}</div></div><span class="ph-status ${p.status}">${p.status}</span></div>`).join('');
+  }catch(e){console.error('payout history:',e.message);}
+}
+
+$('#payoutClose').addEventListener('click',()=>{payoutModal.style.display='none'});
+payoutModal.addEventListener('click',e=>{if(e.target===payoutModal)payoutModal.style.display='none'});
+
+$('#payoutSubmit').addEventListener('click',async()=>{
+  const method=payoutMethod.value;let details={};
+  if(method==='crypto'){details={network:$('#cryptoNetwork').value,address:$('#cryptoAddress').value.trim()};if(!details.address){toast('Enter your wallet address','err');return;}}
+  else if(method==='rise'){details={rise_email:$('#riseEmail').value.trim()};if(!details.rise_email){toast('Enter your Rise email','err');return;}}
+  else if(method==='paypal'){details={paypal_email:$('#paypalEmail').value.trim()};if(!details.paypal_email){toast('Enter your PayPal email','err');return;}}
+  else if(method==='bank_wire'){details={bank_name:$('#bankName').value.trim(),account_holder:$('#bankHolder').value.trim(),routing:$('#bankRouting').value.trim(),account_last4:$('#bankLast4').value.trim()};if(!details.bank_name||!details.account_holder){toast('Fill in all bank fields','err');return;}}
+  const btn=$('#payoutSubmit');btn.disabled=true;btn.textContent='Submitting...';
+  try{
+    const accounts=await api('/api/account');const accountId=accounts.account.id;
+    const res=await api('/api/payout/request',{method:'POST',body:JSON.stringify({account_id:accountId,payout_method:method,payout_details:details})});
+    toast('Payout request submitted: '+fmt$(res.amount),'ok');loadPayoutHistory();btn.textContent='Submitted';
+  }catch(e){toast(e.message,'err');btn.disabled=false;btn.textContent='Submit Payout Request';}
+});
+
+// ============ PLANS MODAL ============
+const plansData=[
+  {id:'starter',tier:'Starter',size:1000,price:49,popular:false,monthly:true},
+  {id:'standard',tier:'Standard',size:2500,price:79,popular:false,monthly:true},
+  {id:'pro',tier:'Pro',size:5000,price:149,popular:true,monthly:true},
+  {id:'elite',tier:'Elite',size:10000,price:249,popular:false,monthly:true},
+];
+
+function openPlansModal(){
+  const grid=$('#plansGrid');
+  grid.innerHTML=plansData.map(p=>`
+    <div class="plan-card${p.popular?' popular':''}" data-plan="${p.id}">
+      ${p.popular?'<div class="plan-badge">Most Popular</div>':''}
+      <div class="plan-tier">${p.tier}</div>
+      <div class="plan-size">${fmt$(p.size)}</div>
+      <div class="plan-price">$${p.price}<span style="font-size:13px;opacity:0.6">/mo</span></div>
+      <div class="plan-details">10% target &middot; 10% max loss<br>80/20 profit split</div>
+      <button class="plan-btn" data-plan="${p.id}">Subscribe</button>
+    </div>`).join('');
+  $('#plansModal').style.display='flex';
+  grid.querySelectorAll('.plan-btn').forEach(btn=>{
+    btn.addEventListener('click',async e=>{
+      const plan=e.target.dataset.plan;
+      e.target.textContent='Processing...';e.target.disabled=true;
+      try{
+        const data=await api('/api/checkout',{method:'POST',body:JSON.stringify({plan})});
+        if(data.url){window.location.href=data.url;}else{toast('Checkout created','ok');}
+      }catch(err){
+        if(err.message.includes('not configured')){
+          // No Stripe - create test account instead
+          try{
+            await api('/api/account/test',{method:'POST',body:JSON.stringify({plan})});
+            toast('Test account created!','ok');
+            $('#plansModal').style.display='none';
+            await loadAccount();
+          }catch(e2){toast(e2.message,'err');}
+        }else{toast(err.message,'err');}
+        e.target.textContent='Start Eval';e.target.disabled=false;
+      }
+    });
+  });
+}
+
+$('#plansClose').addEventListener('click',()=>{$('#plansModal').style.display='none'});
+$('#plansModal').addEventListener('click',e=>{if(e.target===e.currentTarget)$('#plansModal').style.display='none'});
+$('#openPlansBtn').addEventListener('click',e=>{e.preventDefault();openPlansModal()});
+
+// Auto-open plans modal if ?purchase=1
+const urlParams=new URLSearchParams(window.location.search);
+if(urlParams.get('purchase')==='1'){setTimeout(openPlansModal,500);window.history.replaceState({},'','trade.html');}
+
+// ============ PAYOUTS PAGE ============
+async function renderPayoutsPage(){
+  const noAcct=$('#payoutsNoAcct');
+  const content=$('#payoutsContent');
+  if(!state.account){
+    noAcct.style.display='block';content.style.display='none';return;
+  }
+  noAcct.style.display='none';content.style.display='block';
+  const a=state.account;
+  const profit=a.balance-a.size;
+  const split=Math.max(0,profit*0.80);
+  $('#payoutAcctStatus').textContent=(a.status||'eval').replace('_',' ').toUpperCase();
+  const profEl=$('#payoutProfit');
+  profEl.textContent=(profit>=0?'+':'')+fmt$(profit);
+  profEl.className='dash-card-val '+(profit>=0?'green':'red');
+  $('#payoutSplit').textContent=profit>0?fmt$(split):'$0.00';
+  // Show/hide request button based on passed status
+  const reqBtn=$('#requestPayoutPageBtn');
+  if(a.status==='passed'&&profit>0){reqBtn.style.display='inline-flex';}else{reqBtn.style.display='none';}
+  // Load history
+  try{
+    const payouts=await api('/api/payouts');
+    const container=$('#payoutPageHistory');
+    if(!payouts.length){container.innerHTML='<div style="color:var(--fg-dim);font-size:13px;text-align:center;padding:24px">No payout requests yet. Pass your evaluation to request your first payout.</div>';return;}
+    container.innerHTML=payouts.map(p=>`<div class="ph-row"><div><div style="font-weight:600;font-family:JetBrains Mono,monospace">${fmt$(p.amount)}</div><div style="color:var(--fg-dim);font-size:11px;margin-top:2px">${p.payout_method} · ${new Date(p.requested_at).toLocaleDateString()}</div></div><span class="ph-status ${p.status}">${p.status}</span></div>`).join('');
+  }catch(e){$('#payoutPageHistory').innerHTML='<div style="color:var(--red);font-size:13px">Failed to load history</div>';}
+}
+
+// ============ MOBILE SIDEBAR ============
+function openMobileSidebar(){
+  const sidebar=$('#sidebar');
+  const overlay=$('#sidebarOverlay');
+  sidebar.classList.add('mobile-open');
+  overlay.classList.add('open');
+}
+function closeMobileSidebar(){
+  const sidebar=$('#sidebar');
+  const overlay=$('#sidebarOverlay');
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('open');
+}
+$('#hamburgerBtn').addEventListener('click',openMobileSidebar);
+$('#sidebarOverlay').addEventListener('click',closeMobileSidebar);
+// Ensure sidebar nav clicks close mobile sidebar (redundant safety)
+$$('.sb-item[data-page]').forEach(item=>{
+  item.addEventListener('click',()=>closeMobileSidebar());
+});
+
+// ============ BOOT ============
+loadAccount();
+loadMarkets();
+setInterval(loadMarkets,30000);
+setInterval(loadAccount,15000);
+</script>
+</body>
+</html>
