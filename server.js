@@ -101,15 +101,24 @@ if (!ODDS_API_KEY) {
   console.log('  ✔  The Odds API connected — player props & moneylines enabled');
 }
 
-// Plan pricing (cents, ONE-TIME eval fee) and account sizes
-// activation fee ($49) is a separate non-removable line item at checkout
+// Plan pricing — SUBSCRIPTION model ($XX/month recurring + $49 one-time activation on pass)
+// stripe_price_id must be set in env vars; if missing, inline price_data is used as fallback
 const PLANS = {
-  starter:  { price: 8900,   size: 5000,   label: 'Starter $5K',   activation: 4900 },
-  standard: { price: 15900,  size: 10000,  label: 'Standard $10K',  activation: 4900 },
-  pro:      { price: 29900,  size: 25000,  label: 'Pro $25K',       activation: 4900 },
-  elite:    { price: 49900,  size: 50000,  label: 'Elite $50K',     activation: 4900 },
-  whale:    { price: 89900,  size: 100000, label: 'Whale $100K',    activation: 4900 },
+  starter:  { monthly_cents: 8900,   anchor_monthly_cents: 12900,  size: 5000,   label: 'Starter $5K',   stripe_price_id: process.env.STRIPE_PRICE_STARTER_MONTHLY },
+  standard: { monthly_cents: 15900,  anchor_monthly_cents: 22900,  size: 10000,  label: 'Standard $10K',  stripe_price_id: process.env.STRIPE_PRICE_STANDARD_MONTHLY },
+  pro:      { monthly_cents: 29900,  anchor_monthly_cents: 42900,  size: 25000,  label: 'Pro $25K',       stripe_price_id: process.env.STRIPE_PRICE_PRO_MONTHLY },
+  elite:    { monthly_cents: 49900,  anchor_monthly_cents: 71900,  size: 50000,  label: 'Elite $50K',     stripe_price_id: process.env.STRIPE_PRICE_ELITE_MONTHLY },
+  whale:    { monthly_cents: 89900,  anchor_monthly_cents: 129900, size: 100000, label: 'Whale $100K',    stripe_price_id: process.env.STRIPE_PRICE_WHALE_MONTHLY },
 };
+const ACTIVATION_FEE_CENTS = 4900;
+const ACTIVATION_STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ACTIVATION;
+
+// Legacy compat: some old code references planInfo.price / planInfo.activation
+// Map those to new fields so nothing breaks during migration
+for (const [k, v] of Object.entries(PLANS)) {
+  v.price = v.monthly_cents;       // legacy compat
+  v.activation = ACTIVATION_FEE_CENTS; // legacy compat
+}
 
 // Profit split: trader keeps 80%
 const PROFIT_SPLIT = 0.80;
@@ -1660,13 +1669,15 @@ async function executePhaseTransition(account, ruleResult) {
       balance: planInfo.size,
       high_water: planInfo.size,
       status: 'verification',
+      state: 'verification_active',
       phase: 'verification',
       parent_eval_id: account.id,
+      stripe_subscription_id: account.stripe_subscription_id,
+      subscription_status: account.subscription_status || 'active',
+      subscription_started_at: account.subscription_started_at,
+      subscription_current_period_end: account.subscription_current_period_end,
       profit_target_pct: VERIFICATION_TARGET,
       max_loss_pct: MAX_LOSS,
-      eval_fee_paid_cents: 0,        // already paid on eval
-      activation_fee_paid_cents: 0,  // already paid on eval
-      total_paid_cents: 0,
       eval_started_at: now.toISOString(),
       eval_ends_at: evalEnd.toISOString(),
     });
@@ -1676,13 +1687,14 @@ async function executePhaseTransition(account, ruleResult) {
   }
 
   if (ruleResult.action === 'pass_to_funded') {
-    const payoutDate = new Date(Date.now() + 14 * 86400 * 1000);
+    // Verification passed → account goes to passed_pending_activation (must pay $49 to unlock)
     await dbUpdate('accounts', { id: account.id }, {
-      status: 'funded',
-      phase: 'funded',
-      payout_eligible_at: payoutDate.toISOString(),
+      status: 'passed_pending_activation',
+      state: 'passed_pending_activation',
+      phase: 'passed',
+      verification_passed_at: new Date().toISOString(),
     });
-    console.log(`[phase] account ${account.id} → funded | payouts eligible ${payoutDate.toISOString().slice(0, 10)}`);
+    console.log(`[phase] account ${account.id} → passed_pending_activation | awaiting $49 activation fee`);
     return account;
   }
 
@@ -1754,97 +1766,240 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     return res.status(400).send('Webhook signature failed');
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const { userId, plan, referralCode, evalFeeCents, activationFeeCents, totalCents } = session.metadata || {};
+  console.log(`[stripe-webhook] ${event.type}`);
 
-    if (userId && plan && PLANS[plan]) {
-      try {
-        const planInfo = PLANS[plan];
-        const expectedTotal = planInfo.price + planInfo.activation;
-        const paidTotal = session.amount_total || Number(totalCents) || 0;
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object);
+        break;
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object);
+        break;
+      case 'invoice.payment_succeeded':
+        await handleInvoicePaymentSucceeded(event.data.object);
+        break;
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object);
+        break;
+      default:
+        console.log(`[stripe-webhook] unhandled: ${event.type}`);
+    }
+    res.json({ received: true });
+  } catch (e) {
+    console.error('[stripe-webhook] handler error:', e.message);
+    res.status(500).json({ error: 'Webhook handler failed' });
+  }
+});
 
-        // Validate payment amount matches expected
-        if (paidTotal > 0 && paidTotal < expectedTotal) {
-          console.error(`[stripe-webhook] amount mismatch: paid ${paidTotal} < expected ${expectedTotal} for plan ${plan}`);
-          return res.status(400).json({ error: 'Amount mismatch' });
-        }
+async function handleCheckoutCompleted(session) {
+  const feeType = session.metadata?.fee_type;
 
-        const now = new Date();
-        const evalEnd = new Date(now.getTime() + 30 * 86400 * 1000);
+  if (feeType === 'monthly_eval') {
+    // Subscription checkout — create eval account
+    const userId = Number(session.metadata.userId || session.metadata.user_id);
+    const plan = session.metadata.plan;
+    const referralCode = session.metadata.referralCode;
+    if (!userId || !plan || !PLANS[plan]) return;
 
-        const account = await dbInsert('accounts', {
-          user_id: Number(userId),
+    const planInfo = PLANS[plan];
+
+    // Idempotency: check if account already exists for this subscription
+    if (session.subscription) {
+      const existingAccts = await dbSelect('accounts', { user_id: userId });
+      const dup = existingAccts.find(a => a.stripe_subscription_id === session.subscription);
+      if (dup) { console.log(`[stripe] account already exists for sub ${session.subscription}, skipping`); return; }
+    }
+
+    const now = new Date();
+    const evalEnd = new Date(now.getTime() + 30 * 86400 * 1000);
+
+    const account = await dbInsert('accounts', {
+      user_id: userId,
+      plan,
+      size: planInfo.size,
+      balance: planInfo.size,
+      high_water: planInfo.size,
+      status: 'eval',
+      state: 'eval_active',
+      phase: 'eval',
+      profit_target_pct: PROFIT_TARGET,
+      max_loss_pct: MAX_LOSS,
+      stripe_subscription_id: session.subscription || null,
+      stripe_session_id: session.id,
+      subscription_status: 'active',
+      subscription_started_at: now.toISOString(),
+      eval_started_at: now.toISOString(),
+      eval_ends_at: evalEnd.toISOString(),
+    });
+
+    if (session.customer) {
+      await dbUpdate('users', { id: userId }, { stripe_customer_id: session.customer });
+    }
+
+    await dbInsert('payments', {
+      user_id: userId,
+      account_id: account.id,
+      stripe_session_id: session.id,
+      stripe_subscription_id: session.subscription,
+      plan,
+      amount_cents: planInfo.monthly_cents,
+      fee_type: 'monthly_eval',
+      status: 'completed',
+    });
+
+    // Affiliate commission on first subscription payment
+    if (referralCode) {
+      const affiliate = await dbSelectOne('affiliates', { code: referralCode });
+      if (affiliate && affiliate.user_id !== userId) {
+        const commission = Math.round(planInfo.monthly_cents * AFFILIATE_COMMISSION);
+        await dbInsert('referrals', {
+          affiliate_id: affiliate.id,
+          referrer_user_id: affiliate.user_id,
+          referred_user_id: userId,
+          payment_id: session.subscription || session.id,
           plan,
-          size: planInfo.size,
-          balance: planInfo.size,
-          high_water: planInfo.size,
-          status: 'eval',
-          phase: 'eval',
-          profit_target_pct: PROFIT_TARGET,
-          max_loss_pct: MAX_LOSS,
-          eval_fee_paid_cents: Number(evalFeeCents) || planInfo.price,
-          activation_fee_paid_cents: Number(activationFeeCents) || planInfo.activation,
-          total_paid_cents: expectedTotal,
-          eval_started_at: now.toISOString(),
-          eval_ends_at: evalEnd.toISOString(),
-          stripe_session_id: session.id,
-          stripe_payment_id: session.payment_intent,
+          total_paid_cents: planInfo.monthly_cents,
+          commission_cents: commission,
+          status: 'pending',
         });
-
-        if (session.customer) {
-          await dbUpdate('users', { id: Number(userId) }, { stripe_customer_id: session.customer });
-        }
-
-        await dbInsert('payments', {
-          user_id: Number(userId),
-          account_id: account.id,
-          stripe_session_id: session.id,
-          stripe_payment_id: session.payment_intent,
-          plan,
-          amount_cents: expectedTotal,
-          eval_fee_cents: Number(evalFeeCents) || planInfo.price,
-          activation_fee_cents: Number(activationFeeCents) || planInfo.activation,
-          status: 'completed',
+        await dbUpdate('affiliates', { id: affiliate.id }, {
+          total_referrals: (affiliate.total_referrals || 0) + 1,
+          total_earned_cents: (affiliate.total_earned_cents || 0) + commission,
+          pending_cents: (affiliate.pending_cents || 0) + commission,
         });
-
-        // ---- AFFILIATE: credit the referrer ----
-        if (referralCode) {
-          const affiliate = await dbSelectOne('affiliates', { code: referralCode });
-          if (affiliate) {
-            const totalPaid = planInfo.price + planInfo.activation;
-            const commission = Math.round(totalPaid * AFFILIATE_COMMISSION); // 10% of eval + activation
-            await dbInsert('referrals', {
-              affiliate_id: affiliate.id,
-              referrer_user_id: affiliate.user_id,
-              referred_user_id: Number(userId),
-              payment_id: session.payment_intent,
-              plan,
-              total_paid_cents: totalPaid,
-              commission_cents: commission,
-              status: 'pending',
-            });
-
-            // Update affiliate totals
-            await dbUpdate('affiliates', { id: affiliate.id }, {
-              total_referrals: (affiliate.total_referrals || 0) + 1,
-              total_earned_cents: (affiliate.total_earned_cents || 0) + commission,
-              pending_cents: (affiliate.pending_cents || 0) + commission,
-            });
-
-            console.log(`[affiliate] ${referralCode} earned $${(commission / 100).toFixed(2)} from user ${userId}`);
-          }
-        }
-
-        console.log(`[stripe] account created for user ${userId} — ${planInfo.label}`);
-      } catch (e) {
-        console.error('[stripe-webhook] account creation failed:', e.message);
+        console.log(`[affiliate] ${referralCode} earned $${(commission / 100).toFixed(2)} from user ${userId}`);
       }
+    }
+
+    console.log(`[stripe] eval account created for user ${userId} — ${planInfo.label} ($${planInfo.monthly_cents / 100}/mo)`);
+  }
+
+  else if (feeType === 'activation') {
+    // One-time activation payment — unlock funded account
+    const accountId = Number(session.metadata.account_id);
+    const account = await dbSelectOne('accounts', { id: accountId });
+    if (!account) { console.error(`[stripe] activation: account ${accountId} not found`); return; }
+
+    const state = account.state || account.status;
+    if (state !== 'passed_pending_activation') {
+      console.warn(`[stripe] activation: account ${accountId} not in passed_pending_activation state (${state})`);
+      return;
+    }
+
+    const planInfo = PLANS[account.plan] || PLANS.pro;
+    await dbUpdate('accounts', { id: accountId }, {
+      state: 'funded_active',
+      status: 'funded',
+      phase: 'funded',
+      activation_fee_paid_cents: ACTIVATION_FEE_CENTS,
+      activation_paid_at: new Date().toISOString(),
+      funded_at: new Date().toISOString(),
+      // Reset balance for funded trading
+      balance: planInfo.size,
+      pnl: 0,
+      high_water: planInfo.size,
+      payout_eligible_at: new Date(Date.now() + 14 * 86400 * 1000).toISOString(),
+    });
+
+    await dbInsert('payments', {
+      user_id: account.user_id,
+      account_id: accountId,
+      stripe_session_id: session.id,
+      plan: account.plan,
+      amount_cents: ACTIVATION_FEE_CENTS,
+      fee_type: 'activation',
+      status: 'completed',
+    });
+
+    console.log(`[stripe] account ${accountId} activated — funded trading unlocked`);
+  }
+}
+
+async function handleSubscriptionUpdated(subscription) {
+  const allAccounts = await dbSelect('accounts', {});
+  const account = allAccounts.find(a => a.stripe_subscription_id === subscription.id);
+  if (!account) return;
+
+  const updates = {
+    subscription_status: subscription.status,
+    subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+  };
+
+  // Past due → start dunning
+  if (subscription.status === 'past_due' && account.subscription_status === 'active') {
+    updates.pre_dunning_state = account.state || account.status;
+    updates.state = 'dunning';
+    updates.dunning_started_at = new Date().toISOString();
+    console.log(`[stripe] account ${account.id} entering dunning (payment failed)`);
+  }
+
+  // Active again after past_due → restore
+  if (subscription.status === 'active' && account.subscription_status === 'past_due') {
+    if ((account.state || account.status) === 'dunning') {
+      updates.state = account.pre_dunning_state || 'eval_active';
+      updates.status = account.pre_dunning_state || 'eval';
+      updates.pre_dunning_state = null;
+      updates.dunning_started_at = null;
+      console.log(`[stripe] account ${account.id} restored from dunning`);
     }
   }
 
-  res.json({ received: true });
-});
+  await dbUpdate('accounts', { id: account.id }, updates);
+}
+
+async function handleSubscriptionDeleted(subscription) {
+  const allAccounts = await dbSelect('accounts', {});
+  const account = allAccounts.find(a => a.stripe_subscription_id === subscription.id);
+  if (!account) return;
+
+  const finalState = (account.state === 'funded_active' || account.status === 'funded') ? 'funded_dead' : 'canceled';
+  await dbUpdate('accounts', { id: account.id }, {
+    subscription_status: 'canceled',
+    subscription_canceled_at: new Date().toISOString(),
+    state: finalState,
+    status: finalState === 'funded_dead' ? 'funded_dead' : 'canceled',
+  });
+  console.log(`[stripe] subscription deleted — account ${account.id} → ${finalState}`);
+}
+
+async function handleInvoicePaymentSucceeded(invoice) {
+  if (!invoice.subscription) return;
+  const allAccounts = await dbSelect('accounts', {});
+  const account = allAccounts.find(a => a.stripe_subscription_id === invoice.subscription);
+  if (!account) return;
+
+  const updates = { subscription_status: 'active' };
+
+  // Restore from dunning
+  if ((account.state || account.status) === 'dunning') {
+    updates.state = account.pre_dunning_state || 'eval_active';
+    updates.status = account.pre_dunning_state || 'eval';
+    updates.pre_dunning_state = null;
+    updates.dunning_started_at = null;
+  }
+
+  // Update period end
+  if (invoice.lines?.data?.[0]?.period?.end) {
+    updates.subscription_current_period_end = new Date(invoice.lines.data[0].period.end * 1000).toISOString();
+  }
+
+  await dbUpdate('accounts', { id: account.id }, updates);
+  console.log(`[stripe] invoice paid for account ${account.id}`);
+}
+
+async function handleInvoicePaymentFailed(invoice) {
+  if (!invoice.subscription) return;
+  const allAccounts = await dbSelect('accounts', {});
+  const account = allAccounts.find(a => a.stripe_subscription_id === invoice.subscription);
+  if (!account) return;
+
+  await dbUpdate('accounts', { id: account.id }, { subscription_status: 'past_due' });
+  console.log(`[stripe] payment failed for account ${account.id}`);
+}
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'site'), { extensions: ['html'] }));
@@ -2561,11 +2716,24 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
 
     const accounts = await dbSelect('accounts', { user_id: req.userId });
     // Find the most recent ACTIVE account (prefer verification > eval > funded)
-    const activeStatuses = ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'];
+    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live'];
     const account = accounts
-      .filter(a => activeStatuses.includes(a.status))
+      .filter(a => activeStatuses.includes(a.state || a.status))
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
     if (!account) return res.status(404).json({ error: 'no active account' });
+
+    // Subscription state gate: only allow trading in valid states
+    if (!canTrade(account)) {
+      const state = account.state || account.status;
+      const reasons = {
+        passed_pending_activation: 'Activate your funded account first. Pay the one-time $49 activation fee.',
+        dunning: 'Your subscription payment failed. Update your payment method to resume trading.',
+        breached: 'This account has been breached. Start a new eval to trade again.',
+        funded_dead: 'This funded account is permanently closed. Start a new eval.',
+        canceled: 'Your subscription is canceled. Resubscribe to trade.',
+      };
+      return res.status(403).json({ error: reasons[state] || 'Trading not available on this account.', state });
+    }
 
     // Check if account is paused
     if (account.paused_until && new Date(account.paused_until) > new Date()) {
@@ -3037,7 +3205,14 @@ app.get('/api/market/:id/full', async (req, res) => {
   }
 });
 
-// ============ STRIPE CHECKOUT ============
+// ============ STRIPE CHECKOUT — SUBSCRIPTION MODEL ============
+
+// Helper: check if user can trade on this account
+function canTrade(account) {
+  return ['eval', 'eval_active', 'verification', 'verification_active', 'funded', 'funded_active'].includes(account.state || account.status);
+}
+
+// Subscription checkout — creates recurring monthly charge
 app.post('/api/checkout', authMiddleware, async (req, res) => {
   if (!stripe) return res.status(500).json({ error: 'Payments not configured' });
 
@@ -3049,8 +3224,10 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
     const user = await dbSelectOne('users', { id: req.userId });
     if (!user) return res.status(404).json({ error: 'user not found' });
 
+    // Check for existing active account
     const existing = await dbSelect('accounts', { user_id: req.userId });
-    const active = existing.find(a => ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'].includes(a.status));
+    const activeStates = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'passed_pending_activation', 'dunning'];
+    const active = existing.find(a => activeStates.includes(a.state || a.status));
     if (active) return res.status(400).json({ error: 'You already have an active account. Complete or fail your current eval first.' });
 
     const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
@@ -3059,65 +3236,75 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
     let referralCode = null;
     if (ref && typeof ref === 'string' && ref.length >= 4) {
       const aff = await dbSelectOne('affiliates', { code: ref.toUpperCase() });
-      if (aff && aff.user_id !== req.userId) {  // can't refer yourself
+      if (aff && aff.user_id !== req.userId) {
         referralCode = ref.toUpperCase();
       }
     }
 
-    const totalCents = planInfo.price + planInfo.activation;
+    // Create or get Stripe customer
+    let stripeCustomerId = user.stripe_customer_id;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { user_id: String(req.userId) },
+      });
+      stripeCustomerId = customer.id;
+      await dbUpdate('users', { id: req.userId }, { stripe_customer_id: stripeCustomerId });
+    }
+
+    // Build line_items — use Stripe Price ID if available, else inline price_data
+    const lineItems = [];
+    if (planInfo.stripe_price_id) {
+      lineItems.push({ price: planInfo.stripe_price_id, quantity: 1 });
+    } else {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `VERDICT ${planInfo.label} Eval`,
+            description: `${planInfo.label} monthly evaluation subscription`,
+          },
+          unit_amount: planInfo.monthly_cents,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      customer_email: user.email,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `VERDICT ${planInfo.label} Eval`,
-              description: `${planInfo.label} evaluation — 6% profit target, 4% max drawdown, 30 days`,
-            },
-            unit_amount: planInfo.price,
-          },
-          quantity: 1,
-        },
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Account Activation Fee',
-              description: 'One-time activation fee — charged on all plans',
-            },
-            unit_amount: planInfo.activation,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${origin}/trade.html?paid=1`,
-      cancel_url:  `${origin}/index.html#pricing`,
-      custom_text: {
-        submit: {
-          message: 'Eval fee refundable within 24h if no trades placed. Activation fee non-refundable.',
+      mode: 'subscription',
+      customer: stripeCustomerId,
+      line_items: lineItems,
+      subscription_data: {
+        metadata: {
+          user_id: String(req.userId),
+          plan,
+          fee_type: 'monthly_eval',
+          referralCode: referralCode || '',
         },
       },
       metadata: {
         userId: String(req.userId),
         plan,
-        evalFeeCents: String(planInfo.price),
-        activationFeeCents: String(planInfo.activation),
-        totalCents: String(totalCents),
+        fee_type: 'monthly_eval',
         referralCode: referralCode || '',
       },
+      success_url: `${origin}/trade.html?subscription=success`,
+      cancel_url: `${origin}/trade.html?subscription=canceled`,
+      custom_text: {
+        submit: {
+          message: 'Cancel anytime from your account dashboard. Cancellation takes effect at end of billing period.',
+        },
+      },
+      allow_promotion_codes: true,
     });
 
     await dbInsert('payments', {
       user_id: req.userId,
       stripe_session_id: session.id,
       plan,
-      amount_cents: totalCents,
-      eval_fee_cents: planInfo.price,
-      activation_fee_cents: planInfo.activation,
+      amount_cents: planInfo.monthly_cents,
+      fee_type: 'monthly_eval',
       status: 'pending',
     });
 
@@ -3128,13 +3315,111 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
   }
 });
 
+// Activation checkout — one-time $49 payment to unlock funded account
+app.post('/api/account/:id/activate', authMiddleware, async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Payments not configured' });
+
+  try {
+    const account = await dbSelectOne('accounts', { id: Number(req.params.id) });
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+    if (account.user_id !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    const state = account.state || account.status;
+    if (state !== 'passed_pending_activation') {
+      return res.status(400).json({ error: 'Account is not eligible for activation', current_state: state });
+    }
+
+    const user = await dbSelectOne('users', { id: req.userId });
+    const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
+
+    // Build line items for activation fee
+    const lineItems = [];
+    if (ACTIVATION_STRIPE_PRICE_ID) {
+      lineItems.push({ price: ACTIVATION_STRIPE_PRICE_ID, quantity: 1 });
+    } else {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'VERDICT Funded Account Activation',
+            description: 'One-time activation fee to unlock your funded account',
+          },
+          unit_amount: ACTIVATION_FEE_CENTS,
+        },
+        quantity: 1,
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer: user.stripe_customer_id,
+      line_items: lineItems,
+      metadata: {
+        userId: String(req.userId),
+        account_id: String(account.id),
+        fee_type: 'activation',
+      },
+      success_url: `${origin}/trade.html?activation=success&account_id=${account.id}`,
+      cancel_url: `${origin}/trade.html?activation=canceled&account_id=${account.id}`,
+      custom_text: {
+        submit: {
+          message: 'One-time fee to activate your funded account. Your monthly subscription continues separately.',
+        },
+      },
+    });
+
+    res.json({ url: session.url });
+  } catch (e) {
+    console.error('[activation]', e.message);
+    res.status(500).json({ error: 'Failed to create activation checkout' });
+  }
+});
+
+// Subscription management — Stripe Customer Portal
+app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Payments not configured' });
+  try {
+    const user = await dbSelectOne('users', { id: req.userId });
+    if (!user?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
+
+    const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripe_customer_id,
+      return_url: `${origin}/trade.html?page=dashboard`,
+    });
+    res.json({ portal_url: session.url });
+  } catch (e) {
+    console.error('[portal]', e.message);
+    res.status(500).json({ error: 'Failed to create portal session' });
+  }
+});
+
+// Cancel subscription (at period end)
+app.post('/api/subscription/cancel', authMiddleware, async (req, res) => {
+  if (!stripe) return res.status(500).json({ error: 'Payments not configured' });
+  try {
+    const accounts = await dbSelect('accounts', { user_id: req.userId });
+    const activeAcct = accounts.find(a => a.stripe_subscription_id && ['eval', 'eval_active', 'verification', 'verification_active', 'funded', 'funded_active', 'passed_pending_activation'].includes(a.state || a.status));
+    if (!activeAcct?.stripe_subscription_id) return res.status(400).json({ error: 'No active subscription' });
+
+    await stripe.subscriptions.update(activeAcct.stripe_subscription_id, { cancel_at_period_end: true });
+    await dbUpdate('accounts', { id: activeAcct.id }, {
+      subscription_will_cancel_at: activeAcct.subscription_current_period_end || new Date(Date.now() + 30 * 86400 * 1000).toISOString(),
+    });
+    res.json({ success: true, will_cancel_at: activeAcct.subscription_current_period_end });
+  } catch (e) {
+    console.error('[cancel-sub]', e.message);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
 app.get('/api/plans', (req, res) => {
   const plans = Object.entries(PLANS).map(([key, val]) => ({
     id: key,
     label: val.label,
-    price: val.price / 100,
-    activation: val.activation / 100,
-    total: (val.price + val.activation) / 100,
+    monthly_price: val.monthly_cents / 100,
+    anchor_monthly_price: val.anchor_monthly_cents / 100,
+    activation_fee: ACTIVATION_FEE_CENTS / 100,
     size: val.size,
     target_pct: PROFIT_TARGET,
     verification_target_pct: VERIFICATION_TARGET,
@@ -3810,6 +4095,47 @@ async function dailyMTMUpdate() {
   }
 }
 cron.schedule('*/5 * * * *', dailyMTMUpdate); // Every 5 minutes
+
+// ============ DUNNING CRON — handle failed subscription payments ============
+async function runDunningCron() {
+  try {
+    const allAccounts = await dbSelect('accounts', {});
+    const dunningAccounts = allAccounts.filter(a => (a.state || a.status) === 'dunning');
+    const now = Date.now();
+
+    for (const account of dunningAccounts) {
+      if (!account.dunning_started_at) continue;
+      const dunningStart = new Date(account.dunning_started_at).getTime();
+      const daysSince = (now - dunningStart) / (1000 * 60 * 60 * 24);
+
+      if (daysSince >= 7) {
+        // 7 days expired — close account
+        if (account.stripe_subscription_id && stripe) {
+          try { await stripe.subscriptions.cancel(account.stripe_subscription_id); } catch (e) { console.error('[dunning] cancel sub error:', e.message); }
+        }
+        const finalState = account.pre_dunning_state === 'funded_active' || account.pre_dunning_state === 'funded' ? 'funded_dead' : 'canceled';
+        await dbUpdate('accounts', { id: account.id }, {
+          state: finalState,
+          status: finalState,
+          subscription_status: 'canceled',
+          subscription_canceled_at: new Date().toISOString(),
+          closed_reason: 'dunning_expired',
+          closed_at: new Date().toISOString(),
+        });
+        console.log(`[dunning] account ${account.id} closed after 7 days unpaid → ${finalState}`);
+      } else if (daysSince >= 3 && !account.dunning_day3_sent) {
+        await dbUpdate('accounts', { id: account.id }, { dunning_day3_sent: true });
+        console.log(`[dunning] account ${account.id} day-3 reminder`);
+      } else if (daysSince >= 6 && !account.dunning_day6_sent) {
+        await dbUpdate('accounts', { id: account.id }, { dunning_day6_sent: true });
+        console.log(`[dunning] account ${account.id} day-6 final warning`);
+      }
+    }
+  } catch (e) {
+    console.error('[dunning-cron]', e.message);
+  }
+}
+cron.schedule('0 * * * *', runDunningCron); // Every hour
 
 // ============ CATCH-ALL 404 ============
 app.use((req, res, _next) => {
