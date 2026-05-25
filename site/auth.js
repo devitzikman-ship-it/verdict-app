@@ -80,7 +80,7 @@
         password:   payload.password,
         full_name:  payload.fullName,
         plan:       qs.get('plan') || 'pro',
-        size:       Number(qs.get('size')) || 50000,
+        size:       Number(qs.get('size')) || 25000,
       });
     },
     googleOAuth() {
@@ -90,7 +90,7 @@
         email: demo,
         password: 'GoogleStub123!',
         full_name: 'Demo Trader',
-        plan: 'pro', size: 50000,
+        plan: 'pro', size: 25000,
       });
     },
   };

@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>VERDICT — Business Viability Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#08080c;color:#fff;font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.deck{display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1);height:100vh}
+.slide{min-width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px 80px;position:relative;overflow:hidden}
+.slide::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(78,139,255,0.06),transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(139,92,246,0.04),transparent 50%);pointer-events:none}
+.s-num{position:absolute;top:32px;right:40px;font-size:12px;color:#444;font-weight:700;letter-spacing:.1em}
+.s-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#4e8bff;margin-bottom:12px}
+.s-title{font-size:clamp(32px,5vw,56px);font-weight:900;line-height:1.1;margin-bottom:20px;letter-spacing:-.02em}
+.s-sub{font-size:clamp(16px,2vw,20px);color:#8b8b9e;line-height:1.6;max-width:800px;margin-bottom:32px}
+.s-grid{display:grid;gap:20px;margin-top:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.s-card{background:rgba(18,18,26,.8);border:1px solid #1e1e2a;border-radius:14px;padding:24px;position:relative;overflow:hidden}
+.s-card::after{content:'';position:absolute;inset:0;border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);pointer-events:none}
+.s-card .big{font-size:clamp(28px,4vw,42px);font-weight:900;margin-bottom:4px}
+.s-card .lbl{font-size:12px;color:#8b8b9e;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.s-card .note{font-size:12px;color:#55556a;margin-top:8px;line-height:1.5}
+.green{color:#00d4aa}
+.red{color:#ff4757}
+.blue{color:#4e8bff}
+.purple{color:#8b5cf6}
+.yellow{color:#f0b90b}
+.orange{color:#ff8c42}
+.row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #1a1a24}
+.row:last-child{border:none}
+.row .k{color:#8b8b9e;font-size:13px;flex:1}
+.row .v{font-size:14px;font-weight:700;text-align:right}
+.bar-wrap{height:8px;background:#1a1a24;border-radius:4px;margin-top:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.verdict-mark{font-size:14px;font-weight:900;letter-spacing:-.02em;color:#fff;position:absolute;top:32px;left:40px}
+.nav-dots{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10}
+.nav-dots .dot{width:8px;height:8px;border-radius:50%;background:#333;cursor:pointer;transition:all .3s}
+.nav-dots .dot.active{background:#4e8bff;width:24px;border-radius:4px}
+.nav-arr{position:fixed;top:50%;z-index:10;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid #222;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#888;font-size:18px;transition:all .2s}
+.nav-arr:hover{background:rgba(78,139,255,.15);border-color:#4e8bff;color:#fff}
+#prevBtn{left:16px;transform:translateY(-50%)}
+#nextBtn{right:16px;transform:translateY(-50%)}
+.warn-box{background:rgba(255,71,87,.06);border:1px solid rgba(255,71,87,.2);border-radius:10px;padding:16px 20px;margin-top:16px}
+.warn-box .wt{font-size:13px;font-weight:700;color:#ff4757;margin-bottom:4px}
+.warn-box .wb{font-size:12px;color:#8b8b9e;line-height:1.6}
+.ok-box{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:10px;padding:16px 20px;margin-top:16px}
+.ok-box .wt{font-size:13px;font-weight:700;color:#00d4aa;margin-bottom:4px}
+.ok-box .wb{font-size:12px;color:#8b8b9e;line-height:1.6}
+.info-box{background:rgba(78,139,255,.06);border:1px solid rgba(78,139,255,.2);border-radius:10px;padding:16px 20px;margin-top:16px}
+.info-box .wt{font-size:13px;font-weight:700;color:#4e8bff;margin-bottom:4px}
+.info-box .wb{font-size:12px;color:#8b8b9e;line-height:1.6}
+ul{list-style:none;margin-top:12px}
+ul li{padding:8px 0;border-bottom:1px solid #1a1a24;font-size:13px;color:#ccc;display:flex;gap:10px;align-items:flex-start}
+ul li::before{content:'';width:6px;height:6px;border-radius:50%;background:#4e8bff;flex-shrink:0;margin-top:6px}
+.tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+.tbl th{text-align:left;padding:8px 12px;color:#55556a;font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1e1e2a}
+.tbl td{padding:10px 12px;border-bottom:1px solid #141420}
+@media(max-width:768px){.slide{padding:40px 24px}.g2,.g3,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ===== SLIDE 1: TITLE ===== -->
+<div class="slide">
+  <span class="s-num">01 / 10</span>
+  <div class="s-tag">Business Viability Analysis</div>
+  <div class="s-title">Will VERDICT work<br>at <span class="blue">1,000 users</span>?</div>
+  <div class="s-sub">A hard look at legality, unit economics, expected pass rates, and what the P&L actually looks like when real people start trading simulated Polymarket positions.</div>
+  <div class="s-grid g3" style="margin-top:32px">
+    <div class="s-card"><div class="big blue">$49-249</div><div class="lbl">Monthly Plans</div></div>
+    <div class="s-card"><div class="big green">80/20</div><div class="lbl">Profit Split</div></div>
+    <div class="s-card"><div class="big purple">Simulated</div><div class="lbl">Execution Model</div></div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 2: HOW THE MODEL WORKS ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">02 / 10</span>
+  <div class="s-tag">The Model</div>
+  <div class="s-title">How VERDICT makes money</div>
+  <div class="s-sub">Users pay a monthly subscription for access to a simulated trading account. They trade against live Polymarket prices. If they hit the profit target, they can withdraw real money.</div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Revenue Side</div>
+      <div class="row"><span class="k">User pays monthly sub</span><span class="v green">$49-249/mo</span></div>
+      <div class="row"><span class="k">No real capital at risk</span><span class="v green">$0</span></div>
+      <div class="row"><span class="k">Recurring revenue</span><span class="v green">Monthly</span></div>
+      <div class="row"><span class="k">Affiliate brings users</span><span class="v">10% rev share</span></div>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Cost Side</div>
+      <div class="row"><span class="k">User passes eval</span><span class="v yellow">Payout owed</span></div>
+      <div class="row"><span class="k">Trader keeps 80% of profit</span><span class="v red">Variable</span></div>
+      <div class="row"><span class="k">Server / infra</span><span class="v">~$20/mo</span></div>
+      <div class="row"><span class="k">Payment processing</span><span class="v">~3%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 3: UNIT ECONOMICS ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">03 / 10</span>
+  <div class="s-tag">Unit Economics</div>
+  <div class="s-title">Revenue per 1,000 users</div>
+  <div class="s-sub">Assuming a realistic plan distribution based on prop firm industry data.</div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Plan Distribution (1,000 users)</div>
+      <table class="tbl">
+        <tr><th>Plan</th><th>Price</th><th>Users</th><th>Monthly Rev</th></tr>
+        <tr><td>Starter $1K</td><td>$49</td><td>350 (35%)</td><td class="green">$17,150</td></tr>
+        <tr><td>Standard $2.5K</td><td>$79</td><td>350 (35%)</td><td class="green">$27,650</td></tr>
+        <tr><td>Pro $5K</td><td>$149</td><td>200 (20%)</td><td class="green">$29,800</td></tr>
+        <tr><td>Elite $10K</td><td>$249</td><td>100 (10%)</td><td class="green">$24,900</td></tr>
+      </table>
+    </div>
+    <div class="s-card">
+      <div class="big green">$99,500</div>
+      <div class="lbl">Gross Monthly Revenue</div>
+      <div class="note">Before payment processing, affiliate commissions, and payouts</div>
+      <div style="margin-top:16px">
+        <div class="row"><span class="k">Stripe/processor (3%)</span><span class="v red">-$2,985</span></div>
+        <div class="row"><span class="k">Affiliate payouts (10% on ~20% of users)</span><span class="v red">-$1,990</span></div>
+        <div class="row"><span class="k">Infrastructure</span><span class="v red">-$50</span></div>
+        <div class="row"><span class="k" style="font-weight:700;color:#fff">Net before trader payouts</span><span class="v green" style="font-size:18px">$94,475</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 4: PASS RATE & PAYOUTS ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">04 / 10</span>
+  <div class="s-tag">The Critical Question</div>
+  <div class="s-title">How many users <span class="red">actually pass</span>?</div>
+  <div class="s-sub">This is what makes or breaks the business. Prediction markets are essentially binary options with ~50/50 odds. With 2% slippage on every trade, the house edge is baked in.</div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Why most users fail</div>
+      <ul>
+        <li>Need +10% to pass, but only -10% to fail (asymmetric)</li>
+        <li>2% slippage on EVERY buy and sell = 4% round-trip cost</li>
+        <li>Must trade 3+ days in 14 days (forces activity)</li>
+        <li>25% max position size prevents one lucky bet</li>
+        <li>Prediction markets are efficient - edges are rare</li>
+        <li>Most retail traders lose money (industry-wide ~75-85%)</li>
+      </ul>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Expected Pass Rates</div>
+      <div style="margin-bottom:16px">
+        <div class="row"><span class="k">Prop firm industry average</span><span class="v green">4-10%</span></div>
+        <div class="row"><span class="k">Topstep reported pass rate</span><span class="v">~6%</span></div>
+        <div class="row"><span class="k">FTMO reported pass rate</span><span class="v">~10%</span></div>
+        <div class="row"><span class="k">With 4% round-trip slippage</span><span class="v green">~5-8%</span></div>
+      </div>
+      <div class="info-box">
+        <div class="wt">Conservative estimate: 7% pass rate</div>
+        <div class="wb">70 of 1,000 users pass eval each month. This is generous - with binary outcome markets + slippage, it could be lower.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 5: PAYOUT MATH ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">05 / 10</span>
+  <div class="s-tag">Payout Exposure</div>
+  <div class="s-title">What do you <span class="yellow">owe</span> the winners?</div>
+  <div class="s-sub">When someone passes, they hit exactly 10% profit. They keep 80% of that. Here's the maximum payout per plan.</div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Max Payout Per Passed User</div>
+      <table class="tbl">
+        <tr><th>Plan</th><th>Acct Size</th><th>10% Profit</th><th>80% Split</th></tr>
+        <tr><td>Starter</td><td>$1,000</td><td>$100</td><td class="red">$80</td></tr>
+        <tr><td>Standard</td><td>$2,500</td><td>$250</td><td class="red">$200</td></tr>
+        <tr><td>Pro</td><td>$5,000</td><td>$500</td><td class="red">$400</td></tr>
+        <tr><td>Elite</td><td>$10,000</td><td>$1,000</td><td class="red">$800</td></tr>
+      </table>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Total Monthly Payouts @ 7% Pass Rate</div>
+      <table class="tbl">
+        <tr><th>Plan</th><th>Passers</th><th>Payout Each</th><th>Total</th></tr>
+        <tr><td>Starter</td><td>25</td><td>$80</td><td class="red">$2,000</td></tr>
+        <tr><td>Standard</td><td>25</td><td>$200</td><td class="red">$5,000</td></tr>
+        <tr><td>Pro</td><td>14</td><td>$400</td><td class="red">$5,600</td></tr>
+        <tr><td>Elite</td><td>7</td><td>$800</td><td class="red">$5,600</td></tr>
+      </table>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a2a3a">
+        <div class="row"><span class="k" style="font-weight:700;color:#fff">Total monthly payouts</span><span class="v red" style="font-size:18px">$18,200</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 6: NET P&L ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">06 / 10</span>
+  <div class="s-tag">Bottom Line</div>
+  <div class="s-title">Net profit at <span class="green">1,000 users</span></div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Monthly P&L</div>
+      <div class="row"><span class="k">Gross subscription revenue</span><span class="v green">+$99,500</span></div>
+      <div class="row"><span class="k">Payment processing (3%)</span><span class="v red">-$2,985</span></div>
+      <div class="row"><span class="k">Affiliate commissions</span><span class="v red">-$1,990</span></div>
+      <div class="row"><span class="k">Trader payouts (7% pass)</span><span class="v red">-$18,200</span></div>
+      <div class="row"><span class="k">Infrastructure</span><span class="v red">-$50</span></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:2px solid #2a2a3a">
+        <div class="row"><span class="k" style="font-weight:900;color:#fff;font-size:16px">NET MONTHLY PROFIT</span><span class="v green" style="font-size:24px">$76,275</span></div>
+        <div class="row"><span class="k" style="font-weight:700;color:#fff">NET ANNUAL PROFIT</span><span class="v green" style="font-size:18px">$915,300</span></div>
+        <div class="row"><span class="k">Profit margin</span><span class="v green">76.7%</span></div>
+      </div>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Sensitivity: What if pass rate is higher?</div>
+      <table class="tbl">
+        <tr><th>Pass Rate</th><th>Payouts</th><th>Net Profit</th><th>Margin</th></tr>
+        <tr><td>5%</td><td class="red">$13,000</td><td class="green">$81,475</td><td>81.9%</td></tr>
+        <tr><td class="yellow">7%</td><td class="red">$18,200</td><td class="green">$76,275</td><td>76.7%</td></tr>
+        <tr><td>10%</td><td class="red">$26,000</td><td class="green">$68,475</td><td>68.8%</td></tr>
+        <tr><td>15%</td><td class="red">$39,000</td><td class="green">$55,475</td><td>55.8%</td></tr>
+        <tr><td class="red">20%</td><td class="red">$52,000</td><td class="green">$42,475</td><td>42.7%</td></tr>
+        <tr><td class="red">30%</td><td class="red">$78,000</td><td class="green">$16,475</td><td>16.6%</td></tr>
+      </table>
+      <div class="ok-box">
+        <div class="wt">Even at 30% pass rate, you're still profitable</div>
+        <div class="wb">The subscription model means you collect revenue regardless. Only extreme pass rates (40%+) would make this unprofitable.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 7: THE SLIPPAGE EDGE ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">07 / 10</span>
+  <div class="s-tag">Your Built-In Edge</div>
+  <div class="s-title">The 2% slippage is your <span class="purple">house edge</span></div>
+  <div class="s-sub">Every time a user buys, they pay 2% above market. Every time they sell, they receive 2% below market. This is the engine that keeps pass rates low.</div>
+  <div class="s-grid g3">
+    <div class="s-card">
+      <div class="big yellow">4%</div>
+      <div class="lbl">Round-Trip Cost</div>
+      <div class="note">User buys at +2%, sells at -2%. Even if the price doesn't move, they lose 4% on every position.</div>
+    </div>
+    <div class="s-card">
+      <div class="big blue">2.5 trades</div>
+      <div class="lbl">Trades to Hit Max Loss</div>
+      <div class="note">A user going all-in each time (25% position cap) loses ~4% per round trip. After ~2.5 full cycles, they've lost 10% and fail.</div>
+    </div>
+    <div class="s-card">
+      <div class="big green">14 days</div>
+      <div class="lbl">Time Pressure</div>
+      <div class="note">Users must hit +10% in 14 days. Short timeline + slippage + forced 3-day minimum trading = most expire or bust.</div>
+    </div>
+  </div>
+  <div class="info-box" style="max-width:800px">
+    <div class="wt">Comparison: Casino house edge</div>
+    <div class="wb">Blackjack: 0.5% edge. Roulette: 2.7%. Slots: 5-15%. Your 4% round-trip slippage puts VERDICT's house edge between roulette and slots, but with the perception of skill-based trading. This is exactly how prop firms work.</div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 8: LEGALITY ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">08 / 10</span>
+  <div class="s-tag">Legal Analysis</div>
+  <div class="s-title">Is this <span class="yellow">legal</span>?</div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px;color:#00d4aa">Why it should be fine</div>
+      <ul>
+        <li><b>No real trading occurs.</b> You are not a broker, exchange, or market maker. Trades are simulated against live price feeds.</li>
+        <li><b>Subscription model.</b> Users pay for access to a platform/tool, like a trading simulator with prizes. Similar to DraftKings for trading.</li>
+        <li><b>Precedent exists.</b> Topstep, FTMO, Apex Trader, MyForexFunds all operate this model. Combined they do $500M+/year.</li>
+        <li><b>Not securities.</b> You're not selling investment contracts. Users buy access to a skill evaluation.</li>
+        <li><b>Payouts are prizes.</b> Framed as performance bonuses, not investment returns. Similar to contest winnings.</li>
+      </ul>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px;color:#ff4757">Risks to watch</div>
+      <ul>
+        <li><b>Gambling classification.</b> Some states/countries may classify this as gambling since outcomes are binary. Prediction markets themselves sit in a legal gray area in the US.</li>
+        <li><b>MyForexFunds precedent.</b> CFTC shut down MFF in Aug 2023 for fraud (misrepresenting how capital was used). You must be transparent that trades are simulated.</li>
+        <li><b>State-by-state rules.</b> Some US states have stricter contest/sweepstakes laws. May need to exclude certain states.</li>
+        <li><b>Polymarket's own status.</b> Polymarket paid a $1.4M CFTC settlement. If they face more issues, your price feed could be affected.</li>
+        <li><b>Tax reporting.</b> Payouts over $600/year require 1099 reporting to the IRS.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="warn-box" style="max-width:800px">
+    <div class="wt">Recommendation</div>
+    <div class="wb">Get a lawyer who specializes in fintech/gaming to review your Terms of Service. Budget $2-5K for this. The key legal points: (1) clearly state trades are simulated, (2) frame payouts as performance bonuses, (3) add arbitration clause, (4) exclude restricted jurisdictions. This is NOT optional before launch.</div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 9: RISKS ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">09 / 10</span>
+  <div class="s-tag">Risk Matrix</div>
+  <div class="s-title">What could <span class="red">go wrong</span></div>
+  <div class="s-grid g2">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Operational Risks</div>
+      <div class="row"><span class="k">Polymarket API goes down</span><span class="v yellow">Medium</span></div>
+      <div class="row"><span class="k">Users discover price manipulation exploit</span><span class="v red">High Impact</span></div>
+      <div class="row"><span class="k">Payment processor drops you</span><span class="v yellow">Medium</span></div>
+      <div class="row"><span class="k">Chargebacks from unhappy losers</span><span class="v yellow">Medium</span></div>
+      <div class="row"><span class="k">Payout fraud (fake identity, colluding accts)</span><span class="v yellow">Medium</span></div>
+      <div class="note" style="margin-top:12px"><b>Mitigation:</b> KYC for payouts over $100. Chargeback protection. Multiple payment processor backups. Cache + fallback if PM API fails.</div>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px">Business Risks</div>
+      <div class="row"><span class="k">Can't get 1,000 users</span><span class="v yellow">Medium</span></div>
+      <div class="row"><span class="k">High churn (users quit after failing)</span><span class="v green">Actually good</span></div>
+      <div class="row"><span class="k">Competitors copy the model</span><span class="v yellow">Medium</span></div>
+      <div class="row"><span class="k">Regulatory shutdown</span><span class="v red">Low prob / High impact</span></div>
+      <div class="row"><span class="k">Reputational damage (called a scam)</span><span class="v yellow">Medium</span></div>
+      <div class="note" style="margin-top:12px"><b>Key insight:</b> Churn is actually good for revenue. A user who fails and re-subscribes to try again = recurring revenue with zero payout. Most prop firm revenue comes from repeat failures.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 10: VERDICT ===== -->
+<div class="slide">
+  <span class="verdict-mark">VERDICT</span>
+  <span class="s-num">10 / 10</span>
+  <div class="s-tag">The Verdict</div>
+  <div class="s-title">Yes, it works.<br><span class="green">Here's the math.</span></div>
+  <div class="s-grid g4" style="margin-top:20px">
+    <div class="s-card" style="text-align:center">
+      <div class="big green">$76K</div>
+      <div class="lbl">Monthly Net @ 1K Users</div>
+    </div>
+    <div class="s-card" style="text-align:center">
+      <div class="big green">77%</div>
+      <div class="lbl">Profit Margin</div>
+    </div>
+    <div class="s-card" style="text-align:center">
+      <div class="big blue">~7%</div>
+      <div class="lbl">Expected Pass Rate</div>
+    </div>
+    <div class="s-card" style="text-align:center">
+      <div class="big purple">$0</div>
+      <div class="lbl">Capital At Risk</div>
+    </div>
+  </div>
+  <div class="s-grid g2" style="margin-top:20px">
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px;color:#00d4aa">Before you launch - must do</div>
+      <ul>
+        <li><b>Get a fintech/gaming lawyer</b> ($2-5K) for ToS and jurisdiction review</li>
+        <li><b>Set up payment processing</b> (Stripe, Checkout.com, or Nuvei)</li>
+        <li><b>KYC for payouts</b> - identity verification before any withdrawal</li>
+        <li><b>Add Supabase columns</b> (trading_days, last_trade_day) so eval actually works</li>
+        <li><b>Terms of Service</b> must clearly state: simulated trading, not a broker, performance bonuses not investment returns</li>
+      </ul>
+    </div>
+    <div class="s-card">
+      <div class="lbl" style="margin-bottom:12px;color:#4e8bff">Growth playbook</div>
+      <ul>
+        <li><b>Affiliate program</b> is already built (10% rev share). Push this hard - it's how Topstep scaled.</li>
+        <li><b>Discord/Twitter</b> community. Show leaderboards, winning payouts. Social proof is everything.</li>
+        <li><b>Content marketing.</b> "How I passed the VERDICT eval" YouTube/TikTok content.</li>
+        <li><b>Breakeven at ~130 users</b> (assuming avg $99/mo sub). Very achievable.</li>
+        <li><b>First target: 500 users by month 3.</b> That's $37K/mo net profit.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</div><!-- end deck -->
+
+<!-- Navigation -->
+<div class="nav-dots" id="dots"></div>
+<button class="nav-arr" id="prevBtn">&larr;</button>
+<button class="nav-arr" id="nextBtn">&rarr;</button>
+
+<script>
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const dots=document.getElementById('dots');
+let cur=0;
+
+// Build dots
+slides.forEach((_,i)=>{
+  const d=document.createElement('div');
+  d.className='dot'+(i===0?' active':'');
+  d.onclick=()=>go(i);
+  dots.appendChild(d);
+});
+
+function go(n){
+  cur=Math.max(0,Math.min(slides.length-1,n));
+  deck.style.transform=`translateX(-${cur*100}vw)`;
+  dots.querySelectorAll('.dot').forEach((d,i)=>d.className='dot'+(i===cur?' active':''));
+}
+
+document.getElementById('prevBtn').onclick=()=>go(cur-1);
+document.getElementById('nextBtn').onclick=()=>go(cur+1);
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')go(cur+1);
+  if(e.key==='ArrowLeft')go(cur-1);
+});
+
+// Swipe support
+let sx=0;
+document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>50){dx<0?go(cur+1):go(cur-1)}
+});
+</script>
+</body>
+</html>

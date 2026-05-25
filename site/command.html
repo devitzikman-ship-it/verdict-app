@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VERDICT — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06060a;--bg2:#0c0c14;--bg3:#12121c;--bg4:#1a1a28;
+  --border:#1e1e2e;--border2:#2a2a3e;
+  --text:#f0f0f5;--text2:#a0a0b8;--text3:#6b6b80;
+  --accent:#4e8bff;--accent2:#6ea0ff;
+  --green:#00d4aa;--green-bg:rgba(0,212,170,0.08);
+  --red:#ff4757;--red-bg:rgba(255,71,87,0.08);
+  --yellow:#ffa940;--yellow-bg:rgba(255,169,64,0.08);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.08);
+  --r:10px;--r-lg:14px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}}
+
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-logo{font-size:18px;font-weight:900;letter-spacing:-0.3px;padding:8px 12px;margin-bottom:20px;color:var(--accent)}
+.sb-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);padding:16px 12px 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.active{background:var(--accent);background:linear-gradient(135deg,var(--accent),#6366f1);color:#fff;font-weight:600}
+.sb-item .icon{width:18px;text-align:center;font-size:14px}
+.sb-badge{margin-left:auto;font-size:10px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:2px 6px;min-width:18px;text-align:center}
+
+/* Main */
+.main{padding:32px 40px;max-width:1200px}
+@media(max-width:900px){.main{padding:20px 16px}}
+.page-header{margin-bottom:32px}
+.page-title{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.page-sub{color:var(--text2);font-size:13px;margin-top:6px}
+.greeting{font-size:14px;color:var(--text2);margin-bottom:4px}
+.greeting b{color:var(--text)}
+
+/* Cards */
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;position:relative;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3)}
+.card-icon{font-size:16px}
+.card-metric{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.card-label{font-size:11px;color:var(--text3)}
+.metric-green{color:var(--green)}
+.metric-red{color:var(--red)}
+.metric-yellow{color:var(--yellow)}
+
+/* Progress */
+.progress-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,.2,.2,1)}
+.pf-green{background:linear-gradient(90deg,var(--green),#00e6b8)}
+.pf-accent{background:linear-gradient(90deg,var(--accent),#8b5cf6)}
+.pf-yellow{background:linear-gradient(90deg,var(--yellow),#f59e0b)}
+
+/* Tasks */
+.task-list{display:flex;flex-direction:column;gap:8px}
+.task-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);font-size:12px;transition:all .15s}
+.task-item:hover{border-color:var(--border2)}
+.task-check{width:18px;height:18px;border:2px solid var(--border2);border-radius:50%;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.task-check:hover{border-color:var(--accent)}
+.task-check.done{background:var(--green);border-color:var(--green)}
+.task-check.done::after{content:'';width:6px;height:6px;background:#fff;border-radius:50%}
+.task-text{flex:1;color:var(--text2)}
+.task-text.done{text-decoration:line-through;opacity:.5}
+.task-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-radius:4px}
+.tag-urgent{background:var(--red-bg);color:var(--red)}
+.tag-marketing{background:var(--purple-bg);color:var(--purple)}
+.tag-product{background:var(--green-bg);color:var(--green)}
+.tag-infra{background:var(--yellow-bg);color:var(--yellow)}
+
+/* AI Agent */
+.agent-card{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--border2);border-radius:var(--r-lg);padding:20px;position:relative;overflow:hidden}
+.agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--purple),var(--green))}
+.agent-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.agent-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.agent-name{font-size:13px;font-weight:700}
+.agent-role{font-size:11px;color:var(--text3)}
+.agent-msg{font-size:12px;color:var(--text2);line-height:1.5;padding:12px;background:var(--bg);border-radius:var(--r);margin-top:10px}
+.agent-input{display:flex;gap:8px;margin-top:12px}
+.agent-input input{flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:var(--r);outline:none;font-family:inherit}
+.agent-input input:focus{border-color:var(--accent)}
+.agent-input button{padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:12px;padding-left:20px;border-left:2px solid var(--border)}
+.tl-item{position:relative;padding-left:16px}
+.tl-item::before{content:'';position:absolute;left:-25px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--bg3);border:2px solid var(--border2)}
+.tl-item.done::before{background:var(--green);border-color:var(--green)}
+.tl-item.active::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(78,139,255,.4)}
+.tl-title{font-size:12px;font-weight:600}
+.tl-meta{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* Stat Row */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-key{font-size:12px;color:var(--text2)}
+.stat-val{font-size:12px;font-weight:700}
+
+/* Quick Actions */
+.qa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.qa-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);cursor:pointer;transition:all .15s;text-decoration:none;color:var(--text2)}
+.qa-btn:hover{background:var(--bg3);border-color:var(--accent);color:var(--text);transform:translateY(-2px)}
+.qa-btn .qa-icon{font-size:20px}
+.qa-btn .qa-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+
+/* Section */
+.section-gap{margin-top:32px}
+.section-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title .st-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* Hide inactive pages */
+.page{display:none}
+.page.active{display:block}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-logo">COMMAND CENTER</div>
+    <div class="sb-item active" data-page="overview"><span class="icon">⚡</span> Overview</div>
+    <div class="sb-item" data-page="goals"><span class="icon">🎯</span> Goals & KPIs</div>
+    <div class="sb-item" data-page="tasks"><span class="icon">✅</span> Action Items <span class="sb-badge" id="taskBadge">0</span></div>
+    <div class="sb-section">AI Agents</div>
+    <div class="sb-item" data-page="agent-product"><span class="icon">🛠</span> Product Agent</div>
+    <div class="sb-item" data-page="agent-marketing"><span class="icon">📣</span> Marketing Agent</div>
+    <div class="sb-item" data-page="agent-growth"><span class="icon">📈</span> Growth Agent</div>
+    <div class="sb-item" data-page="agent-ops"><span class="icon">⚙️</span> Ops Agent</div>
+    <div class="sb-section">Business</div>
+    <div class="sb-item" data-page="revenue"><span class="icon">💰</span> Revenue</div>
+    <div class="sb-item" data-page="roadmap"><span class="icon">🗺</span> Roadmap</div>
+    <div class="sb-item" onclick="window.location='trade.html'"><span class="icon">📊</span> Trading App</div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ===== OVERVIEW PAGE ===== -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <div class="greeting">Good <span id="timeGreet">morning</span>, <b>Devin</b></div>
+        <div class="page-title">Command Center</div>
+        <div class="page-sub">Your daily pulse on VERDICT. Focus on what moves the needle.</div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-4">
+        <div class="card">
+          <div class="card-head"><span class="card-title">MRR</span><span class="card-icon">💰</span></div>
+          <div class="card-metric metric-green" id="kpiMrr">$0</div>
+          <div class="card-label">Target: $10K by Aug</div>
+          <div class="progress-bar"><div class="progress-fill pf-green" id="mrrBar" style="width:0%"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Users</span><span class="card-icon">👥</span></div>
+          <div class="card-metric" id="kpiUsers">0</div>
+          <div class="card-label">Signups this month</div>
+          <div class="progress-bar"><div class="progress-fill pf-accent" id="usersBar" style="width:0%"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Challenge Pass Rate</span><span class="card-icon">🎯</span></div>
+          <div class="card-metric metric-yellow" id="kpiPassRate">0%</div>
+          <div class="card-label">Target: 15-20%</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Live Accounts</span><span class="card-icon">🔥</span></div>
+          <div class="card-metric" id="kpiLive">0</div>
+          <div class="card-label">Funded & trading</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-gap">
+        <div class="section-title"><span class="st-dot"></span> Quick Actions</div>
+        <div class="qa-grid">
+          <a class="qa-btn" href="trade.html" target="_blank"><span class="qa-icon">📊</span><span class="qa-label">Open App</span></a>
+          <div class="qa-btn" onclick="showPage('agent-marketing')"><span class="qa-icon">📣</span><span class="qa-label">Marketing</span></div>
+          <div class="qa-btn" onclick="showPage('tasks')"><span class="qa-icon">✅</span><span class="qa-label">Tasks</span></div>
+          <div class="qa-btn" onclick="showPage('roadmap')"><span class="qa-icon">🗺</span><span class="qa-label">Roadmap</span></div>
+          <a class="qa-btn" href="https://fly.io/apps" target="_blank"><span class="qa-icon">🚀</span><span class="qa-label">Fly.io</span></a>
+          <a class="qa-btn" href="https://dashboard.stripe.com" target="_blank"><span class="qa-icon">💳</span><span class="qa-label">Stripe</span></a>
+        </div>
+      </div>
+
+      <!-- Today's Focus -->
+      <div class="section-gap">
+        <div class="section-title"><span class="st-dot"></span> Today's Focus</div>
+        <div class="grid grid-2">
+          <div class="agent-card">
+            <div class="agent-head">
+              <div class="agent-dot"></div>
+              <div><div class="agent-name">Product AI</div><div class="agent-role">Prioritizing your next moves</div></div>
+            </div>
+            <div class="agent-msg" id="productAdvice">
+              <b>Top priority:</b> The trading UX needs to feel like an addiction, not a dashboard. Users should open the app and immediately feel the urge to pick. Think PrizePicks, not Bloomberg. Build the pick-slip experience — tap-to-add, running total, lock-in button with haptic feedback.
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-head">
+              <div class="agent-dot"></div>
+              <div><div class="agent-name">Marketing AI</div><div class="agent-role">Growth strategy</div></div>
+            </div>
+            <div class="agent-msg" id="marketingAdvice">
+              <b>Channel focus:</b> TikTok/Reels of pick results ("I just turned $49/mo into $800 profit on VERDICT"). Sports betting Twitter/X with daily picks content. DM sports cappers with affiliate offer (10% recurring). Reddit r/sportsbetting, r/PrizePicks.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Path -->
+      <div class="section-gap">
+        <div class="section-title"><span class="st-dot"></span> Critical Path to $100M</div>
+        <div class="timeline" id="criticalPath">
+          <div class="tl-item done"><div class="tl-title">Build core platform (trading, auth, accounts)</div><div class="tl-meta">Completed</div></div>
+          <div class="tl-item done"><div class="tl-title">Add sports props & moneylines</div><div class="tl-meta">Completed — needs API key activation</div></div>
+          <div class="tl-item active"><div class="tl-title">Make UX addictive (pick-slip, streaks, live scoring)</div><div class="tl-meta">In progress — THIS is the product differentiator</div></div>
+          <div class="tl-item"><div class="tl-title">Get Odds API key + go live on Fly.io</div><div class="tl-meta">Blocked: sign up at the-odds-api.com, deploy</div></div>
+          <div class="tl-item"><div class="tl-title">Launch marketing (TikTok, X, Reddit)</div><div class="tl-meta">Need live product first</div></div>
+          <div class="tl-item"><div class="tl-title">First 100 paying users</div><div class="tl-meta">Target: $4,900 MRR</div></div>
+          <div class="tl-item"><div class="tl-title">First payout ($$ out the door)</div><div class="tl-meta">Proves the model, creates content</div></div>
+          <div class="tl-item"><div class="tl-title">Affiliate program live (cappers promoting)</div><div class="tl-meta">10% recurring = viral growth</div></div>
+          <div class="tl-item"><div class="tl-title">1,000 users / $50K MRR</div><div class="tl-meta">Series A territory</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== GOALS PAGE ===== -->
+    <div class="page" id="page-goals">
+      <div class="page-header">
+        <div class="page-title">Goals & KPIs</div>
+        <div class="page-sub">Track what matters. Ignore vanity metrics.</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head"><span class="card-title">30-Day Goals</span></div>
+          <div class="task-list" id="goals30">
+            <div class="stat-row"><span class="stat-key">Live on production (Fly.io)</span><span class="stat-val" style="color:var(--yellow)">Pending</span></div>
+            <div class="stat-row"><span class="stat-key">Odds API active (props live)</span><span class="stat-val" style="color:var(--yellow)">Pending</span></div>
+            <div class="stat-row"><span class="stat-key">Stripe payments working</span><span class="stat-val" style="color:var(--yellow)">Pending</span></div>
+            <div class="stat-row"><span class="stat-key">First 10 paying users</span><span class="stat-val" style="color:var(--text3)">Not started</span></div>
+            <div class="stat-row"><span class="stat-key">Addictive pick-slip UX</span><span class="stat-val" style="color:var(--accent)">Building</span></div>
+            <div class="stat-row"><span class="stat-key">Email flows (welcome, results)</span><span class="stat-val" style="color:var(--text3)">Not started</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">90-Day Goals</span></div>
+          <div class="task-list">
+            <div class="stat-row"><span class="stat-key">100 paying users</span><span class="stat-val">$4.9K+ MRR</span></div>
+            <div class="stat-row"><span class="stat-key">First payouts processed</span><span class="stat-val">Social proof</span></div>
+            <div class="stat-row"><span class="stat-key">Affiliate program launched</span><span class="stat-val">Viral loop</span></div>
+            <div class="stat-row"><span class="stat-key">Mobile-optimized (PWA)</span><span class="stat-val">60%+ mobile users</span></div>
+            <div class="stat-row"><span class="stat-key">TikTok content engine running</span><span class="stat-val">3 vids/week</span></div>
+            <div class="stat-row"><span class="stat-key">Sports capper partnerships</span><span class="stat-val">5+ affiliates</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Unit Economics</span></div>
+          <div class="task-list">
+            <div class="stat-row"><span class="stat-key">Avg subscription</span><span class="stat-val">~$99/mo</span></div>
+            <div class="stat-row"><span class="stat-key">Challenge pass rate</span><span class="stat-val">~15-20%</span></div>
+            <div class="stat-row"><span class="stat-key">Avg profit/live acct</span><span class="stat-val">~$400</span></div>
+            <div class="stat-row"><span class="stat-key">Your 20% cut</span><span class="stat-val">~$80/payout</span></div>
+            <div class="stat-row"><span class="stat-key">LTV per user</span><span class="stat-val">~$350</span></div>
+            <div class="stat-row"><span class="stat-key">CAC target</span><span class="stat-val">&lt;$50</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Revenue Model</span></div>
+          <div class="task-list">
+            <div class="stat-row"><span class="stat-key">Monthly subs</span><span class="stat-val metric-green">Recurring</span></div>
+            <div class="stat-row"><span class="stat-key">Challenge resets ($19)</span><span class="stat-val metric-green">Add-on</span></div>
+            <div class="stat-row"><span class="stat-key">Time extensions ($9)</span><span class="stat-val metric-green">Add-on</span></div>
+            <div class="stat-row"><span class="stat-key">90/10 split upgrade ($49)</span><span class="stat-val metric-green">One-time</span></div>
+            <div class="stat-row"><span class="stat-key">2% slippage (house edge)</span><span class="stat-val metric-green">Every trade</span></div>
+            <div class="stat-row"><span class="stat-key">80% who fail re-subscribe</span><span class="stat-val metric-green">Retention</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TASKS PAGE ===== -->
+    <div class="page" id="page-tasks">
+      <div class="page-header">
+        <div class="page-title">Action Items</div>
+        <div class="page-sub">What needs to happen next. Ordered by impact.</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head"><span class="card-title">This Week — Critical</span></div>
+          <div class="task-list" id="tasksCritical"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">This Week — Important</span></div>
+          <div class="task-list" id="tasksImportant"></div>
+        </div>
+      </div>
+      <div class="section-gap">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Backlog</span></div>
+          <div class="task-list" id="tasksBacklog"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AGENT: PRODUCT ===== -->
+    <div class="page" id="page-agent-product">
+      <div class="page-header">
+        <div class="page-title">🛠 Product Agent</div>
+        <div class="page-sub">Your AI product manager. Focused on making VERDICT addictive.</div>
+      </div>
+      <div class="agent-card" style="max-width:700px">
+        <div class="agent-head">
+          <div class="agent-dot"></div>
+          <div><div class="agent-name">Product AI</div><div class="agent-role">Thinking about what makes users come back...</div></div>
+        </div>
+        <div class="agent-msg" id="agentProductMsg">
+          <p><b>Current Assessment:</b></p>
+          <p style="margin-top:8px">The #1 problem right now is that opening the trading app feels like opening a financial dashboard. It should feel like opening PrizePicks — you see today's games, you see props, you tap to build a board, and you lock it in.</p>
+          <p style="margin-top:8px"><b>Immediate UX priorities:</b></p>
+          <p style="margin-top:4px">1. <b>Pick slip</b> — sticky bottom bar that shows your current picks, total cost, potential payout</p>
+          <p>2. <b>One-tap picks</b> — tap any prop/line and it goes to your slip instantly</p>
+          <p>3. <b>Live results feed</b> — show games in progress with live scores and whether your pick is winning</p>
+          <p>4. <b>Streaks & badges</b> — "3-day win streak 🔥", "7 for 7 on NBA props"</p>
+          <p>5. <b>Social proof</b> — show what others are picking in real-time</p>
+          <p style="margin-top:8px"><b>The hook:</b> "I have $5K of buying power and I just need to grow it 10%. That's only $500. I can definitely do that with a few good picks."</p>
+        </div>
+        <div class="agent-input">
+          <input type="text" id="productInput" placeholder="Ask your product agent anything..." />
+          <button onclick="agentAsk('product')">Ask</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AGENT: MARKETING ===== -->
+    <div class="page" id="page-agent-marketing">
+      <div class="page-header">
+        <div class="page-title">📣 Marketing Agent</div>
+        <div class="page-sub">Your AI CMO. Focused on getting sports bettors in the door.</div>
+      </div>
+      <div class="agent-card" style="max-width:700px">
+        <div class="agent-head">
+          <div class="agent-dot"></div>
+          <div><div class="agent-name">Marketing AI</div><div class="agent-role">Thinking about user acquisition...</div></div>
+        </div>
+        <div class="agent-msg" id="agentMarketingMsg">
+          <p><b>Target Audience:</b> Sports bettors aged 18-35 who:</p>
+          <p style="margin-top:4px">- Have good picks but no bankroll</p>
+          <p>- Are tired of losing on parlays because one leg busts</p>
+          <p>- Follow sports cappers on Twitter/TikTok</p>
+          <p>- Have used PrizePicks, Underdog, or DraftKings</p>
+          <p style="margin-top:12px"><b>Channel Strategy:</b></p>
+          <p style="margin-top:4px">1. <b>TikTok/Reels</b> — "I turned $49/mo into $800. Here's how." Screen recordings of picks hitting.</p>
+          <p>2. <b>Sports Twitter/X</b> — Daily picks content. "My VERDICT picks for tonight: Jokic over 24.5, Lakers ML." Show results next day.</p>
+          <p>3. <b>Affiliate cappers</b> — Give top sports Twitter accounts 10% recurring commission. They post their pick results from VERDICT.</p>
+          <p>4. <b>Reddit</b> — r/sportsbetting, r/PrizePicks, r/sportsbook. "Found this app that funds your picks"</p>
+          <p>5. <b>Discord communities</b> — Sports betting discords with 10K+ members</p>
+          <p style="margin-top:12px"><b>Messaging that converts:</b></p>
+          <p style="margin-top:4px">"Your picks hit. You just don't have the bankroll. We do."</p>
+          <p>"$49/mo. $5K in buying power. Keep 80% of profits."</p>
+          <p>"I've been tracking my picks for months. Finally found a way to get paid for them."</p>
+        </div>
+        <div class="agent-input">
+          <input type="text" id="marketingInput" placeholder="Ask your marketing agent..." />
+          <button onclick="agentAsk('marketing')">Ask</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AGENT: GROWTH ===== -->
+    <div class="page" id="page-agent-growth">
+      <div class="page-header">
+        <div class="page-title">📈 Growth Agent</div>
+        <div class="page-sub">Your AI growth hacker. Focused on retention and virality.</div>
+      </div>
+      <div class="agent-card" style="max-width:700px">
+        <div class="agent-head">
+          <div class="agent-dot"></div>
+          <div><div class="agent-name">Growth AI</div><div class="agent-role">Thinking about viral loops...</div></div>
+        </div>
+        <div class="agent-msg" id="agentGrowthMsg">
+          <p><b>Viral Mechanics to Build:</b></p>
+          <p style="margin-top:8px">1. <b>Share your slip</b> — After locking in picks, one-tap share to Twitter/Instagram story. Auto-generates image with your picks and odds. Next day: share results.</p>
+          <p>2. <b>Payout screenshots</b> — When someone cashes out, generate a beautiful "I just got paid $X on VERDICT" graphic they'll share.</p>
+          <p>3. <b>Affiliate link in every share</b> — Every shared slip/payout has their referral code baked in.</p>
+          <p>4. <b>Challenge streaks</b> — "Day 14: up 7.2%. 2.8% away from going live." Creates daily content.</p>
+          <p>5. <b>Leaderboard flex</b> — Top pickers get featured. Creates competition, drives engagement.</p>
+          <p style="margin-top:12px"><b>Retention hooks:</b></p>
+          <p style="margin-top:4px">- Push notification: "Lakers tip off in 30 min. Your prop picks close soon."</p>
+          <p>- Daily email: "Your picks from last night: 3/4 hit. +$180. You're 6.2% toward your profit line."</p>
+          <p>- Challenge countdown: "8 days left. You need +$280 to pass. Tonight's slate has 12 props."</p>
+        </div>
+        <div class="agent-input">
+          <input type="text" id="growthInput" placeholder="Ask your growth agent..." />
+          <button onclick="agentAsk('growth')">Ask</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AGENT: OPS ===== -->
+    <div class="page" id="page-agent-ops">
+      <div class="page-header">
+        <div class="page-title">⚙️ Ops Agent</div>
+        <div class="page-sub">Your AI COO. Infrastructure, legal, compliance, deployment.</div>
+      </div>
+      <div class="agent-card" style="max-width:700px">
+        <div class="agent-head">
+          <div class="agent-dot"></div>
+          <div><div class="agent-name">Ops AI</div><div class="agent-role">Thinking about infrastructure...</div></div>
+        </div>
+        <div class="agent-msg" id="agentOpsMsg">
+          <p><b>Infrastructure Status:</b></p>
+          <p style="margin-top:8px">- <b>Server:</b> Node.js/Express on Fly.io (not yet deployed)</p>
+          <p>- <b>Database:</b> Supabase (PostgreSQL) — not connected yet, using in-memory dev</p>
+          <p>- <b>Payments:</b> Stripe — not activated yet</p>
+          <p>- <b>Email:</b> Resend — not configured</p>
+          <p>- <b>Domain:</b> trade-verdict.com �� needs DNS pointed</p>
+          <p>- <b>Sports Data:</b> The Odds API — needs API key</p>
+          <p>- <b>Market Data:</b> Polymarket Gamma + CLOB — LIVE and working</p>
+          <p style="margin-top:12px"><b>Blockers to launch:</b></p>
+          <p style="margin-top:4px">1. Sign up for Odds API key (free tier: 500 req/mo)</p>
+          <p>2. Point DNS: A record 66.241.124.108, AAAA 2a09:8280:1::119:8866:0</p>
+          <p>3. Set Fly.io secrets: JWT_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY, ODDS_API_KEY, RESEND_API_KEY</p>
+          <p>4. Deploy: fly deploy</p>
+          <p style="margin-top:12px"><b>Security:</b> All API keys stored as Fly.io secrets (never in code). JWT auth with bcrypt. Rate limiting active.</p>
+        </div>
+        <div class="agent-input">
+          <input type="text" id="opsInput" placeholder="Ask your ops agent..." />
+          <button onclick="agentAsk('ops')">Ask</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REVENUE PAGE ===== -->
+    <div class="page" id="page-revenue">
+      <div class="page-header">
+        <div class="page-title">Revenue Model</div>
+        <div class="page-sub">How VERDICT makes money at scale.</div>
+      </div>
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Subscriptions</span><span class="card-icon">🔄</span></div>
+          <div class="card-metric metric-green">$49-249/mo</div>
+          <div class="card-label">Per user, recurring until they pass or cancel</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Slippage Edge</span><span class="card-icon">📐</span></div>
+          <div class="card-metric">2%</div>
+          <div class="card-label">Per trade (4% round-trip). Hidden but fair.</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Profit Retention</span><span class="card-icon">💎</span></div>
+          <div class="card-metric">20%</div>
+          <div class="card-label">Of live account profits on payout</div>
+        </div>
+      </div>
+      <div class="section-gap">
+        <div class="section-title"><span class="st-dot"></span> Path to $100M Valuation</div>
+        <div class="card">
+          <div class="task-list">
+            <div class="stat-row"><span class="stat-key">10K users x $99 avg sub</span><span class="stat-val metric-green">$990K MRR = $12M ARR</span></div>
+            <div class="stat-row"><span class="stat-key">At 8x ARR multiple</span><span class="stat-val metric-green">$96M valuation</span></div>
+            <div class="stat-row"><span class="stat-key">Add-ons revenue</span><span class="stat-val">+$2-3M/yr</span></div>
+            <div class="stat-row"><span class="stat-key">Slippage revenue (15% pass, trade actively)</span><span class="stat-val">+$1-2M/yr</span></div>
+            <div class="stat-row"><span class="stat-key">Profit retention (20% of payouts)</span><span class="stat-val">+$500K-1M/yr</span></div>
+            <div class="stat-row"><span class="stat-key"><b>Total potential ARR</b></span><span class="stat-val metric-green"><b>$15-17M</b></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ROADMAP PAGE ===== -->
+    <div class="page" id="page-roadmap">
+      <div class="page-header">
+        <div class="page-title">Product Roadmap</div>
+        <div class="page-sub">What gets built and when.</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Week 1 — Addictive UX + Launch</span><span class="tag-urgent" style="font-size:9px;padding:3px 6px;border-radius:4px">NOW</span></div>
+          <div class="timeline">
+            <div class="tl-item done"><div class="tl-title">Core trading engine</div></div>
+            <div class="tl-item done"><div class="tl-title">Auth (signup, login, JWT)</div></div>
+            <div class="tl-item done"><div class="tl-title">Challenge system & rules</div></div>
+            <div class="tl-item done"><div class="tl-title">Sports props & moneylines integration</div></div>
+            <div class="tl-item active"><div class="tl-title">Pick-slip UX (PrizePicks style)</div></div>
+            <div class="tl-item"><div class="tl-title">Deploy to Fly.io + DNS</div></div>
+            <div class="tl-item"><div class="tl-title">Stripe live + first subscribers</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Week 2-4 — Growth</span></div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-title">TikTok content (3 vids/week)</div></div>
+            <div class="tl-item"><div class="tl-title">Affiliate system live</div></div>
+            <div class="tl-item"><div class="tl-title">Push notifications (game alerts)</div></div>
+            <div class="tl-item"><div class="tl-title">Share your slip (social images)</div></div>
+            <div class="tl-item"><div class="tl-title">Daily email results</div></div>
+            <div class="tl-item"><div class="tl-title">First payouts processed</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Month 2-3 — Scale</span></div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-title">Mobile PWA (install to home screen)</div></div>
+            <div class="tl-item"><div class="tl-title">Live game scoring integration</div></div>
+            <div class="tl-item"><div class="tl-title">Parlay-style multi-pick boards</div></div>
+            <div class="tl-item"><div class="tl-title">Sports capper partnerships (5+)</div></div>
+            <div class="tl-item"><div class="tl-title">Referral rewards</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Month 4-6 — Dominance</span></div>
+          <div class="timeline">
+            <div class="tl-item"><div class="tl-title">Native iOS app</div></div>
+            <div class="tl-item"><div class="tl-title">Live betting (in-game props)</div></div>
+            <div class="tl-item"><div class="tl-title">Kalshi integration</div></div>
+            <div class="tl-item"><div class="tl-title">Team challenges (compete with friends)</div></div>
+            <div class="tl-item"><div class="tl-title">Raise Series A</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ===== Navigation =====
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  const item = document.querySelector(`.sb-item[data-page="${id}"]`);
+  if (item) item.classList.add('active');
+}
+document.querySelectorAll('.sb-item[data-page]').forEach(item => {
+  item.addEventListener('click', () => showPage(item.dataset.page));
+});
+
+// ===== Time Greeting =====
+const hr = new Date().getHours();
+document.getElementById('timeGreet').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+
+// ===== Tasks Data =====
+const tasks = {
+  critical: [
+    { text: 'Rebuild trade.html with pick-slip UX (PrizePicks style)', tag: 'product', done: false },
+    { text: 'Sign up for The Odds API key (the-odds-api.com)', tag: 'infra', done: false },
+    { text: 'Deploy to Fly.io (fly deploy)', tag: 'infra', done: false },
+    { text: 'Point DNS: trade-verdict.com → Fly.io', tag: 'infra', done: false },
+    { text: 'Activate Stripe (test mode → live)', tag: 'infra', done: false },
+  ],
+  important: [
+    { text: 'Create TikTok account for VERDICT', tag: 'marketing', done: false },
+    { text: 'Record first "picks of the day" video', tag: 'marketing', done: false },
+    { text: 'Set up Resend for transactional emails', tag: 'infra', done: false },
+    { text: 'Connect Supabase (replace in-memory DB)', tag: 'infra', done: false },
+    { text: 'Add live game score tracking', tag: 'product', done: false },
+    { text: 'Build "share your slip" social image generator', tag: 'product', done: false },
+  ],
+  backlog: [
+    { text: 'Push notifications for game start times', tag: 'product', done: false },
+    { text: 'Affiliate dashboard & tracking', tag: 'product', done: false },
+    { text: 'Daily email digest (pick results, P&L)', tag: 'marketing', done: false },
+    { text: 'A/B test landing page headlines', tag: 'marketing', done: false },
+    { text: 'PWA manifest for mobile install', tag: 'product', done: false },
+    { text: 'Reddit posts in r/sportsbetting, r/PrizePicks', tag: 'marketing', done: false },
+    { text: 'DM 20 sports cappers with affiliate pitch', tag: 'marketing', done: false },
+    { text: 'Terms of Service & Privacy Policy pages', tag: 'infra', done: false },
+  ]
+};
+
+function renderTasks() {
+  const tagClass = { product: 'tag-product', marketing: 'tag-marketing', infra: 'tag-infra', urgent: 'tag-urgent' };
+  const tagLabel = { product: 'Product', marketing: 'Marketing', infra: 'Infra', urgent: 'Urgent' };
+
+  ['critical', 'important', 'backlog'].forEach(group => {
+    const el = document.getElementById('tasks' + group.charAt(0).toUpperCase() + group.slice(1));
+    if (!el) return;
+    el.innerHTML = tasks[group].map((t, i) => `
+      <div class="task-item">
+        <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask('${group}',${i})"></div>
+        <span class="task-text ${t.done ? 'done' : ''}">${t.text}</span>
+        <span class="task-tag ${tagClass[t.tag] || ''}">${tagLabel[t.tag] || t.tag}</span>
+      </div>
+    `).join('');
+  });
+
+  const total = Object.values(tasks).flat().filter(t => !t.done).length;
+  document.getElementById('taskBadge').textContent = total;
+}
+
+function toggleTask(group, idx) {
+  tasks[group][idx].done = !tasks[group][idx].done;
+  // Save to localStorage
+  localStorage.setItem('verdict_tasks', JSON.stringify(tasks));
+  renderTasks();
+}
+
+// Load saved task state
+const saved = localStorage.getItem('verdict_tasks');
+if (saved) {
+  try {
+    const s = JSON.parse(saved);
+    Object.keys(s).forEach(k => { if (tasks[k]) tasks[k] = s[k]; });
+  } catch(e) {}
+}
+renderTasks();
+
+// ===== KPI Simulation (replace with real data when live) =====
+function updateKPIs() {
+  // These will connect to real APIs once live
+  const mrr = 0; // Will pull from Stripe
+  const users = 0; // Will pull from Supabase
+  const passRate = 0;
+  const live = 0;
+
+  document.getElementById('kpiMrr').textContent = '$' + mrr.toLocaleString();
+  document.getElementById('kpiUsers').textContent = users;
+  document.getElementById('kpiPassRate').textContent = passRate + '%';
+  document.getElementById('kpiLive').textContent = live;
+  document.getElementById('mrrBar').style.width = Math.min(100, (mrr / 10000) * 100) + '%';
+  document.getElementById('usersBar').style.width = Math.min(100, (users / 100) * 100) + '%';
+}
+updateKPIs();
+
+// ===== Agent Chat (placeholder for real AI integration) =====
+function agentAsk(type) {
+  const input = document.getElementById(type + 'Input');
+  const msg = document.getElementById('agent' + type.charAt(0).toUpperCase() + type.slice(1) + 'Msg');
+  if (!input.value.trim()) return;
+
+  const q = input.value.trim();
+  input.value = '';
+
+  // Show thinking state
+  const thinking = document.createElement('div');
+  thinking.style.cssText = 'margin-top:12px;font-size:11px;color:var(--text3);font-style:italic';
+  thinking.textContent = 'Thinking about: "' + q + '"...';
+  msg.parentNode.insertBefore(thinking, msg.nextSibling);
+
+  // In production, this would hit an AI endpoint
+  setTimeout(() => {
+    thinking.style.color = 'var(--text2)';
+    thinking.style.fontStyle = 'normal';
+    thinking.innerHTML = '<b>You asked:</b> ' + q + '<br><br><span style="color:var(--text3)">[Connect to Claude API for real-time AI responses. Add ANTHROPIC_API_KEY to enable.]</span>';
+  }, 1000);
+}
+
+// Enter key for agent inputs
+['product', 'marketing', 'growth', 'ops'].forEach(type => {
+  const input = document.getElementById(type + 'Input');
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') agentAsk(type); });
+});
+</script>
+</body>
+</html>
