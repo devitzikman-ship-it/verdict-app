@@ -40,7 +40,8 @@ const JWT_SECRET    = (() => {
 })();
 const JWT_EXPIRES   = '7d';
 const BCRYPT_ROUNDS = 12;
-const SLIPPAGE_PCT         = 0.02;   // 2% simulated spread on entry/exit
+const SLIPPAGE_FALLBACK    = 0.015;  // 1.5% fallback spread if orderbook unavailable
+const SLIPPAGE_MAX         = 0.05;   // 5% max effective slippage cap (safety)
 const PROFIT_TARGET        = 0.06;   // 6% profit target (eval phase)
 const VERIFICATION_TARGET  = 0.04;   // 4% profit target (verification phase)
 const MAX_LOSS             = 0.04;   // 4% static drawdown from starting balance (NOT trailing)
@@ -59,7 +60,7 @@ const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 const ODDS_SPORTS   = ['basketball_nba','football_nfl','baseball_mlb','icehockey_nhl','mma_mixed_martial_arts','soccer_epl','soccer_usa_mls'];
 
 // Affiliate config
-const AFFILIATE_COMMISSION = 0.10;  // 10% of eval fee goes to referrer
+const AFFILIATE_COMMISSION = 0.10;  // 10% of total paid (eval + activation) goes to referrer
 
 // Warn if using default JWT secret
 if (!process.env.JWT_SECRET) {
@@ -531,6 +532,18 @@ function authMiddleware(req, res, next) {
   next();
 }
 
+// Admin emails (env-configurable, comma-separated)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+
+async function adminMiddleware(req, res, next) {
+  // Requires authMiddleware to have run first (sets req.userId)
+  const user = await dbSelectOne('users', { id: req.userId });
+  if (!user || !user.is_admin) {
+    return res.status(403).json({ error: 'admin access required' });
+  }
+  next();
+}
+
 // ============ AFFILIATE HELPERS ============
 function generateAffiliateCode() {
   // 8 char alphanumeric code
@@ -845,6 +858,157 @@ async function pmFetchOrderbook(tokenId) {
     console.error('[clob-book]', e.message);
     return null;
   }
+}
+
+// ============ ORDERBOOK WALK ENGINE ============
+// Walks the ask side of the book to simulate a market buy fill
+// Returns { avgPrice, fills: [{price, size}], totalCost, slippage }
+function walkAsks(book, shares) {
+  if (!book || !book.asks || !book.asks.length) return null;
+  let remaining = shares;
+  let totalCost = 0;
+  const fills = [];
+
+  for (const level of book.asks) {
+    if (remaining <= 0) break;
+    const fillSize = Math.min(remaining, level.size);
+    totalCost += fillSize * level.price;
+    fills.push({ price: level.price, size: fillSize });
+    remaining -= fillSize;
+  }
+
+  // If orderbook doesn't have enough depth to fill the full order,
+  // fill the remainder at the worst ask price + small premium
+  if (remaining > 0) {
+    const worstPrice = Math.min(0.99, (fills.length ? fills[fills.length - 1].price : book.asks[0].price) * 1.01);
+    totalCost += remaining * worstPrice;
+    fills.push({ price: worstPrice, size: remaining });
+  }
+
+  const avgPrice = +(totalCost / shares).toFixed(6);
+  const midpoint = book.midpoint || (book.asks[0] ? book.asks[0].price : avgPrice);
+  const slippage = midpoint > 0 ? +((avgPrice - midpoint) / midpoint).toFixed(6) : 0;
+
+  return { avgPrice: +Math.min(0.99, Math.max(0.01, avgPrice)).toFixed(4), fills, totalCost: +totalCost.toFixed(4), slippage };
+}
+
+// Walks the bid side of the book to simulate a market sell fill
+// Returns { avgPrice, fills: [{price, size}], totalProceeds, slippage }
+function walkBids(book, shares) {
+  if (!book || !book.bids || !book.bids.length) return null;
+  let remaining = shares;
+  let totalProceeds = 0;
+  const fills = [];
+
+  for (const level of book.bids) {
+    if (remaining <= 0) break;
+    const fillSize = Math.min(remaining, level.size);
+    totalProceeds += fillSize * level.price;
+    fills.push({ price: level.price, size: fillSize });
+    remaining -= fillSize;
+  }
+
+  // If orderbook doesn't have enough depth, fill remainder at worst bid - small discount
+  if (remaining > 0) {
+    const worstPrice = Math.max(0.01, (fills.length ? fills[fills.length - 1].price : book.bids[0].price) * 0.99);
+    totalProceeds += remaining * worstPrice;
+    fills.push({ price: worstPrice, size: remaining });
+  }
+
+  const avgPrice = +(totalProceeds / shares).toFixed(6);
+  const midpoint = book.midpoint || (book.bids[0] ? book.bids[0].price : avgPrice);
+  const slippage = midpoint > 0 ? +((midpoint - avgPrice) / midpoint).toFixed(6) : 0;
+
+  return { avgPrice: +Math.min(0.99, Math.max(0.01, avgPrice)).toFixed(4), fills, totalProceeds: +totalProceeds.toFixed(4), slippage };
+}
+
+/**
+ * Execute a simulated market buy by walking the CLOB ask side.
+ * Falls back to midpoint + SLIPPAGE_FALLBACK if orderbook is unavailable.
+ *
+ * @param {string} tokenId  — CLOB token ID for the outcome being bought
+ * @param {number} shares   — number of shares to buy
+ * @param {number} pmPrice  — current midpoint/gamma price as fallback
+ * @returns {{ fillPrice, cost, slippage, source, fills }}
+ */
+async function executeMarketBuy(tokenId, shares, pmPrice) {
+  let book = null;
+  if (tokenId) {
+    try {
+      book = await pmFetchOrderbook(tokenId);
+    } catch (_) {}
+  }
+
+  if (book && book.asks && book.asks.length > 0) {
+    const result = walkAsks(book, shares);
+    if (result) {
+      // Cap effective slippage
+      const effectiveSlippage = Math.min(result.slippage, SLIPPAGE_MAX);
+      const cappedPrice = +(pmPrice * (1 + effectiveSlippage)).toFixed(4);
+      const finalPrice = Math.min(result.avgPrice, cappedPrice, 0.99);
+      return {
+        fillPrice: +Math.max(0.01, finalPrice).toFixed(4),
+        cost: +(shares * Math.max(0.01, finalPrice)).toFixed(2),
+        slippage: result.slippage,
+        source: 'clob_walk',
+        fills: result.fills,
+      };
+    }
+  }
+
+  // Fallback: midpoint + fallback spread
+  const fillPrice = +Math.min(0.99, Math.max(0.01, pmPrice * (1 + SLIPPAGE_FALLBACK))).toFixed(4);
+  return {
+    fillPrice,
+    cost: +(shares * fillPrice).toFixed(2),
+    slippage: SLIPPAGE_FALLBACK,
+    source: 'fallback',
+    fills: [{ price: fillPrice, size: shares }],
+  };
+}
+
+/**
+ * Execute a simulated market sell by walking the CLOB bid side.
+ * Falls back to midpoint - SLIPPAGE_FALLBACK if orderbook is unavailable.
+ *
+ * @param {string} tokenId  — CLOB token ID for the outcome being sold
+ * @param {number} shares   — number of shares to sell
+ * @param {number} pmPrice  — current midpoint/gamma price as fallback
+ * @returns {{ fillPrice, proceeds, slippage, source, fills }}
+ */
+async function executeMarketSell(tokenId, shares, pmPrice) {
+  let book = null;
+  if (tokenId) {
+    try {
+      book = await pmFetchOrderbook(tokenId);
+    } catch (_) {}
+  }
+
+  if (book && book.bids && book.bids.length > 0) {
+    const result = walkBids(book, shares);
+    if (result) {
+      const effectiveSlippage = Math.min(result.slippage, SLIPPAGE_MAX);
+      const cappedPrice = +(pmPrice * (1 - effectiveSlippage)).toFixed(4);
+      const finalPrice = Math.max(result.avgPrice, cappedPrice, 0.01);
+      return {
+        fillPrice: +Math.min(0.99, finalPrice).toFixed(4),
+        proceeds: +(shares * Math.min(0.99, finalPrice)).toFixed(2),
+        slippage: result.slippage,
+        source: 'clob_walk',
+        fills: result.fills,
+      };
+    }
+  }
+
+  // Fallback: midpoint - fallback spread
+  const fillPrice = +Math.min(0.99, Math.max(0.01, pmPrice * (1 - SLIPPAGE_FALLBACK))).toFixed(4);
+  return {
+    fillPrice,
+    proceeds: +(shares * fillPrice).toFixed(2),
+    slippage: SLIPPAGE_FALLBACK,
+    source: 'fallback',
+    fills: [{ price: fillPrice, size: shares }],
+  };
 }
 
 // Fetch recent trades for a market
@@ -1204,6 +1368,49 @@ function generateDemoPlayerProps(sport = 'basketball_nba') {
   return props;
 }
 
+// ============ PLAYER HEADSHOT RESOLVER ============
+// Uses ESPN's public athlete search API to find headshots by name + sport
+const headshotCache = new Map(); // name:sport → url (persists in memory)
+
+async function resolvePlayerHeadshot(playerName, sport) {
+  const cacheKey = `${playerName}:${sport}`;
+  if (headshotCache.has(cacheKey)) return headshotCache.get(cacheKey);
+
+  try {
+    const searchUrl = `https://site.api.espn.com/apis/common/v3/search?query=${encodeURIComponent(playerName)}&limit=1&type=player`;
+    const r = await fetch(searchUrl, { signal: AbortSignal.timeout(3000) });
+    if (!r.ok) { headshotCache.set(cacheKey, null); return null; }
+    const data = await r.json();
+
+    const items = data?.items || [];
+    const athlete = items[0];
+    if (!athlete) { headshotCache.set(cacheKey, null); return null; }
+
+    // ESPN search returns headshot directly
+    let imageUrl = null;
+    if (athlete.headshot && athlete.headshot.href) {
+      imageUrl = athlete.headshot.href;
+    } else if (athlete.id) {
+      // Construct from ESPN athlete ID + sport
+      const sportPath = sport.includes('mlb') || sport.includes('baseball') ? 'mlb'
+        : sport.includes('nfl') || sport.includes('football') ? 'nfl'
+        : sport.includes('nhl') || sport.includes('hockey') ? 'nhl'
+        : 'nba';
+      imageUrl = `https://a.espncdn.com/i/headshots/${sportPath}/players/full/${athlete.id}.png`;
+    }
+
+    headshotCache.set(cacheKey, imageUrl);
+    return imageUrl;
+  } catch (e) {
+    headshotCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+// Batch endpoint: resolve multiple player headshots at once
+// POST /api/player-headshots { players: [{ name, sport }] }
+// Returns { results: { "Name": "url" | null } }
+
 // ============ ORDER MUTEX (prevents concurrent double-spend) ============
 const orderLocks = new Map();
 function acquireOrderLock(accountId) {
@@ -1224,8 +1431,36 @@ setInterval(() => {
 
 // ============ RISK ENGINE ============
 
-function computeEquity(account) {
-  return Number(account.balance);
+async function computeEquity(account) {
+  const cashBalance = Number(account.balance);
+  // Get all open positions for this account
+  const openPositions = await dbSelect('positions', { account_id: account.id, status: 'open' });
+  if (!openPositions.length) return cashBalance;
+
+  // Sum the current mark-to-market value of all open positions
+  let positionsMTM = 0;
+  for (const pos of openPositions) {
+    try {
+      // Get current market price — check index first (instant), then fetch
+      const market = marketIndex.byId[pos.market_id] || await pmFetchMarket(pos.market_id);
+      if (!market || !market.outcomePrices) {
+        // If market lookup fails, fall back to entry cost (conservative)
+        positionsMTM += Number(pos.cost) || 0;
+        continue;
+      }
+      // Current price for the side this position holds
+      const currentPrice = (pos.side === 'YES' || pos.side === 'yes')
+        ? Number(market.outcomePrices[0])
+        : Number(market.outcomePrices[1]);
+      // MTM value = shares × current price
+      const sharesHeld = Number(pos.shares) || 0;
+      positionsMTM += sharesHeld * currentPrice;
+    } catch (e) {
+      // If market lookup fails, fall back to entry cost (conservative)
+      positionsMTM += Number(pos.cost) || 0;
+    }
+  }
+  return +(cashBalance + positionsMTM).toFixed(2);
 }
 
 // Get or create today's daily_pnl row for an account
@@ -1293,6 +1528,11 @@ async function evaluateRules(account, context = {}) {
   const phase   = account.phase || 'eval';
   const targetPct = getTargetPct(account);
 
+  // Compute equity (cash + mark-to-market of open positions)
+  // For pre-order: use equity to check if spending more cash would breach drawdown
+  // For post-close/settlement: balance is already updated, MTM reflects reality
+  const equity = await computeEquity(account);
+
   // ── 1. TIME LIMIT — eval/verification expired? ──
   if (['eval', 'challenge', 'verification'].includes(account.status) && account.eval_ends_at) {
     if (new Date(account.eval_ends_at) < new Date()) {
@@ -1300,16 +1540,18 @@ async function evaluateRules(account, context = {}) {
     }
   }
 
-  // ── 2. STATIC DRAWDOWN — balance below starting_size * (1 - 4%) ──
+  // ── 2. STATIC DRAWDOWN — equity below starting_size * (1 - 4%) ──
   const lossFloor = size * (1 - MAX_LOSS);
   if (trigger === 'pre_order') {
-    // Would this order push balance below the drawdown floor?
-    if (balance - orderCost < lossFloor) {
+    // Would this order push equity below the drawdown floor?
+    // orderCost leaves the cash balance but enters a position (MTM neutral at entry),
+    // so check if current equity minus worst-case cost falls below floor
+    if (equity - orderCost < lossFloor) {
       return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit`, action: 'reject_order' };
     }
   } else {
-    // Post-trade: has the account already blown through the floor?
-    if (balance < lossFloor) {
+    // Post-trade: has account equity blown through the floor?
+    if (equity < lossFloor) {
       return { ok: false, code: 'MAX_LOSS', msg: `Account breached ${MAX_LOSS * 100}% max drawdown`, action: 'fail' };
     }
   }
@@ -1347,8 +1589,9 @@ async function evaluateRules(account, context = {}) {
     }
   }
 
-  // ── 5. PROFIT TARGET CHECK (post-trade only) ──
-  if (trigger !== 'pre_order') {
+  // ── 5. PROFIT TARGET CHECK (post-trade only, eval/verification phases ONLY) ──
+  // Funded accounts have no profit target — they trade freely and keep 80% of profits
+  if (trigger !== 'pre_order' && (phase === 'eval' || phase === 'verification' || account.status === 'challenge')) {
     const targetBalance = size * (1 + targetPct);
     if (balance >= targetBalance) {
       // Candidate to pass — run additional checks
@@ -1421,7 +1664,9 @@ async function executePhaseTransition(account, ruleResult) {
       parent_eval_id: account.id,
       profit_target_pct: VERIFICATION_TARGET,
       max_loss_pct: MAX_LOSS,
-      activation_fee_cents: 0, // already paid on eval
+      eval_fee_paid_cents: 0,        // already paid on eval
+      activation_fee_paid_cents: 0,  // already paid on eval
+      total_paid_cents: 0,
       eval_started_at: now.toISOString(),
       eval_ends_at: evalEnd.toISOString(),
     });
@@ -1511,11 +1756,20 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { userId, plan, referralCode } = session.metadata || {};
+    const { userId, plan, referralCode, evalFeeCents, activationFeeCents, totalCents } = session.metadata || {};
 
     if (userId && plan && PLANS[plan]) {
       try {
         const planInfo = PLANS[plan];
+        const expectedTotal = planInfo.price + planInfo.activation;
+        const paidTotal = session.amount_total || Number(totalCents) || 0;
+
+        // Validate payment amount matches expected
+        if (paidTotal > 0 && paidTotal < expectedTotal) {
+          console.error(`[stripe-webhook] amount mismatch: paid ${paidTotal} < expected ${expectedTotal} for plan ${plan}`);
+          return res.status(400).json({ error: 'Amount mismatch' });
+        }
+
         const now = new Date();
         const evalEnd = new Date(now.getTime() + 30 * 86400 * 1000);
 
@@ -1529,7 +1783,9 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
           phase: 'eval',
           profit_target_pct: PROFIT_TARGET,
           max_loss_pct: MAX_LOSS,
-          activation_fee_cents: planInfo.activation,
+          eval_fee_paid_cents: Number(evalFeeCents) || planInfo.price,
+          activation_fee_paid_cents: Number(activationFeeCents) || planInfo.activation,
+          total_paid_cents: expectedTotal,
           eval_started_at: now.toISOString(),
           eval_ends_at: evalEnd.toISOString(),
           stripe_session_id: session.id,
@@ -1546,7 +1802,9 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
           stripe_session_id: session.id,
           stripe_payment_id: session.payment_intent,
           plan,
-          amount_cents: planInfo.price,
+          amount_cents: expectedTotal,
+          eval_fee_cents: Number(evalFeeCents) || planInfo.price,
+          activation_fee_cents: Number(activationFeeCents) || planInfo.activation,
           status: 'completed',
         });
 
@@ -1554,14 +1812,15 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         if (referralCode) {
           const affiliate = await dbSelectOne('affiliates', { code: referralCode });
           if (affiliate) {
-            const commission = Math.round(planInfo.price * AFFILIATE_COMMISSION); // in cents
+            const totalPaid = planInfo.price + planInfo.activation;
+            const commission = Math.round(totalPaid * AFFILIATE_COMMISSION); // 10% of eval + activation
             await dbInsert('referrals', {
               affiliate_id: affiliate.id,
               referrer_user_id: affiliate.user_id,
               referred_user_id: Number(userId),
               payment_id: session.payment_intent,
               plan,
-              eval_amount_cents: planInfo.price,
+              total_paid_cents: totalPaid,
               commission_cents: commission,
               status: 'pending',
             });
@@ -1623,8 +1882,11 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = (full_name || cleanEmail.split('@')[0]).substring(0, 100);
-    const validPlans = ['starter', 'standard', 'pro', 'elite'];
-    const cleanPlan = validPlans.includes(plan) ? plan : 'pro';
+    const validPlans = ['starter', 'standard', 'pro', 'elite', 'whale'];
+    if (plan && !validPlans.includes(plan)) {
+      return res.status(400).json({ error: `Invalid plan. Choose: ${validPlans.join(', ')}` });
+    }
+    const cleanPlan = plan || 'pro';
     const cleanSize = Math.max(5000, Math.min(100000, Number(size) || 25000));
 
     const existing = await dbSelectOne('users', { email: cleanEmail });
@@ -1641,6 +1903,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       full_name: cleanName,
       referred_by: referralCode || null,
       email_verified: false,
+      is_admin: ADMIN_EMAILS.includes(cleanEmail),
     });
 
     // Auto-generate affiliate code for new user
@@ -2040,6 +2303,39 @@ app.get('/api/props/sports', (req, res) => {
   ]);
 });
 
+// ============ PLAYER HEADSHOTS ============
+app.post('/api/player-headshots', async (req, res) => {
+  try {
+    const { players } = req.body || {};
+    if (!Array.isArray(players) || !players.length) return res.json({ results: {} });
+
+    // Limit to 30 players per request
+    const batch = players.slice(0, 30);
+    const results = {};
+
+    // Resolve in parallel (with 3 concurrency limit)
+    const chunks = [];
+    for (let i = 0; i < batch.length; i += 3) {
+      chunks.push(batch.slice(i, i + 3));
+    }
+
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(async (p) => {
+        const name = p.name || p.player || '';
+        const sport = p.sport || 'basketball_nba';
+        if (!name) return;
+        const url = await resolvePlayerHeadshot(name, sport);
+        results[name] = url;
+      }));
+    }
+
+    res.json({ results });
+  } catch (e) {
+    console.error('[headshots]', e.message);
+    res.json({ results: {} });
+  }
+});
+
 // ============ MONEYLINES (public) ============
 app.get('/api/moneylines', async (req, res) => {
   try {
@@ -2155,7 +2451,10 @@ app.get('/api/index/health', (req, res) => {
 app.get('/api/account', authMiddleware, async (req, res) => {
   try {
     const accounts = await dbSelect('accounts', { user_id: req.userId });
-    const account = accounts[0];
+    // Return the most recent active account; if none active, return most recent overall
+    const activeStatuses = ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'];
+    const sorted = accounts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const account = sorted.find(a => activeStatuses.includes(a.status)) || sorted[0] || null;
     if (!account) return res.json({ account: null, positions: [], fills: [] });
 
     const positions = await dbSelect('positions', { account_id: account.id });
@@ -2164,7 +2463,7 @@ app.get('/api/account', authMiddleware, async (req, res) => {
       limit: 50,
     });
 
-    const equity = computeEquity(account);
+    const equity = await computeEquity(account);
     const bal = Number(account.balance);
     const sz  = Number(account.size);
     const hw  = Number(account.high_water);
@@ -2203,14 +2502,30 @@ app.get('/api/account', authMiddleware, async (req, res) => {
         daily_loss_today:   dailyLoss,
         daily_loss_remaining: Math.max(0, sz * DAILY_LOSS_LIMIT - dailyLoss),
       },
-      positions: positions.map(p => ({
-        ...p,
-        shares:      Number(p.shares),
-        entry_price: Number(p.entry_price),
-        cost:        Number(p.cost),
-        exit_price:  p.exit_price != null ? Number(p.exit_price) : null,
-        pnl:         p.pnl != null ? Number(p.pnl) : null,
-      })),
+      positions: positions.map(p => {
+        const pos = {
+          ...p,
+          shares:      Number(p.shares),
+          entry_price: Number(p.entry_price),
+          cost:        Number(p.cost),
+          exit_price:  p.exit_price != null ? Number(p.exit_price) : null,
+          pnl:         p.pnl != null ? Number(p.pnl) : null,
+        };
+        // Add live MTM for open positions
+        if (p.status === 'open') {
+          const mkt = marketIndex.byId[p.market_id];
+          if (mkt && mkt.outcomePrices) {
+            const currentPrice = (p.side === 'YES' || p.side === 'yes')
+              ? Number(mkt.outcomePrices[0])
+              : Number(mkt.outcomePrices[1]);
+            const mtmValue = Number(p.shares) * currentPrice;
+            pos.current_price = currentPrice;
+            pos.mtm_value = +mtmValue.toFixed(2);
+            pos.unrealized_pnl = +(mtmValue - Number(p.cost)).toFixed(2);
+          }
+        }
+        return pos;
+      }),
       fills,
     });
   } catch (e) {
@@ -2222,17 +2537,39 @@ app.get('/api/account', authMiddleware, async (req, res) => {
 // ============ ORDER (auth + rate limited) ============
 app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
   try {
-    const { market_id, side, shares } = req.body || {};
+    // Reject multi-leg / parlay attempts — single trades only
+    if (req.body && (req.body.legs || Array.isArray(req.body.trades))) {
+      return res.status(400).json({ error: 'Multi-leg trades not supported. Place trades individually.' });
+    }
+    const { market_id, side, shares, cost_usd } = req.body || {};
     if (!market_id || typeof market_id !== 'string') return res.status(400).json({ error: 'market_id required' });
     if (!['YES', 'NO'].includes(side)) return res.status(400).json({ error: 'side must be YES or NO' });
-    const numShares = Number(shares);
-    if (!numShares || numShares <= 0 || numShares > 100000) return res.status(400).json({ error: 'shares must be 1-100000' });
+
+    // Accept either cost_usd (dollars-first, preferred) or shares (legacy)
+    let numShares;
+    let dollarInput = null;
+    if (cost_usd && Number(cost_usd) > 0) {
+      dollarInput = Number(cost_usd);
+      if (dollarInput > 100000) return res.status(400).json({ error: 'max $100,000 per trade' });
+      if (dollarInput < 1) return res.status(400).json({ error: 'minimum $1 per trade' });
+      // We'll compute shares after getting the fill price below
+      numShares = null; // computed after orderbook walk
+    } else {
+      numShares = Number(shares);
+      if (!numShares || numShares <= 0 || numShares > 100000) return res.status(400).json({ error: 'shares must be 1-100000' });
+    }
 
     const accounts = await dbSelect('accounts', { user_id: req.userId });
-    const account = accounts[0];
-    if (!account) return res.status(404).json({ error: 'no account' });
-    if (!['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'].includes(account.status)) {
-      return res.status(400).json({ error: 'account not active: ' + account.status });
+    // Find the most recent ACTIVE account (prefer verification > eval > funded)
+    const activeStatuses = ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'];
+    const account = accounts
+      .filter(a => activeStatuses.includes(a.status))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    if (!account) return res.status(404).json({ error: 'no active account' });
+
+    // Check if account is paused
+    if (account.paused_until && new Date(account.paused_until) > new Date()) {
+      return res.status(403).json({ error: `Account paused until ${new Date(account.paused_until).toLocaleString()}` });
     }
 
     // Acquire order lock to prevent double-spend from concurrent requests
@@ -2260,8 +2597,31 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
       return res.status(400).json({ error: 'invalid market price' });
     }
 
-    const fillPrice = +Math.min(0.99, Math.max(0.01, pmPrice * (1 + SLIPPAGE_PCT))).toFixed(4);
-    const cost = +(numShares * fillPrice).toFixed(2);
+    // ── ORDERBOOK WALK: get the correct token ID for the side being bought ──
+    let tokenId = null;
+    try {
+      const tokenIds = JSON.parse(market.clobTokenIds || '[]');
+      tokenId = side === 'YES' ? (tokenIds[0] || null) : (tokenIds[1] || null);
+    } catch (_) {}
+
+    // If dollars-first (cost_usd), compute shares from the dollar amount and fill price
+    if (dollarInput && !numShares) {
+      // First get the fill price by estimating shares, then adjust
+      const estShares = Math.max(1, Math.round(dollarInput / (pmPrice * 1.015)));
+      const estExecution = await executeMarketBuy(tokenId, estShares, pmPrice);
+      // Compute actual shares that dollarInput can buy at this fill price
+      numShares = +(dollarInput / estExecution.fillPrice).toFixed(4);
+      if (numShares <= 0 || numShares > 1000000) {
+        releaseOrderLock(account.id);
+        return res.status(400).json({ error: 'invalid trade amount' });
+      }
+    }
+
+    // Execute market buy via orderbook walk (or fallback)
+    const execution = await executeMarketBuy(tokenId, numShares, pmPrice);
+    const fillPrice = execution.fillPrice;
+    // If dollars-first, cap cost at the exact dollar input (don't overshoot)
+    const cost = dollarInput ? Math.min(dollarInput, execution.cost) : execution.cost;
 
     // ── PRE-ORDER RULE CHECK (evaluateRules handles time limit, drawdown, daily loss, position cap) ──
     const risk = await evaluateRules(account, { trigger: 'pre_order', orderCost: cost });
@@ -2296,9 +2656,10 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
       shares: numShares,
       price: fillPrice,
       pm_price: pmPrice,
-      slippage_pct: SLIPPAGE_PCT,
+      slippage_pct: execution.slippage,
       notional: cost,
       kind: 'entry',
+      fill_source: execution.source,
     });
 
     const acctUpdate = {
@@ -2329,7 +2690,17 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
     return res.json({
       ok: true,
       position_id: position.id,
-      fill: { price: fillPrice, pm_price: pmPrice, slippage_pct: SLIPPAGE_PCT, cost },
+      fill: {
+        price: fillPrice,
+        pm_price: pmPrice,
+        slippage: execution.slippage,
+        source: execution.source,
+        cost,
+        shares_filled: +numShares.toFixed(2),
+        payout_if_win: +(numShares * 1).toFixed(2),
+        multiplier: +(numShares / cost).toFixed(2),
+        fills: execution.fills,
+      },
       new_balance: newBalance,
     });
   } catch (e) {
@@ -2366,8 +2737,19 @@ app.post('/api/position/:id/close', authMiddleware, orderLimiter, async (req, re
     if (!market) return res.status(404).json({ error: 'market not found' });
 
     const pmPrice = position.side === 'YES' ? market.outcomePrices[0] : market.outcomePrices[1];
-    const exitPrice = +Math.min(0.99, Math.max(0.01, pmPrice * (1 - SLIPPAGE_PCT))).toFixed(4);
-    const proceeds = +(Number(position.shares) * exitPrice).toFixed(2);
+
+    // ── ORDERBOOK WALK: get the correct token ID for the side being sold ──
+    let tokenId = null;
+    try {
+      const tokenIds = JSON.parse(market.clobTokenIds || '[]');
+      tokenId = position.side === 'YES' ? (tokenIds[0] || null) : (tokenIds[1] || null);
+    } catch (_) {}
+
+    // Execute market sell via orderbook walk (or fallback)
+    const numShares = Number(position.shares);
+    const execution = await executeMarketSell(tokenId, numShares, pmPrice);
+    const exitPrice = execution.fillPrice;
+    const proceeds = execution.proceeds;
     const pnl = +(proceeds - Number(position.cost)).toFixed(2);
     const newBalance = +(Number(account.balance) + proceeds).toFixed(2);
 
@@ -2383,12 +2765,13 @@ app.post('/api/position/:id/close', authMiddleware, orderLimiter, async (req, re
       position_id: positionId,
       market_id: position.market_id,
       side: position.side,
-      shares: Number(position.shares),
+      shares: numShares,
       price: exitPrice,
       pm_price: pmPrice,
-      slippage_pct: SLIPPAGE_PCT,
+      slippage_pct: execution.slippage,
       notional: proceeds,
       kind: 'exit',
+      fill_source: execution.source,
     });
 
     const closeUpdate = {
@@ -2411,7 +2794,7 @@ app.post('/api/position/:id/close', authMiddleware, orderLimiter, async (req, re
       phaseMsg = ruleResult.msg;
     }
 
-    const response = { ok: true, exit_price: exitPrice, pnl, new_balance: newBalance };
+    const response = { ok: true, exit_price: exitPrice, pnl, new_balance: newBalance, fill: { price: exitPrice, pm_price: pmPrice, slippage: execution.slippage, source: execution.source, proceeds, fills: execution.fills } };
     if (phaseMsg) response.phase_msg = phaseMsg;
     if (ruleResult.code === 'TARGET_HIT_WAITING') response.phase_msg = ruleResult.msg;
     return res.json(response);
@@ -2449,7 +2832,9 @@ app.post('/api/account/test', authMiddleware, async (req, res) => {
       phase: 'eval',
       profit_target_pct: PROFIT_TARGET,
       max_loss_pct: MAX_LOSS,
-      activation_fee_cents: planInfo.activation,
+      eval_fee_paid_cents: planInfo.price,
+      activation_fee_paid_cents: planInfo.activation,
+      total_paid_cents: planInfo.price + planInfo.activation,
       eval_started_at: now.toISOString(),
       eval_ends_at: evalEnd.toISOString(),
     });
@@ -2524,6 +2909,47 @@ app.get('/api/market/:id/book', async (req, res) => {
   } catch (e) {
     console.error('[orderbook]', e.message);
     res.status(500).json({ error: 'failed to fetch orderbook' });
+  }
+});
+
+// ============ FILL PREVIEW (shows expected fill price before order) ============
+app.get('/api/market/:id/fill-preview', async (req, res) => {
+  try {
+    const market = marketIndex.byId[req.params.id] || await pmFetchMarket(req.params.id);
+    if (!market) return res.status(404).json({ error: 'market not found' });
+
+    const side = (req.query.side || 'YES').toUpperCase();
+    const shares = Math.min(100000, Math.max(1, Number(req.query.shares) || 100));
+    const action = (req.query.action || 'buy').toLowerCase(); // buy or sell
+
+    let tokenIds = [];
+    try { tokenIds = JSON.parse(market.clobTokenIds || '[]'); } catch (_) {}
+    const tokenId = side === 'YES' ? (tokenIds[0] || null) : (tokenIds[1] || null);
+    const pmPrice = side === 'YES' ? market.outcomePrices[0] : market.outcomePrices[1];
+
+    let preview;
+    if (action === 'sell') {
+      preview = await executeMarketSell(tokenId, shares, pmPrice);
+    } else {
+      preview = await executeMarketBuy(tokenId, shares, pmPrice);
+    }
+
+    res.json({
+      side,
+      shares,
+      action,
+      midpoint: pmPrice,
+      fill_price: preview.fillPrice,
+      total: action === 'sell' ? preview.proceeds : preview.cost,
+      slippage: preview.slippage,
+      slippage_pct: +(preview.slippage * 100).toFixed(3),
+      source: preview.source,
+      depth: preview.fills.length,
+      fills: preview.fills.slice(0, 5), // top 5 levels
+    });
+  } catch (e) {
+    console.error('[fill-preview]', e.message);
+    res.status(500).json({ error: 'failed to compute fill preview' });
   }
 });
 
@@ -2638,27 +3064,49 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
       }
     }
 
+    const totalCents = planInfo.price + planInfo.activation;
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: user.email,
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `VERDICT ${planInfo.label} Challenge`,
-            description: `${planInfo.label} eval — 6% profit target, 4% max drawdown, 20% position cap, 80/20 split`,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `VERDICT ${planInfo.label} Eval`,
+              description: `${planInfo.label} evaluation — 6% profit target, 4% max drawdown, 30 days`,
+            },
+            unit_amount: planInfo.price,
           },
-          unit_amount: planInfo.price,
-          recurring: { interval: 'month' },
+          quantity: 1,
         },
-        quantity: 1,
-      }],
-      mode: 'subscription',
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Account Activation Fee',
+              description: 'One-time activation fee — charged on all plans',
+            },
+            unit_amount: planInfo.activation,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
       success_url: `${origin}/trade.html?paid=1`,
       cancel_url:  `${origin}/index.html#pricing`,
+      custom_text: {
+        submit: {
+          message: 'Eval fee refundable within 24h if no trades placed. Activation fee non-refundable.',
+        },
+      },
       metadata: {
         userId: String(req.userId),
         plan,
+        evalFeeCents: String(planInfo.price),
+        activationFeeCents: String(planInfo.activation),
+        totalCents: String(totalCents),
         referralCode: referralCode || '',
       },
     });
@@ -2667,7 +3115,9 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
       user_id: req.userId,
       stripe_session_id: session.id,
       plan,
-      amount_cents: planInfo.price,
+      amount_cents: totalCents,
+      eval_fee_cents: planInfo.price,
+      activation_fee_cents: planInfo.activation,
       status: 'pending',
     });
 
@@ -2919,12 +3369,275 @@ app.get('/api/payouts', authMiddleware, async (req, res) => {
   }
 });
 
+// ============ ADMIN METRICS ============
+app.get('/api/admin/metrics', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const allUsers    = await dbSelect('users', {});
+    const allAccounts = await dbSelect('accounts', {});
+    const allPayments = await dbSelect('payments', {});
+    const allPayouts  = await dbSelect('payout_requests', {});
+
+    const totalUsers     = allUsers.length;
+    const totalAccounts  = allAccounts.length;
+    const activeAccounts = allAccounts.filter(a => ['eval','verification','funded','live'].includes(a.status)).length;
+    const passedAccounts = allAccounts.filter(a => a.status === 'passed' || a.status === 'live' || a.phase === 'funded').length;
+    const failedAccounts = allAccounts.filter(a => a.status === 'failed').length;
+    const completedEvals = passedAccounts + failedAccounts;
+    const passRate       = completedEvals > 0 ? +(passedAccounts / completedEvals * 100).toFixed(1) : 0;
+
+    const completedPayments = allPayments.filter(p => p.status === 'completed');
+    const totalRevenue = completedPayments.reduce((s, p) => s + (Number(p.amount_cents) || 0), 0);
+    const evalRevenue  = completedPayments.reduce((s, p) => s + (Number(p.eval_fee_cents) || 0), 0);
+    const activationRevenue = completedPayments.reduce((s, p) => s + (Number(p.activation_fee_cents) || 0), 0);
+
+    const approvedPayouts = allPayouts.filter(p => p.status === 'approved' || p.status === 'paid');
+    const totalPayoutsAmount = approvedPayouts.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const pendingPayouts = allPayouts.filter(p => p.status === 'pending');
+
+    // Plan breakdown
+    const planBreakdown = {};
+    for (const a of allAccounts) {
+      const p = a.plan || 'pro';
+      if (!planBreakdown[p]) planBreakdown[p] = { total: 0, active: 0, passed: 0, failed: 0 };
+      planBreakdown[p].total++;
+      if (['eval','verification','funded','live'].includes(a.status)) planBreakdown[p].active++;
+      if (a.status === 'passed' || a.status === 'live' || a.phase === 'funded') planBreakdown[p].passed++;
+      if (a.status === 'failed') planBreakdown[p].failed++;
+    }
+
+    // Recent signups (last 7 days)
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const recentUsers = allUsers.filter(u => u.created_at >= weekAgo).length;
+    const recentAccounts = allAccounts.filter(a => a.created_at >= weekAgo).length;
+
+    res.json({
+      users: { total: totalUsers, recent_7d: recentUsers },
+      accounts: {
+        total: totalAccounts,
+        active: activeAccounts,
+        passed: passedAccounts,
+        failed: failedAccounts,
+        pass_rate: passRate,
+        recent_7d: recentAccounts,
+      },
+      revenue: {
+        total_cents: totalRevenue,
+        eval_fees_cents: evalRevenue,
+        activation_fees_cents: activationRevenue,
+        payments_count: completedPayments.length,
+      },
+      payouts: {
+        total_paid: totalPayoutsAmount,
+        pending_count: pendingPayouts.length,
+        pending_amount: pendingPayouts.reduce((s, p) => s + (Number(p.amount) || 0), 0),
+      },
+      plan_breakdown: planBreakdown,
+    });
+  } catch (e) {
+    console.error('[admin-metrics]', e.message);
+    res.status(500).json({ error: 'failed to load metrics' });
+  }
+});
+
+// Admin: list all accounts with user info
+app.get('/api/admin/accounts', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const accounts = await dbSelect('accounts', {});
+    const users = await dbSelect('users', {});
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = { email: u.email, full_name: u.full_name }; });
+
+    res.json(accounts.map(a => ({
+      ...a,
+      user_email: userMap[a.user_id]?.email || 'unknown',
+      user_name: userMap[a.user_id]?.full_name || 'unknown',
+    })));
+  } catch (e) {
+    res.status(500).json({ error: 'failed' });
+  }
+});
+
+// Admin: promote user to admin
+app.post('/api/admin/promote', authMiddleware, adminMiddleware, async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email required' });
+  const user = await dbSelectOne('users', { email: email.trim().toLowerCase() });
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  await dbUpdate('users', { id: user.id }, { is_admin: true });
+  res.json({ ok: true, email: user.email });
+});
+
+// ============ ADMIN OPERATIONS CONSOLE ============
+// Force-pass an account (admin manually advances phase)
+app.post('/api/admin/force-pass', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, reason } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+
+  const phase = account.phase || 'eval';
+  let result;
+
+  if (phase === 'eval' || account.status === 'eval' || account.status === 'challenge') {
+    result = { action: 'pass_to_verification', code: 'ADMIN_FORCE_PASS', msg: `Admin force-passed eval: ${reason || 'no reason'}` };
+  } else if (phase === 'verification') {
+    result = { action: 'pass_to_funded', code: 'ADMIN_FORCE_PASS', msg: `Admin force-passed verification: ${reason || 'no reason'}` };
+  } else {
+    return res.status(400).json({ error: `Account phase "${phase}" cannot be advanced further` });
+  }
+
+  const updated = await executePhaseTransition(account, result);
+  console.log(`[admin] force-pass account ${account_id} by user ${req.userId}: ${reason || 'no reason'}`);
+  res.json({ ok: true, account_id, previous_phase: phase, action: result.action, new_status: updated.status || (result.action === 'pass_to_verification' ? 'verification' : 'funded') });
+});
+
+// Force-fail an account
+app.post('/api/admin/force-fail', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, reason } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+  if (account.status === 'failed') return res.status(400).json({ error: 'account already failed' });
+
+  await dbUpdate('accounts', { id: account.id }, {
+    status: 'failed',
+    admin_failed_at: new Date().toISOString(),
+    admin_fail_reason: reason || 'Admin action',
+  });
+
+  console.log(`[admin] force-fail account ${account_id} by user ${req.userId}: ${reason || 'no reason'}`);
+  res.json({ ok: true, account_id, status: 'failed', reason: reason || 'Admin action' });
+});
+
+// Pause an account (blocks trading for N hours, default 24)
+app.post('/api/admin/pause', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, hours, reason } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+
+  const pauseHours = Math.max(1, Math.min(720, Number(hours) || 24)); // 1h to 30 days
+  const pausedUntil = new Date(Date.now() + pauseHours * 3600 * 1000).toISOString();
+
+  await dbUpdate('accounts', { id: account.id }, {
+    paused_until: pausedUntil,
+    paused_reason: reason || 'Admin pause',
+  });
+
+  console.log(`[admin] pause account ${account_id} for ${pauseHours}h by user ${req.userId}: ${reason || ''}`);
+  res.json({ ok: true, account_id, paused_until: pausedUntil, hours: pauseHours });
+});
+
+// Unpause an account
+app.post('/api/admin/unpause', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+
+  await dbUpdate('accounts', { id: account.id }, { paused_until: null, paused_reason: null });
+  console.log(`[admin] unpause account ${account_id} by user ${req.userId}`);
+  res.json({ ok: true, account_id, paused_until: null });
+});
+
+// Refund — marks payment as refunded (actual Stripe refund requires manual action in dashboard)
+app.post('/api/admin/refund', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, reason } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+
+  // Mark account as refunded
+  await dbUpdate('accounts', { id: account.id }, {
+    status: 'refunded',
+    refunded_at: new Date().toISOString(),
+    refund_reason: reason || 'Admin refund',
+  });
+
+  // Mark associated payment as refunded
+  if (account.stripe_session_id) {
+    const payments = await dbSelect('payments', { stripe_session_id: account.stripe_session_id });
+    for (const p of payments) {
+      await dbUpdate('payments', { id: p.id }, { status: 'refunded', refunded_at: new Date().toISOString() });
+    }
+  }
+
+  console.log(`[admin] refund account ${account_id} by user ${req.userId}: ${reason || ''}`);
+  res.json({
+    ok: true,
+    account_id,
+    status: 'refunded',
+    note: 'Payment marked as refunded. Process actual Stripe refund via Stripe Dashboard.',
+    stripe_payment_id: account.stripe_payment_id || null,
+  });
+});
+
+// Public: pass rate (no auth)
+app.get('/api/public/pass-rate', async (req, res) => {
+  try {
+    const allAccounts = await dbSelect('accounts', {});
+    const passed = allAccounts.filter(a => a.status === 'passed' || a.status === 'live' || a.phase === 'funded').length;
+    const failed = allAccounts.filter(a => a.status === 'failed').length;
+    const completed = passed + failed;
+    const rate = completed > 0 ? +(passed / completed * 100).toFixed(1) : 0;
+    res.json({ pass_rate: rate, passed, failed, total_completed: completed });
+  } catch (e) {
+    res.status(500).json({ error: 'failed' });
+  }
+});
+
 // ============ RESOLUTION CRON ============
+const INACTIVITY_DAYS = 14; // auto-fail after 14 days of no trades
+
 let cronRunning = false;
 async function checkResolutions() {
   if (cronRunning) return;
   cronRunning = true;
   try {
+    // ── INACTIVITY CHECK — fail accounts with no activity for 14 days ──
+    try {
+      const activeAccounts = (await dbSelect('accounts', {}))
+        .filter(a => ['eval', 'verification'].includes(a.status));
+
+      for (const acct of activeAccounts) {
+        // Check last trade date from positions or daily_pnl
+        const positions = await dbSelect('positions', { account_id: acct.id });
+        const lastTrade = positions
+          .map(p => p.created_at)
+          .filter(Boolean)
+          .sort()
+          .pop();
+
+        const lastActivity = lastTrade || acct.eval_started_at || acct.created_at;
+        if (lastActivity) {
+          const daysSince = (Date.now() - new Date(lastActivity).getTime()) / 86400000;
+          if (daysSince >= INACTIVITY_DAYS) {
+            await dbUpdate('accounts', { id: acct.id }, {
+              status: 'failed',
+              admin_fail_reason: `Inactivity auto-fail: ${Math.floor(daysSince)} days since last trade`,
+            });
+            console.log(`[cron] inactivity auto-fail account ${acct.id} (${Math.floor(daysSince)} days idle)`);
+          }
+        }
+
+        // ── VERIFICATION TIMEOUT — check if verification phase exceeded 30 days ──
+        if (acct.phase === 'verification' && acct.eval_ends_at) {
+          if (new Date(acct.eval_ends_at) < new Date()) {
+            await dbUpdate('accounts', { id: acct.id }, { status: 'failed' });
+            console.log(`[cron] verification timeout — account ${acct.id} failed (30 days expired)`);
+          }
+        }
+      }
+    } catch (inactivityErr) {
+      console.error('[cron] inactivity check error:', inactivityErr.message);
+    }
+
+    // ── SETTLEMENT — resolve closed markets ──
     const openPositions = await dbSelect('positions', { status: 'open' });
     if (openPositions.length === 0) { cronRunning = false; return; }
     console.log(`[cron] checking ${openPositions.length} open positions for resolution...`);
@@ -2952,8 +3665,14 @@ async function checkResolutions() {
 
         for (const pos of byMarket[mid]) {
           try {
+            // Guard: skip if already resolved (prevents double-settlement on race conditions)
+            const freshPos = await dbSelectOne('positions', { id: pos.id });
+            if (!freshPos || freshPos.status !== 'open') {
+              continue;
+            }
+
             const settlementPrice = (pos.side === 'YES' && yesWon) || (pos.side === 'NO' && !yesWon) ? 1.0 : 0.0;
-            const proceeds = Number(pos.shares) * settlementPrice;
+            const proceeds = +(Number(pos.shares) * settlementPrice).toFixed(2);
             const pnl = +(proceeds - Number(pos.cost)).toFixed(2);
 
             await dbUpdate('positions', { id: pos.id }, {
@@ -2961,6 +3680,7 @@ async function checkResolutions() {
               exit_price: settlementPrice,
               pnl,
               closed_at: new Date().toISOString(),
+              resolved_market: market.question || mid,
             });
 
             await dbInsert('fills', {
@@ -2977,7 +3697,11 @@ async function checkResolutions() {
             });
 
             const acct = await dbSelectOne('accounts', { id: pos.account_id });
-            const settlePnl = +(proceeds - Number(pos.cost)).toFixed(2);
+            if (!acct) {
+              console.error(`[cron] no account found for position ${pos.id} (account_id: ${pos.account_id})`);
+              continue;
+            }
+
             const newBalance = +(Number(acct.balance) + proceeds).toFixed(2);
             await dbUpdate('accounts', { id: pos.account_id }, {
               balance: newBalance,
@@ -2985,14 +3709,18 @@ async function checkResolutions() {
             });
 
             // Track settlement PnL in daily_pnl
-            await updateDailyPnl(pos.account_id, newBalance, settlePnl);
+            await updateDailyPnl(pos.account_id, newBalance, pnl);
 
-            // Run full rule evaluation post-settlement
-            const updated = await dbSelectOne('accounts', { id: pos.account_id });
-            const ruleResult = await evaluateRules(updated, { trigger: 'post_settlement', closePnl: settlePnl });
-            if (ruleResult.action === 'fail' || ruleResult.action === 'pass_to_verification' || ruleResult.action === 'pass_to_funded') {
-              await executePhaseTransition(updated, ruleResult);
-              console.log(`[cron] account ${pos.account_id} — ${ruleResult.code}: ${ruleResult.msg}`);
+            console.log(`[cron] settled pos ${pos.id}: ${pos.side} ${mid.slice(0,8)}… → ${settlementPrice === 1 ? 'WON' : 'LOST'} | PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} | Balance: $${newBalance.toFixed(2)}`);
+
+            // Run full rule evaluation post-settlement (skip for failed/refunded accounts)
+            if (['eval', 'challenge', 'verification', 'funded', 'live'].includes(acct.status)) {
+              const updated = await dbSelectOne('accounts', { id: pos.account_id });
+              const ruleResult = await evaluateRules(updated, { trigger: 'post_settlement', closePnl: pnl });
+              if (ruleResult.action === 'fail' || ruleResult.action === 'pass_to_verification' || ruleResult.action === 'pass_to_funded') {
+                await executePhaseTransition(updated, ruleResult);
+                console.log(`[cron] account ${pos.account_id} — ${ruleResult.code}: ${ruleResult.msg}`);
+              }
             }
           } catch (e) {
             console.error(`[cron] settlement error for position ${pos.id}:`, e.message);
@@ -3011,6 +3739,77 @@ async function checkResolutions() {
   }
 }
 cron.schedule('* * * * *', checkResolutions);
+
+// ============ DAILY MTM CRON — update unrealized PnL for all open positions ============
+// Runs every 5 minutes: recalculates mark-to-market for open positions,
+// updates daily_pnl ending balances, and checks drawdown rules
+let mtmRunning = false;
+async function dailyMTMUpdate() {
+  if (mtmRunning) return;
+  mtmRunning = true;
+  try {
+    // Get all active accounts
+    const activeStatuses = ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'];
+    let allAccounts = [];
+    for (const status of activeStatuses) {
+      const accts = await dbSelect('accounts', { status });
+      allAccounts = allAccounts.concat(accts);
+    }
+    if (!allAccounts.length) { mtmRunning = false; return; }
+
+    let updated = 0;
+    for (const account of allAccounts) {
+      try {
+        const openPositions = await dbSelect('positions', { account_id: account.id, status: 'open' });
+        if (!openPositions.length) continue;
+
+        // Compute current equity (cash + MTM of open positions)
+        const equity = await computeEquity(account);
+        const today = new Date().toISOString().slice(0, 10);
+
+        // Update/create daily_pnl row with current equity snapshot
+        let dailyRow = (await dbSelect('daily_pnl', { account_id: account.id, date: today }))[0];
+        if (!dailyRow) {
+          dailyRow = await dbInsert('daily_pnl', {
+            account_id: account.id,
+            date: today,
+            starting_bal: equity,
+            ending_bal: equity,
+            realized_pnl: 0,
+            unrealized_pnl: +(equity - Number(account.balance)).toFixed(2),
+            trade_count: 0,
+          });
+        } else {
+          await dbUpdate('daily_pnl', { id: dailyRow.id }, {
+            ending_bal: equity,
+            unrealized_pnl: +(equity - Number(account.balance)).toFixed(2),
+          });
+        }
+
+        // Check drawdown rules against equity (not just cash balance)
+        const size = Number(account.size);
+        const lossFloor = size * (1 - MAX_LOSS);
+        if (equity < lossFloor) {
+          // Drawdown breached via MTM — fail the account
+          const ruleResult = { ok: false, code: 'MAX_LOSS', msg: `Account equity ($${equity.toFixed(2)}) fell below ${MAX_LOSS * 100}% drawdown floor ($${lossFloor.toFixed(2)})`, action: 'fail' };
+          await executePhaseTransition(account, ruleResult);
+          console.log(`[mtm-cron] account ${account.id} FAILED: equity $${equity.toFixed(2)} < floor $${lossFloor.toFixed(2)}`);
+        }
+
+        updated++;
+      } catch (e) {
+        console.error(`[mtm-cron] error on account ${account.id}:`, e.message);
+      }
+    }
+
+    if (updated > 0) console.log(`[mtm-cron] updated ${updated} accounts with open positions`);
+  } catch (e) {
+    console.error('[mtm-cron] sweep error:', e.message);
+  } finally {
+    mtmRunning = false;
+  }
+}
+cron.schedule('*/5 * * * *', dailyMTMUpdate); // Every 5 minutes
 
 // ============ CATCH-ALL 404 ============
 app.use((req, res, _next) => {
@@ -3036,10 +3835,10 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  • Auth:            JWT (${JWT_EXPIRES} expiry) + bcrypt`);
   console.log(`  • Market cache:    ${CACHE_TTL_MARKETS / 1000}s list / ${CACHE_TTL_MARKET / 1000}s single / ${CACHE_TTL_EVENTS / 1000}s events`);
   console.log(`  • Rate limits:     200/min global, 10/min auth, 30/min orders`);
-  console.log(`  • Fixed slippage:  ${SLIPPAGE_PCT * 100}%`);
+  console.log(`  • Execution:       CLOB orderbook walk (${SLIPPAGE_FALLBACK * 100}% fallback, ${SLIPPAGE_MAX * 100}% max cap)`);
   console.log(`  • Profit split:    ${PROFIT_SPLIT * 100}% to trader`);
   console.log(`  • Affiliate:       ${AFFILIATE_COMMISSION * 100}% commission`);
-  console.log(`  • Rules:           ${PROFIT_TARGET * 100}% profit line / ${MAX_LOSS * 100}% loss limit / 30-day challenge / ${POSITION_CAP * 100}% max per trade`);
+  console.log(`  • Rules:           ${PROFIT_TARGET * 100}% target (P1) / ${VERIFICATION_TARGET * 100}% (P2) / ${MAX_LOSS * 100}% drawdown / 30-day eval / ${POSITION_CAP * 100}% position cap`);
   console.log(`  • API endpoints:   markets, events, categories, search, trending`);
   console.log(`  • Resolution cron: every 60s (batched)\n`);
 });

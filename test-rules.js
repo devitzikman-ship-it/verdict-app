@@ -81,12 +81,30 @@ async function updateDailyPnl(accountId, newBalance, pnl) {
   }
 }
 
+// Mock positions table for MTM tests
+if (!tables.positions) tables.positions = [];
+
+// Mock computeEquity — uses positions table if account has open positions
+async function computeEquity(account) {
+  const cashBalance = Number(account.balance);
+  const openPositions = (tables.positions || []).filter(p => p.account_id === account.id && p.status === 'open');
+  if (!openPositions.length) return cashBalance;
+  let mtm = 0;
+  for (const pos of openPositions) {
+    // Use mock_current_price if set, otherwise fall back to cost
+    mtm += pos.mock_current_value != null ? Number(pos.mock_current_value) : Number(pos.cost);
+  }
+  return +(cashBalance + mtm).toFixed(2);
+}
+
 async function evaluateRules(account, context = {}) {
   const { trigger = 'pre_order', orderCost = 0, closePnl = 0 } = context;
   const size    = Number(account.size);
   const balance = Number(account.balance);
   const phase   = account.phase || 'eval';
   const targetPct = getTargetPct(account);
+
+  const equity = await computeEquity(account);
 
   // 1. TIME LIMIT
   if (['eval', 'challenge', 'verification'].includes(account.status) && account.eval_ends_at) {
@@ -95,14 +113,14 @@ async function evaluateRules(account, context = {}) {
     }
   }
 
-  // 2. STATIC DRAWDOWN
+  // 2. STATIC DRAWDOWN (uses equity = cash + MTM)
   const lossFloor = size * (1 - MAX_LOSS);
   if (trigger === 'pre_order') {
-    if (balance - orderCost < lossFloor) {
+    if (equity - orderCost < lossFloor) {
       return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit`, action: 'reject_order' };
     }
   } else {
-    if (balance < lossFloor) {
+    if (equity < lossFloor) {
       return { ok: false, code: 'MAX_LOSS', msg: `Account breached ${MAX_LOSS * 100}% max drawdown`, action: 'fail' };
     }
   }
@@ -222,6 +240,55 @@ async function run() {
     const account = { id: 6, size: SIZE, balance: 26500, high_water: 27500, status: 'eval', phase: 'eval', eval_ends_at: new Date(Date.now() + 86400000 * 15).toISOString() };
     const r = await evaluateRules(account, { trigger: 'post_close' });
     assert(r.ok === true, 'STATIC drawdown: $1K loss from peak but still above starting-4% → OK');
+  }
+
+  // ── 2b. MTM EQUITY DRAWDOWN ──
+  console.log('\n2b. MTM EQUITY — open positions affect drawdown check');
+  {
+    // Account has $24,500 cash. Looks safe (floor = $24,000). But open positions dropped to $0.
+    // Equity = $24,500 + $0 = $24,500 > $24,000 → OK if positions at entry
+    // But if we mock positions valued at $0 total (complete loss), equity = cash only = $24,500
+    // Let's test: cash $24,500, one open position worth $10K originally, now worth $0
+    // Equity = $24,500 + $0 = $24,500 > $24,000 → still OK (just barely)
+    const acctId = 7;
+    tables.positions.push({
+      id: 100, account_id: acctId, market_id: 'test_market_1', side: 'YES',
+      shares: 1000, cost: 10000, entry_price: 10, status: 'open',
+      mock_current_value: 0, // positions went to zero
+    });
+    const account = { id: acctId, size: SIZE, balance: 24500, status: 'eval', phase: 'eval', eval_ends_at: new Date(Date.now() + 86400000 * 15).toISOString() };
+    // Equity = 24500 + 0 = 24500 > 24000 floor → barely OK
+    const r1 = await evaluateRules(account, { trigger: 'post_close' });
+    assert(r1.ok === true, 'Equity $24,500 (cash $24,500 + MTM $0) just above floor → OK');
+  }
+  {
+    // Now: cash $20,000, positions originally $10K, now worth $3K
+    // Equity = $20,000 + $3,000 = $23,000 < $24,000 → FAIL
+    const acctId = 8;
+    tables.positions.push({
+      id: 101, account_id: acctId, market_id: 'test_market_2', side: 'YES',
+      shares: 2000, cost: 10000, entry_price: 5, status: 'open',
+      mock_current_value: 3000, // positions dropped from $10K to $3K
+    });
+    const account = { id: acctId, size: SIZE, balance: 20000, status: 'eval', phase: 'eval', eval_ends_at: new Date(Date.now() + 86400000 * 15).toISOString() };
+    // Equity = 20000 + 3000 = 23000 < 24000 floor → FAIL
+    const r2 = await evaluateRules(account, { trigger: 'post_close' });
+    assert(r2.code === 'MAX_LOSS', 'Equity $23,000 (cash $20K + MTM $3K) below floor → MAX_LOSS');
+    assert(r2.action === 'fail', 'Action is fail for MTM drawdown breach');
+  }
+  {
+    // Pre-order: cash $24,800, positions worth $1K. Equity = $25,800.
+    // Order cost $2,000. New equity estimate = $25,800 - $2,000 = $23,800 < $24,000 → reject
+    const acctId = 9;
+    tables.positions.push({
+      id: 102, account_id: acctId, market_id: 'test_market_3', side: 'YES',
+      shares: 500, cost: 1000, entry_price: 2, status: 'open',
+      mock_current_value: 1000,
+    });
+    const account = { id: acctId, size: SIZE, balance: 24800, status: 'eval', phase: 'eval', eval_ends_at: new Date(Date.now() + 86400000 * 15).toISOString() };
+    // Equity = 24800 + 1000 = 25800. After order: 25800 - 2000 = 23800 < 24000 → reject
+    const r3 = await evaluateRules(account, { trigger: 'pre_order', orderCost: 2000 });
+    assert(r3.code === 'MAX_LOSS', 'Pre-order: equity after order $23,800 < floor → reject');
   }
 
   // ── 3. DAILY LOSS LIMIT (2% = $500 on $25K) ──

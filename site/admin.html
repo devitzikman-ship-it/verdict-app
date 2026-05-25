@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin · VERDICT</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-0: #0A0E14; --bg-1: #111720; --bg-2: #181F2B;
+    --bg-elevated: #1C2433; --border: #263042;
+    --text-1: #EAF0F5; --text-2: #8A9BB5; --text-3: #5A6A80;
+    --green: #00D26A; --red: #FF4D4F; --blue: #3B82F6; --yellow: #FFC107;
+    --r-md: 8px; --r-lg: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-0); color: var(--text-1); font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .admin-shell { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+  .admin-header h1 { font-family: 'Archivo Black', sans-serif; font-size: 22px; letter-spacing: .03em; }
+  .admin-header .back { color: var(--text-2); text-decoration: none; font-size: 13px; }
+  .admin-header .back:hover { color: var(--text-1); }
+  .admin-error { background: rgba(255,77,79,.12); border: 1px solid var(--red); border-radius: var(--r-md); padding: 16px; color: var(--red); font-size: 14px; text-align: center; margin-bottom: 24px; }
+  .loading { text-align: center; color: var(--text-3); padding: 60px; font-size: 14px; }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); margin-bottom: 6px; }
+  .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+  .stat-val.blue { color: var(--blue); }
+  .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+  /* Sections */
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); margin-bottom: 14px; }
+
+  /* Plan breakdown table */
+  .plan-table { width: 100%; border-collapse: collapse; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+  .plan-table th, .plan-table td { padding: 12px 16px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .plan-table th { background: var(--bg-2); color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .plan-table td { color: var(--text-1); }
+  .plan-table tr:last-child td { border-bottom: none; }
+
+  /* Accounts table */
+  .acct-table { width: 100%; border-collapse: collapse; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; font-size: 12px; }
+  .acct-table th, .acct-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .acct-table th { background: var(--bg-2); color: var(--text-3); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .acct-table tr:last-child td { border-bottom: none; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .status-badge.eval { background: rgba(59,130,246,.15); color: var(--blue); }
+  .status-badge.verification { background: rgba(255,193,7,.15); color: var(--yellow); }
+  .status-badge.funded, .status-badge.passed, .status-badge.live { background: rgba(0,210,106,.15); color: var(--green); }
+  .status-badge.failed { background: rgba(255,77,79,.15); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="admin-shell">
+  <div class="admin-header">
+    <h1><svg viewBox="0 0 24 24" fill="#A8C4DD" stroke="none" style="width:24px;height:24px;vertical-align:-4px;margin-right:8px"><path d="M12 4L3 20h4.5L12 11l4.5 9H21z"/></svg>VERDICT ADMIN</h1>
+    <a href="trade.html" class="back">&larr; Back to app</a>
+  </div>
+
+  <div id="adminError" class="admin-error" style="display:none"></div>
+  <div id="adminLoading" class="loading">Loading metrics...</div>
+  <div id="adminContent" style="display:none">
+
+    <!-- Top stats -->
+    <div class="stats-grid" id="topStats"></div>
+
+    <!-- Revenue & Payouts -->
+    <div class="section">
+      <div class="section-title">Revenue & Payouts</div>
+      <div class="stats-grid" id="revenueStats"></div>
+    </div>
+
+    <!-- Plan breakdown -->
+    <div class="section">
+      <div class="section-title">Plan Breakdown</div>
+      <table class="plan-table" id="planTable">
+        <thead><tr><th>Plan</th><th>Total</th><th>Active</th><th>Passed</th><th>Failed</th></tr></thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </div>
+
+    <!-- All accounts -->
+    <div class="section">
+      <div class="section-title">All Accounts</div>
+      <table class="acct-table" id="acctTable">
+        <thead><tr><th>ID</th><th>User</th><th>Plan</th><th>Size</th><th>Balance</th><th>PnL</th><th>Phase</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody id="acctBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const token = localStorage.getItem('verdict_token');
+  if (!token) {
+    showError('Not signed in. <a href="signin.html" style="color:var(--blue)">Sign in</a> first.');
+    return;
+  }
+
+  const hdrs = { Authorization: 'Bearer ' + token };
+  const fmt$ = (v) => '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtC = (cents) => '$' + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function showError(msg) {
+    document.getElementById('adminLoading').style.display = 'none';
+    const el = document.getElementById('adminError');
+    el.innerHTML = msg;
+    el.style.display = 'block';
+  }
+
+  Promise.all([
+    fetch('/api/admin/metrics', { headers: hdrs }).then(r => { if (!r.ok) throw new Error(r.status === 403 ? 'Admin access required' : 'Failed to load metrics'); return r.json(); }),
+    fetch('/api/admin/accounts', { headers: hdrs }).then(r => r.ok ? r.json() : []),
+  ]).then(([metrics, accounts]) => {
+    document.getElementById('adminLoading').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+
+    const m = metrics;
+
+    // Top stats
+    document.getElementById('topStats').innerHTML = [
+      card('Total Users', m.users.total, '', m.users.recent_7d + ' this week'),
+      card('Active Evals', m.accounts.active, 'blue', ''),
+      card('Pass Rate', m.accounts.pass_rate + '%', 'green', m.accounts.passed + ' passed / ' + m.accounts.failed + ' failed'),
+      card('Total Accounts', m.accounts.total, '', m.accounts.recent_7d + ' this week'),
+    ].join('');
+
+    // Revenue
+    document.getElementById('revenueStats').innerHTML = [
+      card('Total Revenue', fmtC(m.revenue.total_cents), 'green', m.revenue.payments_count + ' payments'),
+      card('Eval Fees', fmtC(m.revenue.eval_fees_cents), '', ''),
+      card('Activation Fees', fmtC(m.revenue.activation_fees_cents), '', ''),
+      card('Payouts', fmt$(m.payouts.total_paid), 'red', m.payouts.pending_count + ' pending (' + fmt$(m.payouts.pending_amount) + ')'),
+    ].join('');
+
+    // Plan breakdown
+    const pb = m.plan_breakdown || {};
+    document.getElementById('planBody').innerHTML = Object.entries(pb).map(([k, v]) =>
+      '<tr><td style="text-transform:capitalize;font-weight:600">' + k + '</td><td>' + v.total + '</td><td>' + v.active + '</td><td style="color:var(--green)">' + v.passed + '</td><td style="color:var(--red)">' + v.failed + '</td></tr>'
+    ).join('') || '<tr><td colspan="5" style="color:var(--text-3);text-align:center">No accounts yet</td></tr>';
+
+    // Accounts table
+    document.getElementById('acctBody').innerHTML = accounts.map(a => {
+      const pnl = Number(a.balance) - Number(a.size);
+      const sc = a.status || a.phase || 'eval';
+      return '<tr>' +
+        '<td>' + a.id + '</td>' +
+        '<td><div style="font-weight:600">' + esc(a.user_name) + '</div><div style="color:var(--text-3);font-size:10px">' + esc(a.user_email) + '</div></td>' +
+        '<td style="text-transform:capitalize">' + (a.plan || 'pro') + '</td>' +
+        '<td>' + fmt$(a.size) + '</td>' +
+        '<td>' + fmt$(a.balance) + '</td>' +
+        '<td style="color:' + (pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (pnl >= 0 ? '+' : '') + fmt$(pnl) + '</td>' +
+        '<td>' + (a.phase || '-') + '</td>' +
+        '<td><span class="status-badge ' + sc + '">' + sc + '</span></td>' +
+        '<td style="color:var(--text-3)">' + (a.created_at ? new Date(a.created_at).toLocaleDateString() : '-') + '</td>' +
+      '</tr>';
+    }).join('') || '<tr><td colspan="9" style="color:var(--text-3);text-align:center">No accounts</td></tr>';
+
+  }).catch(err => {
+    showError(err.message || 'Failed to load admin data');
+  });
+
+  function card(label, value, colorClass, sub) {
+    return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-val ' + (colorClass || '') + '">' + value + '</div>' + (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</div>';
+  }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+})();
+</script>
+</body>
+</html>
