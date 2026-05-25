@@ -559,10 +559,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .detail-meta{display:flex;gap:14px;font-size:12px;color:var(--text-3);flex-wrap:wrap}
 .detail-meta svg{width:14px;height:14px;vertical-align:-2px;margin-right:3px}
 .outcome-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.outcome-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;transition:all .2s}
+.outcome-card{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--r-lg);padding:16px;text-align:center;cursor:pointer;transition:all .2s}
 .outcome-card:hover{border-color:var(--border-light)}
-.outcome-card.yes:hover{border-color:var(--green);box-shadow:0 0 16px var(--green-glow)}
-.outcome-card.no:hover{border-color:var(--red)}
+.outcome-card.yes:hover,.outcome-card.yes.active{border-color:var(--green);background:var(--green-bg);box-shadow:0 0 16px var(--green-glow)}
+.outcome-card.no:hover,.outcome-card.no.active{border-color:var(--red);background:var(--red-bg)}
 .oc-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px}
 .oc-price{font-size:28px;font-weight:800}
 .outcome-card.yes .oc-price{color:var(--green)}
@@ -1925,6 +1925,10 @@ function updateTradePanel(fromInput){
   $('#tpYes').textContent='Yes '+Math.round(y*100)+'¢';$('#tpYes').className='tp-obtn yes'+(S.side==='YES'?' active':'');
   $('#tpNo').textContent='No '+Math.round(n*100)+'¢';$('#tpNo').className='tp-obtn no'+(S.side==='NO'?' active':'');
   $('#tpYes').onclick=()=>{S.side='YES';updateTradePanel()};$('#tpNo').onclick=()=>{S.side='NO';updateTradePanel()};
+  // Sync detail view outcome cards with selected side
+  $$('.outcome-card').forEach(c=>{c.classList.remove('active')});
+  const activeOC=S.side==='YES'?$('.outcome-card.yes'):S.side==='NO'?$('.outcome-card.no'):null;
+  if(activeOC)activeOC.classList.add('active');
   const inp=$('#tpShares');if(!fromInput)inp.value=S.shares;
   inp.oninput=e=>{S.shares=Math.max(1,Math.floor(Number(e.target.value)||0));updateTradePanel(true)};
   inp.onfocus=()=>inp.select();
