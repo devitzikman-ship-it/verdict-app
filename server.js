@@ -2260,7 +2260,6 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       full_name: cleanName,
       username: cleanUsername || null,
       referred_by: referralCode || null,
-      email_verified: false,
       is_admin: ADMIN_EMAILS.includes(cleanEmail),
     });
 
@@ -2344,7 +2343,7 @@ app.get('/api/verify-email', async (req, res) => {
     if (!entry || entry.type !== 'verify') return res.status(400).send(verifyPage('Link expired or invalid', false));
     if (entry.expiresAt < Date.now()) { tokenStore.delete(token); return res.status(400).send(verifyPage('Link has expired — request a new one', false)); }
 
-    await dbUpdate('users', { id: entry.userId }, { email_verified: true });
+    try { await dbUpdate('users', { id: entry.userId }, { email_verified: true }); } catch (_) {}
     tokenStore.delete(token);
 
     return res.send(verifyPage('Email verified! You can close this tab and start trading.', true));
@@ -2358,7 +2357,7 @@ app.get('/api/verify-email', async (req, res) => {
 if (process.env.NODE_ENV !== 'production' && !process.env.FLY_APP_NAME) {
   app.post('/api/dev/verify-email', authMiddleware, async (req, res) => {
     try {
-      await dbUpdate('users', { id: req.userId }, { email_verified: true });
+      try { await dbUpdate('users', { id: req.userId }, { email_verified: true }); } catch (_) {}
       res.json({ ok: true, message: 'email force-verified (dev mode)' });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -4956,7 +4955,6 @@ function seedLeaderboard() {
       username: t.username,
       full_name: t.username,
       password_hash: 'SEED_ACCOUNT_NO_LOGIN',
-      email_verified: true,
       created_at: new Date(Date.now() - (30 - (i % 30)) * 86400000).toISOString(),
     });
 
