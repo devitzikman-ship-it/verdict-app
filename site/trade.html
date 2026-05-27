@@ -2100,6 +2100,7 @@ $('#logoutBtn').onclick=()=>{localStorage.removeItem('verdict_token');localStora
 $('#navLoginBtn').onclick=()=>openLoginModal();
 $('#navSignupBtn').onclick=()=>openCtaModal();
 function openSignupFlow(){
+  S._modalOpened=true;
   $('#signupModal').style.display='flex';
   if(S._urlRef&&$('#signupPromoCode'))$('#signupPromoCode').value=S._urlRef;
   setTimeout(()=>$('#signupName').focus(),100);
@@ -2107,6 +2108,7 @@ function openSignupFlow(){
 
 /* ============ CTA INTERCEPT MODAL ============ */
 function openCtaModal(){
+  S._modalOpened=true;
   $('#ctaInterceptModal').style.display='flex';
 }
 function openCongratsModal(){
@@ -3627,7 +3629,7 @@ async function renderPayoutsPage(){if(!S.account){$('#payoutsNoAcct').style.disp
 
 /* ============ SIGNUP MODAL ============ */
 $('#signupModalClose').onclick=()=>$('#signupModal').style.display='none';
-$('#signupModal').onclick=e=>{if(e.target===e.currentTarget)$('#signupModal').style.display='none'};
+$('#signupModal').onclick=e=>{};
 $('#signupToLogin').onclick=e=>{e.preventDefault();$('#signupModal').style.display='none';openLoginModal()};
 $('#signupModalForm').onsubmit=async e=>{
   e.preventDefault();
@@ -3713,7 +3715,7 @@ function openPlansModal(){openBetaClaimModal()} // Legacy compat
 })();
 
 // Auto-show CTA popup 3s after load for unauthenticated users
-if(!S.token){setTimeout(()=>{if(!S.token)openCtaModal()},3000)}
+if(!S.token){setTimeout(()=>{if(!S.token&&!S._modalOpened)openCtaModal()},3000)}
 
 async function claimBetaAccount(){
   const btn=$('#betaClaimBtn');
@@ -3775,7 +3777,7 @@ $('#loginModalClose').onclick=()=>$('#loginModal').style.display='none';
 $('#loginModal').onclick=e=>{if(e.target===e.currentTarget)$('#loginModal').style.display='none'};
 $('#loginToSignup').onclick=e=>{e.preventDefault();$('#loginModal').style.display='none';openSignupFlow()};
 /* CTA intercept modal dismiss */
-$('#ctaInterceptModal').onclick=e=>{if(e.target===e.currentTarget)$('#ctaInterceptModal').style.display='none'};
+$('#ctaInterceptModal').onclick=e=>{};
 $('#congratsModal').onclick=e=>{if(e.target===e.currentTarget)$('#congratsModal').style.display='none'};
 /* ============ HOW IT WORKS MODAL ============ */
 let _hiwStep=0,_hiwConfettiFired=false;
