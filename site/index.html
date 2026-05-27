@@ -11,38 +11,74 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;overflow:hidden;background:#000}
-    #verdict-splash{position:fixed;inset:0;z-index:9999;overflow:hidden;background:#000}
-    #verdict-splash video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.85) contrast(1.08) saturate(0.95)}
-    #verdict-splash::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 80% at 50% 50%,rgba(5,11,17,0) 0%,rgba(5,11,17,0.35) 100%),linear-gradient(180deg,rgba(11,18,24,0.20) 0%,rgba(11,18,24,0.08) 50%,rgba(11,18,24,0.50) 100%);pointer-events:none}
+    #verdict-splash{position:fixed;inset:0;z-index:9999;overflow:hidden;background:#050b11;cursor:pointer}
+    .vs-bg-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#070e18 0%,#0f1e3a 25%,#142d54 50%,#0c1a34 75%,#070e18 100%);background-size:400% 400%;animation:vsBgShift 12s ease infinite}
+    .vs-bg-fallback::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 45%,rgba(40,80,160,0.3) 0%,transparent 70%)}
+    .vs-bg-fallback::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 70%,rgba(30,70,140,0.2) 0%,transparent 50%),radial-gradient(circle at 75% 25%,rgba(25,60,130,0.18) 0%,transparent 45%)}
+    @keyframes vsBgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    #verdict-splash video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.85) contrast(1.08) saturate(0.95);opacity:0;transition:opacity 0.8s ease}
+    #verdict-splash video.playing{opacity:1}
+    #verdict-splash::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 80% at 50% 50%,rgba(5,11,17,0) 0%,rgba(5,11,17,0.35) 100%),linear-gradient(180deg,rgba(11,18,24,0.20) 0%,rgba(11,18,24,0.08) 50%,rgba(11,18,24,0.50) 100%);pointer-events:none;z-index:1}
     .vs-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
     .vs-mark{font-family:'Archivo Black',sans-serif;font-weight:900;font-size:clamp(72px,16vw,220px);letter-spacing:0.02em;color:#fff;line-height:0.95;text-shadow:0 4px 40px rgba(0,0,0,0.5);opacity:0;animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 1.2s both}
     .vs-sub{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(11px,2.2vw,22px);letter-spacing:0.28em;text-transform:uppercase;color:rgba(168,196,221,0.75);margin-top:clamp(8px,1.5vw,20px);opacity:0;animation:vsFadeUp 1.2s cubic-bezier(.2,.7,.2,1) 1.8s both}
+    .vs-text-wrap.exit .vs-mark,
+    .vs-text-wrap.exit .vs-sub{animation:vsDissolve 2.5s ease forwards}
+    .vs-enter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(22px,3.2vw,36px);letter-spacing:0.32em;text-transform:uppercase;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);padding:24px 80px;border-radius:6px;background:transparent;cursor:pointer;opacity:0;pointer-events:none;transition:color 0.3s,border-color 0.3s}
+    .vs-enter.show{animation:vsFadeIn 1s ease both;pointer-events:auto}
+    .vs-enter:hover{color:#fff;border-color:rgba(255,255,255,0.4)}
     @keyframes vsFadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes vsDissolve{from{opacity:1}to{opacity:0}}
+    @keyframes vsFadeIn{from{opacity:0}to{opacity:1}}
     #verdict-splash.exiting{opacity:0;transform:scale(1.08);transition:opacity 1.2s cubic-bezier(.6,.05,.2,1),transform 1.2s cubic-bezier(.6,.05,.2,1)}
   </style>
 </head>
 <body>
   <section id="verdict-splash">
+    <div class="vs-bg-fallback"></div>
     <video autoplay muted loop playsinline preload="auto">
       <source src="verdict_bg.mp4" type="video/mp4" />
     </video>
     <div class="vs-inner">
-      <div class="vs-mark">VERDICT</div>
-      <div class="vs-sub">Trade Prediction Markets With Our Capital</div>
+      <div class="vs-text-wrap">
+        <div class="vs-mark">VERDICT</div>
+        <div class="vs-sub">Trade Prediction Markets With Our Capital</div>
+      </div>
+      <button class="vs-enter">Enter</button>
     </div>
   </section>
   <script>
     (function(){
       var splash = document.getElementById('verdict-splash');
       var video = splash.querySelector('video');
-      if(video){video.play().catch(function(){});}
-      // Auto-redirect after 5 seconds
+      var textWrap = splash.querySelector('.vs-text-wrap');
+      var enterBtn = splash.querySelector('.vs-enter');
+      var entered = false;
+
+      if(video){
+        video.addEventListener('playing', function(){ video.classList.add('playing'); });
+        video.play().catch(function(){});
+      }
+
+      // Text fully visible by ~3s. Hold a beat, then slowly dissolve at 4.5s (2.5s fade).
+      // Enter button appears 1s after fade finishes (at ~8s total).
       setTimeout(function(){
+        textWrap.classList.add('exit');
+        setTimeout(function(){
+          enterBtn.classList.add('show');
+        }, 3000);
+      }, 4500);
+
+      function enter(){
+        if(entered) return;
+        entered = true;
         splash.classList.add('exiting');
         setTimeout(function(){
-          window.location.href = 'trade.html';
+          window.location.href = '/markets';
         }, 1200);
-      }, 5000);
+      }
+
+      splash.addEventListener('click', enter);
     })();
   </script>
 </body>

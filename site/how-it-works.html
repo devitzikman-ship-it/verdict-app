@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How It Works · VERDICT</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet" />
+<style>
+/* ============ DESIGN SYSTEM ============ */
+:root {
+  --bg-page: #0a0a0f;
+  --bg-nav: #0e0e14;
+  --bg-card: #12121a;
+  --bg-hover: #1a1a24;
+  --bg-input: #14141e;
+  --bg-elevated: #1c1c28;
+  --border: #1e1e2a;
+  --border-light: #2a2a3a;
+  --text-1: #ffffff;
+  --text-2: #8b8b9e;
+  --text-3: #55556a;
+  --green: #00d4aa;
+  --green-bg: rgba(0,212,170,0.08);
+  --red: #ff4757;
+  --blue: #4e8bff;
+  --blue-bg: rgba(78,139,255,0.08);
+  --purple: #8b5cf6;
+  --yellow: #f0b90b;
+  --ice: #a9c8f0;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg-page);color:var(--text-1);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;font-size:14px;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#333;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ============ 3D DOTTED WAVE BACKGROUND ============ */
+#waveBg{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ============ NAV ============ */
+.nav-1{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(14,14,20,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  height:60px;
+  display:grid;
+  grid-template-columns:auto minmax(220px,320px) auto 1fr auto;
+  align-items:center;
+  gap:20px;
+  padding:14px 28px;
+}
+.nav-logo{font-weight:900;font-size:18px;letter-spacing:-0.3px;flex-shrink:0;display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-logo svg{width:22px;height:22px;color:#A8C4DD}
+.nav-search{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;position:relative}
+.nav-search-icon{width:14px;height:14px;color:var(--text-3);flex-shrink:0}
+.nav-search-input{flex:1;background:none;border:none;color:var(--text-1);font-size:13px;font-family:inherit;outline:none;min-width:0}
+.nav-search-input::placeholder{color:var(--text-3)}
+.nav-search-kbd{font-size:10px;color:var(--text-3);border:1px solid var(--border-light);border-radius:4px;padding:1px 5px;line-height:1.4}
+.nav-links{display:flex;gap:4px}
+.nav-link{padding:7px 14px;font-size:13px;font-weight:600;color:var(--text-3);border-radius:6px;transition:all .15s;white-space:nowrap;text-decoration:none}
+.nav-link:hover{color:var(--text-1);background:rgba(255,255,255,0.04)}
+.nav-link.active{color:var(--ice);background:rgba(169,200,240,0.08)}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+.nav-btn-secondary{padding:8px 14px;background:transparent;border:none;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:color .15s}
+.nav-btn-secondary:hover{color:var(--text-1)}
+.nav-btn-primary{padding:9px 18px;background:var(--ice);color:#070b14;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:-0.005em;transition:all .15s}
+.nav-btn-primary:hover{background:#b5d0f5}
+
+/* ============ PAGE CONTENT ============ */
+.page-wrap{position:relative;z-index:1;padding-top:60px}
+
+/* ============ SECTIONS ============ */
+.hiw-section{
+  max-width:1080px;margin:0 auto;
+  padding:100px 32px;
+  position:relative;
+}
+.hiw-section + .hiw-section{padding-top:60px}
+
+/* ============ EYEBROW ============ */
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:800;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--ice);
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.eyebrow::before{content:'';width:32px;height:2px;background:var(--ice);border-radius:2px}
+
+/* ============ HERO ============ */
+.hero-section{padding-top:140px;padding-bottom:80px;text-align:center}
+.hero-section .eyebrow{justify-content:center}
+.hero-section .eyebrow::before{display:none}
+.hero-headline{
+  font-size:clamp(40px,6vw,72px);font-weight:200;
+  letter-spacing:-0.04em;line-height:1.08;
+  color:var(--text-1);margin-bottom:28px;
+}
+.hero-headline strong{font-weight:800;background:linear-gradient(135deg,var(--ice),#7eb3e8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-body{
+  font-size:18px;line-height:1.7;color:var(--text-2);
+  max-width:660px;margin:0 auto;font-weight:400;
+}
+
+/* ============ STAT STRIP ============ */
+.stat-strip{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:0;max-width:900px;margin:0 auto;
+  background:rgba(18,18,26,0.7);
+  border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;backdrop-filter:blur(12px);
+}
+.stat-card{
+  text-align:center;padding:36px 20px;
+  position:relative;
+}
+.stat-card + .stat-card::before{
+  content:'';position:absolute;left:0;top:20%;bottom:20%;width:1px;background:var(--border);
+}
+.stat-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:32px;font-weight:900;letter-spacing:-0.03em;
+  color:var(--text-1);margin-bottom:6px;
+}
+.stat-val.ice{color:var(--ice)}
+.stat-val.green{color:var(--green)}
+.stat-val.gold{color:var(--yellow)}
+.stat-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--text-3);
+}
+
+/* ============ PATH SECTION ============ */
+.path-headline{
+  font-size:clamp(32px,4vw,48px);font-weight:200;
+  letter-spacing:-0.03em;line-height:1.15;
+  color:var(--text-1);margin-bottom:60px;
+}
+.path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.path-card{
+  background:rgba(18,18,26,0.6);
+  border:1px solid var(--border);border-radius:16px;
+  padding:36px 28px 32px;position:relative;
+  backdrop-filter:blur(12px);
+  transition:all .4s;
+}
+.path-card:hover{
+  border-color:rgba(169,200,240,0.2);
+  transform:translateY(-4px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3),0 0 40px rgba(169,200,240,0.04);
+}
+.path-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:48px;font-weight:900;letter-spacing:-0.04em;
+  color:rgba(169,200,240,0.08);margin-bottom:12px;line-height:1;
+}
+.path-card-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:800;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--ice);margin-bottom:10px;
+}
+.path-card-headline{
+  font-size:22px;font-weight:800;letter-spacing:-0.02em;
+  color:var(--text-1);margin-bottom:12px;
+}
+.path-card-body{font-size:14px;line-height:1.7;color:var(--text-2)}
+
+/* ============ WHY SECTION ============ */
+.why-headline{
+  font-size:clamp(32px,4vw,48px);font-weight:200;
+  letter-spacing:-0.03em;line-height:1.15;
+  color:var(--text-1);margin-bottom:24px;
+}
+.why-headline strong{font-weight:800;background:linear-gradient(135deg,var(--ice),#7eb3e8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.why-body{font-size:16px;line-height:1.8;color:var(--text-2);max-width:720px}
+.why-body + .why-body{margin-top:20px}
+
+/* ============ COMMITMENTS ============ */
+.commit-headline{
+  font-size:clamp(32px,4vw,48px);font-weight:200;
+  letter-spacing:-0.03em;line-height:1.15;
+  color:var(--text-1);margin-bottom:60px;
+}
+.commit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.commit-card{
+  background:rgba(18,18,26,0.6);
+  border:1px solid var(--border);border-radius:16px;
+  padding:36px 28px 32px;
+  backdrop-filter:blur(12px);
+  transition:all .4s;
+}
+.commit-card:hover{
+  border-color:rgba(169,200,240,0.15);
+  transform:translateY(-4px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3),0 0 30px rgba(169,200,240,0.03);
+}
+.commit-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:rgba(169,200,240,0.06);border:1px solid rgba(169,200,240,0.1);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+}
+.commit-icon svg{width:22px;height:22px;stroke:var(--ice);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.commit-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:800;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--ice);margin-bottom:10px;
+}
+.commit-card-headline{font-size:18px;font-weight:800;letter-spacing:-0.02em;color:var(--text-1);margin-bottom:12px}
+.commit-card-body{font-size:14px;line-height:1.7;color:var(--text-2)}
+
+/* ============ CTA SECTION ============ */
+.cta-section{text-align:center;padding:100px 32px 120px}
+.cta-headline{
+  font-size:clamp(36px,5vw,56px);font-weight:200;
+  letter-spacing:-0.04em;line-height:1.1;
+  color:var(--text-1);margin-bottom:36px;
+}
+.cta-headline strong{font-weight:800;background:linear-gradient(135deg,var(--ice),#7eb3e8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:16px 36px;
+  background:var(--ice);color:#070b14;
+  border:none;border-radius:12px;
+  font-size:16px;font-weight:800;font-family:inherit;
+  letter-spacing:-0.01em;cursor:pointer;
+  transition:all .25s;
+  box-shadow:0 4px 24px rgba(169,200,240,0.25);
+}
+.cta-btn:hover{
+  background:#b5d0f5;
+  box-shadow:0 8px 40px rgba(169,200,240,0.4);
+  transform:translateY(-2px);
+}
+.cta-btn svg{width:18px;height:18px}
+
+/* ============ SITE FOOTER ============ */
+.site-footer{border-top:1px solid var(--border);background:var(--bg-page);padding:56px 56px 32px;position:relative;z-index:2}
+.footer-inner{max-width:1400px;margin:0 auto}
+.footer-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px}
+.footer-brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:18px;letter-spacing:-0.3px;color:var(--text-1)}
+.footer-brand svg{width:22px;height:22px;color:#A8C4DD}
+.footer-socials{display:flex;gap:16px}
+.footer-socials a{color:var(--text-3);transition:color .15s}
+.footer-socials a:hover{color:var(--text-1)}
+.footer-socials svg{width:20px;height:20px}
+.footer-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;margin-bottom:48px}
+.footer-col-title{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.18em;color:var(--text-1);text-transform:uppercase;margin-bottom:16px}
+.footer-col a{display:block;font-size:13px;color:var(--text-3);margin-bottom:10px;transition:color .15s}
+.footer-col a:hover{color:var(--text-1)}
+.footer-bottom{padding-top:24px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center}
+.footer-bottom a{color:var(--text-3);margin-left:16px;transition:color .15s}
+.footer-bottom a:hover{color:var(--text-1)}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:960px){
+  .path-grid,.commit-grid{grid-template-columns:1fr}
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .stat-card:nth-child(3)::before{display:none}
+}
+@media(max-width:768px){
+  .nav-1{display:flex;gap:12px;padding:10px 16px;height:auto;min-height:56px;flex-wrap:wrap}
+  .nav-search{order:10;flex:1 1 100%;min-width:0}
+  .nav-links{gap:2px}
+  .hiw-section{padding:60px 20px}
+  .hero-section{padding-top:100px;padding-bottom:40px}
+  .stat-strip{grid-template-columns:repeat(2,1fr);border-radius:12px}
+  .footer-cols{grid-template-columns:repeat(2,1fr);gap:24px}
+  .site-footer{padding:32px 16px 24px}
+  .footer-top{flex-direction:column;gap:16px}
+}
+@media(max-width:640px){
+  .nav-search{display:none}.nav-links{display:none}
+  .hero-headline{font-size:32px}
+  .stat-strip{grid-template-columns:1fr}
+  .stat-card + .stat-card::before{display:none}
+}
+
+/* ============ MODAL (login/signup) ============ */
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-xl);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:16px;font-weight:800}
+.modal-x{color:var(--text-3);font-size:22px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s}
+.modal-x:hover{background:var(--bg-elevated);color:var(--text-1)}
+.modal-body{padding:18px 20px}
+.f-input{width:100%;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);color:var(--text-1);font-size:13px;border-radius:var(--r);outline:none;font-family:inherit}
+.f-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(78,139,255,0.1)}
+
+/* Pricing button reuse */
+.pricing-btn-primary{
+  padding:12px;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .25s;border:none;
+  background:linear-gradient(135deg,var(--ice),#7eb3e8);color:#0a0a0f;
+  box-shadow:0 4px 20px rgba(169,200,240,0.25);font-family:inherit;
+}
+.pricing-btn-primary:hover{box-shadow:0 6px 28px rgba(169,200,240,0.4);transform:translateY(-1px)}
+
+/* Pricing cards for CTA modal */
+.pricing-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+  padding:32px 24px 28px;width:260px;text-align:center;position:relative;
+  display:flex;flex-direction:column;transition:all .3s;flex-shrink:0;
+}
+.pricing-card.pricing-featured{
+  background:linear-gradient(180deg,rgba(169,200,240,0.06) 0%,var(--bg-card) 50%);
+  border-color:rgba(169,200,240,0.25);transform:scale(1.04);z-index:2;
+  box-shadow:0 0 40px rgba(169,200,240,0.08),0 20px 60px rgba(0,0,0,0.3);
+}
+.pricing-card.pricing-locked{opacity:0.5;pointer-events:none}
+.pricing-badge-popular{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--ice),#7eb3e8);color:#0a0a0f;
+  font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 16px;border-radius:20px;white-space:nowrap;
+  box-shadow:0 4px 12px rgba(169,200,240,0.3);
+}
+.pricing-badge-locked{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--bg-elevated);color:var(--text-3);border:1px solid var(--border);
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 14px;border-radius:20px;white-space:nowrap;
+}
+.pricing-plan-name{font-size:18px;font-weight:800;color:var(--text-1);margin:8px 0 4px;letter-spacing:-0.01em}
+.pricing-desc{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.pricing-price{margin-bottom:16px}
+.pricing-amount{font-size:40px;font-weight:900;color:var(--text-1);letter-spacing:-0.03em;font-family:'JetBrains Mono',monospace}
+.pricing-featured .pricing-amount{background:linear-gradient(135deg,var(--ice),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pricing-period{font-size:14px;color:var(--text-3);font-weight:500;margin-left:4px}
+.pricing-divider{height:1px;background:var(--border);margin:0 -4px 16px}
+.pricing-features{list-style:none;text-align:left;margin:0 0 20px;padding:0;flex:1}
+.pricing-features li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);padding:5px 0;line-height:1.4}
+.pricing-check{width:16px;height:16px;flex-shrink:0;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.pricing-featured .pricing-check{stroke:var(--ice)}
+.pricing-btn{
+  width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .25s;border:1px solid var(--border);
+  background:var(--bg-elevated);color:var(--text-2);font-family:inherit;
+}
+.pricing-btn-locked{opacity:0.4;cursor:not-allowed}
+@media(max-width:768px){.pricing-card{width:100%;max-width:320px}.pricing-card.pricing-featured{transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<!-- ============ 3D WAVE CANVAS ============ -->
+<div id="waveBg"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav-1">
+  <a href="/markets" class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M2 4L12 20L22 4" stroke="currentColor" stroke-width="3" stroke-linecap="square"/></svg>
+    <span>VERDICT</span>
+  </a>
+  <div class="nav-search">
+    <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="nav-search-input" placeholder="Search markets..." autocomplete="off" onfocus="window.location='/markets'" />
+    <span class="nav-search-kbd" style="font-family:'JetBrains Mono',monospace">/</span>
+  </div>
+  <div class="nav-links">
+    <a href="/markets" class="nav-link">Markets</a>
+    <a href="/leaderboard" class="nav-link">Leaderboard</a>
+    <a href="/learn" class="nav-link active">How It Works</a>
+  </div>
+  <div style="flex:1"></div>
+  <div class="nav-right">
+    <div id="navAuthBtns">
+      <button class="nav-btn-secondary" id="navLoginBtn">Log In</button>
+      <button class="nav-btn-primary" id="navSignupBtn">Claim $100K Demo</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ PAGE CONTENT ============ -->
+<div class="page-wrap">
+
+<!-- ======== SECTION 1: HERO ======== -->
+<section class="hiw-section hero-section">
+  <div class="eyebrow">HOW IT WORKS</div>
+  <h1 class="hero-headline">
+    The first prop firm for<br><strong>prediction markets.</strong>
+  </h1>
+  <p class="hero-body">
+    Verdict funds skilled forecasters. Pass a one-phase evaluation on live prediction-market data, earn a funded account up to $150,000, and keep 90% of profits — paid weekly in USDC.
+  </p>
+</section>
+
+<!-- ======== SECTION 2: STAT STRIP ======== -->
+<section class="hiw-section" style="padding-top:0;padding-bottom:80px">
+  <div class="stat-strip">
+    <div class="stat-card">
+      <div class="stat-val ice">$150K</div>
+      <div class="stat-label">MAX FUNDED ACCOUNT</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val green">90%</div>
+      <div class="stat-label">PROFIT SPLIT</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">1</div>
+      <div class="stat-label">PHASE TO GET FUNDED</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val gold">WEEKLY</div>
+      <div class="stat-label">USDC PAYOUTS</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 3: THE PATH ======== -->
+<section class="hiw-section">
+  <div class="eyebrow">THE PATH TO FUNDED</div>
+  <h2 class="path-headline">From evaluation to payout.</h2>
+  <div class="path-grid">
+    <div class="path-card">
+      <div class="path-num">01</div>
+      <div class="path-card-title">EVALUATION</div>
+      <h3 class="path-card-headline">Prove your edge.</h3>
+      <p class="path-card-body">Trade live prediction markets with virtual capital. Hit the profit target without exceeding the drawdown limit. One phase, one chance.</p>
+    </div>
+    <div class="path-card">
+      <div class="path-num">02</div>
+      <div class="path-card-title">GET FUNDED</div>
+      <h3 class="path-card-headline">Trade Verdict's capital.</h3>
+      <p class="path-card-body">Pass the evaluation and unlock your funded account. Trade with up to $150,000 in capital against real prediction markets.</p>
+    </div>
+    <div class="path-card">
+      <div class="path-num">03</div>
+      <div class="path-card-title">GET PAID</div>
+      <h3 class="path-card-headline">Keep 90% of profits.</h3>
+      <p class="path-card-body">Weekly USDC payouts on Polygon. No subscriptions. No hidden fees. Just your edge, rewarded.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 4: WHY VERDICT ======== -->
+<section class="hiw-section">
+  <div class="eyebrow">WHY WE EXIST</div>
+  <h2 class="why-headline">Your skill is the only<br><strong>barrier to entry.</strong></h2>
+  <p class="why-body">Prediction markets are the most accurate way to forecast the future. But trading them seriously has always required your own capital.</p>
+  <p class="why-body">Verdict removes that barrier. Start with simulated capital, trade real markets, and prove you can profit. Pass the evaluation and we fund you with up to $150,000. You keep 90% of everything you make.</p>
+</section>
+
+<!-- ======== SECTION 5: THREE COMMITMENTS ======== -->
+<section class="hiw-section">
+  <div class="eyebrow">WHAT WE STAND FOR</div>
+  <h2 class="commit-headline">Three commitments, no exceptions.</h2>
+  <div class="commit-grid">
+    <div class="commit-card">
+      <div class="commit-icon">
+        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="commit-title">TRANSPARENCY</div>
+      <h3 class="commit-card-headline">Real market data.</h3>
+      <p class="commit-card-body">Every price comes from live prediction markets. No hidden odds, no house edge. What you see is what the market sees.</p>
+    </div>
+    <div class="commit-card">
+      <div class="commit-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+      </div>
+      <div class="commit-title">MERITOCRACY</div>
+      <h3 class="commit-card-headline">Skill wins.</h3>
+      <p class="commit-card-body">No pay-to-win. No premium tiers with better odds. Your results come from your forecasting ability, nothing else.</p>
+    </div>
+    <div class="commit-card">
+      <div class="commit-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="commit-title">ACCESSIBILITY</div>
+      <h3 class="commit-card-headline">Zero risk to start.</h3>
+      <p class="commit-card-body">Start trading for free with virtual capital. You only pay when you're ready to get funded. No subscriptions, no hidden fees.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SECTION 6: CTA ======== -->
+<section class="hiw-section cta-section">
+  <div class="eyebrow" style="justify-content:center"><span style="display:none"></span>READY TO PROVE YOUR EDGE?</div>
+  <h2 class="cta-headline">Start your evaluation.<br><strong>Get funded.</strong></h2>
+  <button class="cta-btn" id="ctaClaimBtn">
+    Claim beta account
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+</section>
+
+</div><!-- /page-wrap -->
+
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal-overlay" id="loginModal" style="display:none">
+<div class="modal-card" style="max-width:400px">
+<div class="modal-head"><h3>Log In</h3><button class="modal-x" id="loginModalClose">&times;</button></div>
+<div class="modal-body">
+  <form id="loginModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:14px">
+    <input class="f-input" type="text" id="loginEmail" placeholder="Email or username" autocomplete="email" required style="padding:14px 16px;font-size:14px" />
+    <input class="f-input" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required style="padding:14px 16px;font-size:14px" />
+    <div id="loginModalError" style="color:var(--red);font-size:12px;min-height:18px"></div>
+    <button type="submit" class="pricing-btn-primary" id="loginModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">LOG IN</button>
+  </form>
+  <p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center">Don't have an account? <a href="#" id="loginToSignup" style="color:var(--ice);font-weight:600">Sign Up</a></p>
+</div>
+</div>
+</div>
+
+<!-- ============ CTA / PRICING MODAL ============ -->
+<div class="modal-overlay" id="ctaInterceptModal" style="display:none">
+<div style="max-width:880px;width:95%;margin:auto;position:relative">
+  <button class="modal-x" onclick="document.getElementById('ctaInterceptModal').style.display='none'" style="position:absolute;top:-8px;right:-8px;font-size:22px;color:var(--text-3);cursor:pointer;background:rgba(0,0,0,0.5);border:1px solid var(--border);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10">&times;</button>
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="font-size:36px;font-weight:200;letter-spacing:-0.03em;color:var(--text-1);line-height:1.2">Choose Your Account</h1>
+    <p style="color:var(--text-2);font-size:15px;margin-top:8px">Trade prediction markets. Top performers win cash prizes.</p>
+  </div>
+  <div style="display:flex;gap:20px;justify-content:center;align-items:stretch;flex-wrap:wrap">
+    <div class="pricing-card pricing-locked" style="opacity:0.45">
+      <div class="pricing-badge-locked">COMING SOON</div>
+      <div class="pricing-price" style="margin-top:40px"><span class="pricing-amount">$50K</span></div>
+      <p class="pricing-desc" style="margin-top:8px;margin-bottom:auto">Starter account</p>
+      <button class="pricing-btn pricing-btn-locked" disabled>Coming Soon</button>
+    </div>
+    <div class="pricing-card pricing-featured">
+      <div class="pricing-badge-popular">FREE BETA</div>
+      <div class="pricing-price"><span class="pricing-amount">$100K</span></div>
+      <p class="pricing-desc" style="font-size:15px;color:var(--text-1);margin-bottom:8px">Win up to $15,000 in prizes</p>
+      <ul class="pricing-features">
+        <li><svg class="pricing-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>$100K virtual capital</li>
+        <li><svg class="pricing-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>$15,000 prize pool</li>
+        <li><svg class="pricing-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>All markets</li>
+      </ul>
+      <button class="pricing-btn pricing-btn-primary" onclick="document.getElementById('ctaInterceptModal').style.display='none';document.getElementById('congratsModal').style.display='flex'">Claim Free Demo</button>
+    </div>
+    <div class="pricing-card pricing-locked" style="opacity:0.45">
+      <div class="pricing-badge-locked">COMING SOON</div>
+      <div class="pricing-price" style="margin-top:40px"><span class="pricing-amount">$150K</span></div>
+      <p class="pricing-desc" style="margin-top:8px;margin-bottom:auto">Pro account</p>
+      <button class="pricing-btn pricing-btn-locked" disabled>Coming Soon</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:var(--text-3);font-size:12px;margin-top:24px">Already have an account? <a href="#" onclick="event.preventDefault();document.getElementById('ctaInterceptModal').style.display='none';document.getElementById('loginModal').style.display='flex'" style="color:var(--ice);font-weight:600">Log In</a></p>
+</div>
+</div>
+
+<!-- ============ CONGRATS MODAL ============ -->
+<div class="modal-overlay" id="congratsModal" style="display:none">
+<div class="modal-card" style="max-width:480px;border:1px solid rgba(169,200,240,0.15);background:var(--bg-card)">
+<div class="modal-body" style="text-align:center;padding:48px 36px">
+  <div style="width:64px;height:64px;margin:0 auto 20px;border-radius:50%;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.2);display:flex;align-items:center;justify-content:center">
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px"><path d="M20 6 9 17l-5-5"/></svg>
+  </div>
+  <h2 style="font-size:24px;font-weight:800;color:var(--text-1);margin-bottom:10px;letter-spacing:-0.02em">You're In</h2>
+  <p style="color:var(--text-2);font-size:15px;line-height:1.6;margin-bottom:28px"><strong style="color:var(--text-1)">$100K demo account</strong> ready. Trade prediction markets and compete for <strong style="color:#f0b90b">$15,000 in prizes</strong>.</p>
+  <button class="pricing-btn pricing-btn-primary" onclick="document.getElementById('congratsModal').style.display='none';document.getElementById('signupModal').style.display='flex'" style="width:100%;padding:14px;font-size:15px">Continue to Sign Up</button>
+</div>
+</div>
+</div>
+
+<!-- ============ SIGNUP MODAL ============ -->
+<div class="modal-overlay" id="signupModal" style="display:none">
+<div class="modal-card" style="max-width:440px;border:1px solid rgba(169,200,240,0.12);background:#0d0d15">
+<div style="padding:32px 28px 8px;text-align:center;position:relative">
+  <div style="width:44px;height:44px;margin:0 auto 16px;border-radius:12px;background:rgba(169,200,240,0.06);border:1px solid rgba(169,200,240,0.12);display:flex;align-items:center;justify-content:center">
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>
+  <h2 style="font-size:22px;font-weight:800;color:var(--text-1);letter-spacing:-0.02em;margin-bottom:4px">Create Account</h2>
+  <p style="font-size:13px;color:var(--text-3);margin-bottom:0">Start trading with $100K demo capital</p>
+  <button class="modal-x" id="signupModalClose" style="position:absolute;top:16px;right:16px">&times;</button>
+</div>
+<div style="padding:20px 28px 28px">
+  <form id="signupModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:12px">
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Full Name</label>
+      <input class="f-input" type="text" id="signupName" placeholder="John Doe" autocomplete="name" required style="padding:12px 14px;font-size:14px;background:#0a0a12;border-color:rgba(255,255,255,0.06);border-radius:10px" />
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Email</label>
+      <input class="f-input" type="email" id="signupEmail" placeholder="you@email.com" autocomplete="email" required style="padding:12px 14px;font-size:14px;background:#0a0a12;border-color:rgba(255,255,255,0.06);border-radius:10px" />
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Username</label>
+      <input class="f-input" type="text" id="signupUsername" placeholder="trader_joe" maxlength="20" required style="padding:12px 14px;font-size:14px;background:#0a0a12;border-color:rgba(255,255,255,0.06);border-radius:10px" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Password</label>
+        <input class="f-input" type="password" id="signupPassword" placeholder="8+ characters" autocomplete="new-password" required minlength="8" style="padding:12px 14px;font-size:14px;background:#0a0a12;border-color:rgba(255,255,255,0.06);border-radius:10px" />
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Confirm</label>
+        <input class="f-input" type="password" id="signupConfirm" placeholder="Repeat" autocomplete="new-password" required style="padding:12px 14px;font-size:14px;background:#0a0a12;border-color:rgba(255,255,255,0.06);border-radius:10px" />
+      </div>
+    </div>
+    <div id="signupModalError" style="color:var(--red);font-size:12px;min-height:16px;margin-top:-2px"></div>
+    <button type="submit" class="pricing-btn-primary" id="signupModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700;border-radius:10px;margin-top:2px">Create Account</button>
+  </form>
+  <p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center">Already have an account? <a href="#" id="signupToLogin" style="color:var(--ice);font-weight:600">Log In</a></p>
+</div>
+</div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M2 4L12 20L22 4" stroke="currentColor" stroke-width="3" stroke-linecap="square"/></svg>
+        <span>VERDICT</span>
+      </div>
+      <div class="footer-socials">
+        <a href="https://x.com/trade_verdict" target="_blank" rel="noopener" aria-label="X / Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="mailto:support@verdict.markets" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <div class="footer-col-title">Support</div>
+        <a href="mailto:support@verdict.markets">Chat with us</a>
+        <a href="mailto:support@verdict.markets">support@verdict.markets</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Competition</div>
+        <a href="/learn">How It Works</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/learn">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Trading</div>
+        <a href="/markets">Markets</a>
+        <a href="/markets">Trade</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">About</div>
+        <a href="/learn">About Us</a>
+        <a href="mailto:support@verdict.markets">Contact</a>
+        <a href="#">Disclaimer</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 VERDICT Holdings, Inc.</span>
+      <div>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Risk Disclosure</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ THREE.JS — DOTTED WAVE ============ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const container = document.getElementById('waveBg');
+  const SEPARATION = 150, AMOUNTX = 50, AMOUNTY = 50;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+  camera.position.set(0, 400, 1400);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  container.appendChild(renderer.domElement);
+
+  // Build particles
+  const positions = [];
+  for (let ix = 0; ix < AMOUNTX; ix++) {
+    for (let iy = 0; iy < AMOUNTY; iy++) {
+      const x = ix * SEPARATION - (AMOUNTX * SEPARATION) / 2;
+      const z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2;
+      positions.push(x, 0, z);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 5,
+    color: 0x3a4a6a,
+    transparent: true,
+    opacity: 0.45,
+    sizeAttenuation: true,
+  });
+  const points = new THREE.Points(geometry, material);
+  scene.add(points);
+
+  let count = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    const pos = geometry.attributes.position.array;
+    let i = 0;
+    for (let ix = 0; ix < AMOUNTX; ix++) {
+      for (let iy = 0; iy < AMOUNTY; iy++) {
+        pos[i * 3 + 1] =
+          Math.sin((ix + count) * 0.3) * 50 +
+          Math.sin((iy + count) * 0.5) * 50;
+        i++;
+      }
+    }
+    geometry.attributes.position.needsUpdate = true;
+    renderer.render(scene, camera);
+    count += 0.04;
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+
+<!-- ============ PAGE JS ============ -->
+<script>
+const $=s=>document.querySelector(s);
+const S = { token: localStorage.getItem('verdict_token'), user: null };
+try { S.user = JSON.parse(localStorage.getItem('verdict_user')); } catch(e){}
+
+/* Auth state */
+function updateNavAuth(){
+  if(S.token && S.user){
+    $('#navAuthBtns').innerHTML = '<span style="font-size:13px;color:var(--text-2);font-weight:600">'+((S.user.username||S.user.name||'Trader'))+'</span>';
+  } else {
+    $('#navAuthBtns').style.display = '';
+  }
+}
+updateNavAuth();
+
+/* Nav buttons */
+$('#navLoginBtn').onclick = () => { $('#loginModal').style.display='flex'; };
+$('#navSignupBtn').onclick = () => { $('#ctaInterceptModal').style.display='flex'; };
+$('#ctaClaimBtn').onclick = () => { $('#ctaInterceptModal').style.display='flex'; };
+
+/* Modal close handlers */
+$('#loginModalClose').onclick = () => { $('#loginModal').style.display='none'; };
+$('#loginModal').onclick = e => { if(e.target===e.currentTarget) $('#loginModal').style.display='none'; };
+$('#ctaInterceptModal').onclick = e => { if(e.target===e.currentTarget) $('#ctaInterceptModal').style.display='none'; };
+$('#congratsModal').onclick = e => { if(e.target===e.currentTarget) $('#congratsModal').style.display='none'; };
+$('#signupModal').onclick = e => { if(e.target===e.currentTarget) $('#signupModal').style.display='none'; };
+$('#signupModalClose').onclick = () => { $('#signupModal').style.display='none'; };
+
+/* Login ↔ Signup switching */
+$('#loginToSignup').onclick = e => { e.preventDefault(); $('#loginModal').style.display='none'; $('#ctaInterceptModal').style.display='flex'; };
+$('#signupToLogin').onclick = e => { e.preventDefault(); $('#signupModal').style.display='none'; $('#loginModal').style.display='flex'; };
+
+/* Login form */
+$('#loginModalForm').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#loginModalSubmit'), err = $('#loginModalError');
+  const email = $('#loginEmail').value.trim();
+  const pw = $('#loginPassword').value;
+  btn.disabled = true; btn.textContent = 'Signing in...'; err.textContent = '';
+  try {
+    const r = await fetch('/api/signin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, password:pw}) });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||'Login failed');
+    localStorage.setItem('verdict_token', d.token);
+    localStorage.setItem('verdict_user', JSON.stringify(d.user));
+    S.token = d.token; S.user = d.user;
+    $('#loginModal').style.display = 'none';
+    updateNavAuth();
+  } catch(ex){ err.textContent = ex.message; }
+  btn.disabled = false; btn.textContent = 'LOG IN';
+};
+
+/* Signup form */
+$('#signupModalForm').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#signupModalSubmit'), err = $('#signupModalError');
+  const name = $('#signupName').value.trim();
+  const email = $('#signupEmail').value.trim();
+  const username = $('#signupUsername').value.trim();
+  const pw = $('#signupPassword').value;
+  const confirm = $('#signupConfirm').value;
+  if(pw !== confirm){ err.textContent = 'Passwords do not match'; return; }
+  btn.disabled = true; btn.textContent = 'Creating...'; err.textContent = '';
+  try {
+    const r = await fetch('/api/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, email, username, password:pw}) });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||'Signup failed');
+    localStorage.setItem('verdict_token', d.token);
+    localStorage.setItem('verdict_user', JSON.stringify(d.user));
+    S.token = d.token; S.user = d.user;
+    $('#signupModal').style.display = 'none';
+    updateNavAuth();
+    // Auto claim beta
+    try { await fetch('/api/beta/claim', { method:'POST', headers:{'Authorization':'Bearer '+d.token} }); } catch(ex){}
+  } catch(ex){ err.textContent = ex.message; }
+  btn.disabled = false; btn.textContent = 'Create Account';
+};
+</script>
+
+</body>
+</html>

@@ -46,7 +46,7 @@ const PROFIT_TARGET        = 0.06;   // 6% profit target (eval phase)
 const VERIFICATION_TARGET  = 0.04;   // 4% profit target (verification phase)
 const MAX_LOSS             = 0.04;   // 4% static drawdown from starting balance (NOT trailing)
 const DAILY_LOSS_LIMIT     = 0.02;   // 2% max loss in a single calendar day
-const POSITION_CAP         = 0.20;   // 20% of account size per single trade
+const POSITION_CAP         = 0.10;   // 10% of account balance per single trade
 const MIN_TRADING_DAYS     = 7;      // Must trade on at least 7 separate calendar days
 const CONSISTENCY_MAX_PCT  = 0.35;   // No single day's profit > 35% of total profit
 const EVAL_TIME_LIMIT_DAYS = 30;     // Days to complete eval or verification phase
@@ -104,7 +104,7 @@ if (!ODDS_API_KEY) {
 // ============ BETA MODE CONFIG ============
 const BETA_MODE = (process.env.BETA_MODE || 'true') === 'true';
 const BETA_ENDS_AT = process.env.BETA_ENDS_AT || '2026-07-01T23:59:59Z';
-const BETA_PRIZE_FIRST_CENTS  = Number(process.env.BETA_PRIZE_FIRST_CENTS  || 500000);
+const BETA_PRIZE_FIRST_CENTS  = Number(process.env.BETA_PRIZE_FIRST_CENTS  || 1000000);
 const BETA_PRIZE_SECOND_CENTS = Number(process.env.BETA_PRIZE_SECOND_CENTS || 300000);
 const BETA_PRIZE_THIRD_CENTS  = Number(process.env.BETA_PRIZE_THIRD_CENTS  || 200000);
 const BETA_STARTING_BALANCE_CENTS = Number(process.env.BETA_STARTING_BALANCE_CENTS || 10000000); // $100,000
@@ -181,7 +181,7 @@ const EMAIL_TEMPLATES = {
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Profit Target</span><span style="color:#00d4aa;font-weight:700">+6%</span></div>
         <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Max Drawdown</span><span style="color:#ff4757;font-weight:700">-4%</span></div>
       </div>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
     `),
   }),
 
@@ -190,7 +190,7 @@ const EMAIL_TEMPLATES = {
     html: emailWrap(`
       <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px">Phase 1 Complete!</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You hit the 6% profit target on your ${account.plan || 'Pro'} account. Phase 2 (verification) starts now — hit +4% to unlock your funded account.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#00d4aa;color:#000;font-weight:700;border-radius:8px;text-decoration:none">View Dashboard</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets?page=dashboard" style="display:inline-block;padding:12px 24px;background:#00d4aa;color:#000;font-weight:700;border-radius:8px;text-decoration:none">View Dashboard</a>
     `),
   }),
 
@@ -200,7 +200,7 @@ const EMAIL_TEMPLATES = {
       <div style="text-align:center;font-size:48px;margin-bottom:16px">&#127942;</div>
       <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px;text-align:center">You Passed Both Phases!</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px;text-align:center">Pay the one-time $49 activation fee to unlock your funded account and start earning real profits.</p>
-      <div style="text-align:center"><a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00d4aa,#00e6b8);color:#000;font-weight:800;border-radius:8px;text-decoration:none">Activate — $49</a></div>
+      <div style="text-align:center"><a href="${APP_URL || 'https://verdict.markets'}/markets?page=dashboard" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00d4aa,#00e6b8);color:#000;font-weight:800;border-radius:8px;text-decoration:none">Activate — $49</a></div>
       <p style="color:#55556a;font-size:11px;text-align:center;margin-top:16px">One-time fee. Keep 80% of all profits. Weekly USDC payouts.</p>
     `),
   }),
@@ -215,7 +215,7 @@ const EMAIL_TEMPLATES = {
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Profit Split</span><span style="color:#00d4aa;font-weight:700">80% yours</span></div>
         <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Payouts</span><span style="color:#fff;font-weight:700">Weekly USDC</span></div>
       </div>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
     `),
   }),
 
@@ -225,7 +225,7 @@ const EMAIL_TEMPLATES = {
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Failed</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your ${account.plan || 'Pro'} account exceeded the -4% max drawdown limit. Your eval has ended.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime. Your subscription has been canceled — no further charges.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
     `),
   }),
 
@@ -235,7 +235,7 @@ const EMAIL_TEMPLATES = {
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Failed</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your ${account.plan || 'Pro'} account exceeded the -2% daily loss limit. Your eval has ended.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime. Your subscription has been canceled — no further charges.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
     `),
   }),
 
@@ -244,7 +244,7 @@ const EMAIL_TEMPLATES = {
     html: emailWrap(`
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Payment Failed</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">We couldn't process your subscription payment. Update your payment method within 7 days to avoid account closure.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
     `),
   }),
 
@@ -253,7 +253,7 @@ const EMAIL_TEMPLATES = {
     html: emailWrap(`
       <h2 style="color:#f0b90b;margin:0 0 12px;font-size:20px">Payment Still Pending</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your payment is still outstanding. You have <strong style="color:#fff">4 days</strong> remaining before your account is closed. Update your payment method now.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#f0b90b;color:#000;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets?page=dashboard" style="display:inline-block;padding:12px 24px;background:#f0b90b;color:#000;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
     `),
   }),
 
@@ -262,7 +262,7 @@ const EMAIL_TEMPLATES = {
     html: emailWrap(`
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Final Warning</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">This is your last chance. Your account will be <strong style="color:#ff4757">permanently closed tomorrow</strong> if payment is not updated.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment Now</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment Now</a>
     `),
   }),
 
@@ -272,7 +272,7 @@ const EMAIL_TEMPLATES = {
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Closed</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your account has been closed due to unresolved payment. Your subscription has been canceled — no further charges.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime with a fresh subscription.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
     `),
   }),
 
@@ -282,7 +282,7 @@ const EMAIL_TEMPLATES = {
       <h2 style="color:#fff;margin:0 0 12px;font-size:20px">Subscription Canceled</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your VERDICT subscription has been canceled. You can continue trading until the end of your current billing period.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">If you change your mind, you can start a new eval anytime.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Visit VERDICT</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Visit VERDICT</a>
     `),
   }),
 
@@ -295,18 +295,18 @@ const EMAIL_TEMPLATES = {
       <div style="background:#1c1c28;border-radius:8px;padding:16px;margin:0 0 20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Starting Balance</span><span style="color:#fff;font-weight:700">$${(data.size || 100000).toLocaleString()}</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Max Drawdown</span><span style="color:#ff4757;font-weight:700">-4%</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Prize Pool</span><span style="color:#f0b90b;font-weight:700">$10,000</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Prize Pool</span><span style="color:#f0b90b;font-weight:700">$15,000</span></div>
         <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Beta Ends</span><span style="color:#fff;font-weight:700">${new Date(data.beta_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
       </div>
       <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #f0b90b33;border-radius:8px;padding:16px;margin:0 0 20px;text-align:center">
         <div style="font-size:12px;color:#f0b90b;font-weight:700;letter-spacing:1px;margin-bottom:8px">PRIZES</div>
         <div style="display:flex;justify-content:center;gap:24px">
-          <div><div style="font-size:18px;font-weight:900;color:#f0b90b">$5,000</div><div style="font-size:11px;color:#55556a">1st Place</div></div>
+          <div><div style="font-size:18px;font-weight:900;color:#f0b90b">$10,000</div><div style="font-size:11px;color:#55556a">1st Place</div></div>
           <div><div style="font-size:18px;font-weight:900;color:#c0c0c0">$3,000</div><div style="font-size:11px;color:#55556a">2nd Place</div></div>
           <div><div style="font-size:18px;font-weight:900;color:#cd7f32">$2,000</div><div style="font-size:11px;color:#55556a">3rd Place</div></div>
         </div>
       </div>
-      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/markets" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
     `),
   }),
 
@@ -316,7 +316,7 @@ const EMAIL_TEMPLATES = {
       <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Breached</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your beta account exceeded the 4% max drawdown limit. Trading is locked, but you stay on the leaderboard with your final P&L.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">One account per person during beta — no resets. Check the leaderboard to see where you stand.</p>
-      <a href="${APP_URL || 'https://verdict.markets'}/leaderboard.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">View Leaderboard</a>
+      <a href="${APP_URL || 'https://verdict.markets'}/leaderboard" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">View Leaderboard</a>
     `),
   }),
 };
@@ -1730,52 +1730,52 @@ async function evaluateRules(account, context = {}) {
     }
   }
 
-  // ── 2. STATIC DRAWDOWN — equity below starting_size * (1 - 4%) ──
-  const lossFloor = size * (1 - MAX_LOSS);
-  if (trigger === 'pre_order') {
-    // Would this order push equity below the drawdown floor?
-    // orderCost leaves the cash balance but enters a position (MTM neutral at entry),
-    // so check if current equity minus worst-case cost falls below floor
-    if (equity - orderCost < lossFloor) {
-      return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit`, action: 'reject_order' };
-    }
-  } else {
-    // Post-trade: has account equity blown through the floor?
-    if (equity < lossFloor) {
-      return { ok: false, code: 'MAX_LOSS', msg: `Account breached ${MAX_LOSS * 100}% max drawdown`, action: 'fail' };
-    }
-  }
+  const isBeta = account.is_beta || account.plan === 'beta';
 
-  // ── 3. DAILY LOSS LIMIT — today's realized loss > starting_size * 2% ──
-  const today = new Date().toISOString().slice(0, 10);
-  const dailyRows = await dbSelect('daily_pnl', { account_id: account.id, date: today });
-  const dailyRow = dailyRows[0];
-  if (dailyRow) {
-    const dailyFloor = size * DAILY_LOSS_LIMIT;
-    // dailyLoss = how much the balance has dropped from today's starting balance
-    const dailyLoss = Math.max(0, Number(dailyRow.starting_bal) - Number(dailyRow.ending_bal));
+  // ── 2. STATIC DRAWDOWN — skip entirely for beta accounts (no drawdown limit) ──
+  if (!isBeta) {
+    const lossFloor = size * (1 - MAX_LOSS);
     if (trigger === 'pre_order') {
-      // Block new trades if today's realized loss already hit the 2% daily limit
-      if (dailyLoss >= dailyFloor) {
-        return { ok: false, code: 'DAILY_LOSS', msg: `Daily loss limit reached — you've lost ${DAILY_LOSS_LIMIT * 100}% today. Trading locked until tomorrow.`, action: 'reject_order' };
+      if (equity - orderCost < lossFloor) {
+        return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit`, action: 'reject_order' };
       }
     } else {
-      // Post-trade: has today's loss exceeded 2%?
-      if (dailyLoss > dailyFloor) {
-        return {
-          ok: false, code: 'DAILY_LOSS',
-          msg: `Daily loss limit breached (${(dailyLoss / size * 100).toFixed(1)}% lost today)`,
-          action: 'fail',
-          details: { daily_loss: dailyLoss, daily_limit: dailyFloor },
-        };
+      if (equity < lossFloor) {
+        return { ok: false, code: 'MAX_LOSS', msg: `Account breached ${MAX_LOSS * 100}% max drawdown`, action: 'fail' };
       }
     }
   }
 
-  // ── 4. POSITION CAP (pre-trade only) — order > 20% of account size ──
+  // ── 3. DAILY LOSS LIMIT — skip entirely for beta accounts ──
+  if (!isBeta) {
+    const today = new Date().toISOString().slice(0, 10);
+    const dailyRows = await dbSelect('daily_pnl', { account_id: account.id, date: today });
+    const dailyRow = dailyRows[0];
+    if (dailyRow) {
+      const dailyFloor = size * DAILY_LOSS_LIMIT;
+      const dailyLoss = Math.max(0, Number(dailyRow.starting_bal) - Number(dailyRow.ending_bal));
+      if (trigger === 'pre_order') {
+        if (dailyLoss >= dailyFloor) {
+          return { ok: false, code: 'DAILY_LOSS', msg: `Daily loss limit reached — you've lost ${DAILY_LOSS_LIMIT * 100}% today. Trading locked until tomorrow.`, action: 'reject_order' };
+        }
+      } else {
+        if (dailyLoss > dailyFloor) {
+          return {
+            ok: false, code: 'DAILY_LOSS',
+            msg: `Daily loss limit breached (${(dailyLoss / size * 100).toFixed(1)}% lost today)`,
+            action: 'fail',
+            details: { daily_loss: dailyLoss, daily_limit: dailyFloor },
+          };
+        }
+      }
+    }
+  }
+
+  // ── 4. POSITION CAP (pre-trade only) — max 10% of current balance per trade ──
   if (trigger === 'pre_order') {
-    if (orderCost > size * POSITION_CAP) {
-      return { ok: false, code: 'POSITION_SIZE', msg: `Max ${POSITION_CAP * 100}% per trade — reduce your size`, action: 'reject_order' };
+    const maxOrder = balance * POSITION_CAP;
+    if (orderCost > maxOrder) {
+      return { ok: false, code: 'POSITION_SIZE', msg: `Max ${POSITION_CAP * 100}% per trade — limit $${Math.floor(maxOrder).toLocaleString()}`, action: 'cap_order', details: { max_order: Math.floor(maxOrder) } };
     }
   }
 
@@ -1909,15 +1909,20 @@ async function executePhaseTransition(account, ruleResult) {
 
 // Legacy wrapper — keeps old call sites working during migration (pre-order check only)
 function checkRules(account, orderCost) {
-  // Synchronous fast-path for pre-order basics (no daily_pnl lookup)
   const size    = Number(account.size);
   const balance = Number(account.balance);
-  const lossFloor = size * (1 - MAX_LOSS);
-  if (balance - orderCost < lossFloor) {
-    return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit` };
+  const isBeta  = account.is_beta || account.plan === 'beta';
+
+  if (!isBeta) {
+    const lossFloor = size * (1 - MAX_LOSS);
+    if (balance - orderCost < lossFloor) {
+      return { ok: false, code: 'MAX_LOSS', msg: `Order would breach your ${MAX_LOSS * 100}% loss limit` };
+    }
   }
-  if (orderCost > size * POSITION_CAP) {
-    return { ok: false, code: 'POSITION_SIZE', msg: `Max ${POSITION_CAP * 100}% per trade — reduce your size` };
+
+  const maxOrder = balance * POSITION_CAP;
+  if (orderCost > maxOrder) {
+    return { ok: false, code: 'POSITION_SIZE', msg: `Max ${POSITION_CAP * 100}% per trade — limit $${Math.floor(maxOrder).toLocaleString()}`, cap: Math.floor(maxOrder) };
   }
   return { ok: true };
 }
@@ -2182,6 +2187,10 @@ BETA_DISABLED_END */
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'site'), { extensions: ['html'] }));
 
+// Clean URL aliases
+app.get('/markets', (req, res) => res.sendFile(path.join(__dirname, 'site', 'trade.html')));
+app.get('/learn', (req, res) => res.sendFile(path.join(__dirname, 'site', 'how-it-works.html')));
+
 // ============ RATE LIMITING ============
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, max: 200,
@@ -2205,7 +2214,7 @@ const orderLimiter = rateLimit({
 // ============ AUTH ROUTES ============
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
-    const { email, password, full_name, plan = 'pro', size = 25000, ref } = req.body || {};
+    const { email, password, full_name, username, plan = 'pro', size = 25000, ref } = req.body || {};
 
     if (!email || !password) return res.status(400).json({ error: 'email + password required' });
     if (typeof email !== 'string' || email.length > 254) return res.status(400).json({ error: 'invalid email' });
@@ -2225,6 +2234,20 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     const existing = await dbSelectOne('users', { email: cleanEmail });
     if (existing) return res.status(400).json({ error: 'email already exists' });
 
+    // Validate username if provided
+    let cleanUsername = null;
+    if (username && typeof username === 'string') {
+      cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+      if (cleanUsername.length < 3 || cleanUsername.length > 20) {
+        return res.status(400).json({ error: 'username must be 3-20 characters (letters, numbers, underscores)' });
+      }
+      const reserved = ['admin', 'verdict', 'system', 'support', 'help', 'mod', 'moderator'];
+      if (reserved.includes(cleanUsername)) return res.status(400).json({ error: 'that username is reserved' });
+      const allUsers = await dbSelect('users', {});
+      const taken = allUsers.find(u => u.username === cleanUsername);
+      if (taken) return res.status(400).json({ error: 'username already taken' });
+    }
+
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     // Store referral code if provided
@@ -2234,6 +2257,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       email: cleanEmail,
       password_hash: passwordHash,
       full_name: cleanName,
+      username: cleanUsername || null,
       referred_by: referralCode || null,
       email_verified: false,
       is_admin: ADMIN_EMAILS.includes(cleanEmail),
@@ -2271,31 +2295,37 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     return res.json({
       token,
-      user: { id: user.id, email: cleanEmail, name: cleanName, email_verified: false },
+      user: { id: user.id, email: cleanEmail, name: cleanName, username: cleanUsername || null, email_verified: false },
     });
   } catch (e) {
-    console.error('[signup]', e.message);
-    return res.status(500).json({ error: 'signup failed' });
+    console.error('[signup]', e.message, e.stack);
+    return res.status(500).json({ error: e.message || 'signup failed' });
   }
 });
 
 app.post('/api/signin', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: 'email + password required' });
+    if (!email || !password) return res.status(400).json({ error: 'email or username + password required' });
 
-    const cleanEmail = email.trim().toLowerCase();
-    const user = await dbSelectOne('users', { email: cleanEmail });
+    const cleanInput = email.trim().toLowerCase();
+    // Try email first, then username
+    let user = await dbSelectOne('users', { email: cleanInput });
+    if (!user) {
+      // Try username lookup
+      const allUsers = await dbSelect('users', {});
+      user = allUsers.find(u => u.username === cleanInput);
+    }
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'invalid credentials' });
 
-    const token = signToken({ userId: user.id, email: cleanEmail });
+    const token = signToken({ userId: user.id, email: user.email });
 
     return res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.full_name, email_verified: user.email_verified !== false },
+      user: { id: user.id, email: user.email, name: user.full_name, username: user.username || null, email_verified: user.email_verified !== false },
     });
   } catch (e) {
     console.error('[signin]', e.message);
@@ -2365,7 +2395,7 @@ function verifyPage(msg, success) {
       <div style="font-size:32px;margin-bottom:16px">${success ? '✅' : '❌'}</div>
       <h1 style="font-size:20px;font-weight:900;margin-bottom:8px">VERDICT</h1>
       <p style="color:${success ? '#00d4aa' : '#ff4757'};font-size:16px;font-weight:600">${msg}</p>
-      <a href="/trade.html" style="display:inline-block;margin-top:24px;padding:10px 24px;background:#4e8bff;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px">Go to Dashboard</a>
+      <a href="/markets" style="display:inline-block;margin-top:24px;padding:10px 24px;background:#4e8bff;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px">Go to Dashboard</a>
     </div>
   </body></html>`;
 }
@@ -2977,13 +3007,24 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
     const execution = await executeMarketBuy(tokenId, numShares, pmPrice);
     const fillPrice = execution.fillPrice;
     // If dollars-first, cap cost at the exact dollar input (don't overshoot)
-    const cost = dollarInput ? Math.min(dollarInput, execution.cost) : execution.cost;
+    let cost = dollarInput ? Math.min(dollarInput, execution.cost) : execution.cost;
 
     // ── PRE-ORDER RULE CHECK (evaluateRules handles time limit, drawdown, daily loss, position cap) ──
-    const risk = await evaluateRules(account, { trigger: 'pre_order', orderCost: cost });
+    let risk = await evaluateRules(account, { trigger: 'pre_order', orderCost: cost });
+
+    // Auto-cap: if position too large, reduce to max allowed and re-check
+    if (risk.action === 'cap_order' && risk.details && risk.details.max_order > 0) {
+      const cappedCost = risk.details.max_order;
+      const cappedShares = +(cappedCost / fillPrice).toFixed(2);
+      if (cappedShares >= 1) {
+        numShares = cappedShares;
+        cost = cappedCost;
+        risk = await evaluateRules(account, { trigger: 'pre_order', orderCost: cost });
+      }
+    }
+
     if (!risk.ok) {
       releaseOrderLock(account.id);
-      // If the rule engine says fail the account (e.g. time expired), do it
       if (risk.action === 'fail') await executePhaseTransition(account, risk);
       return res.status(400).json({ error: risk.msg, code: risk.code });
     }
@@ -3475,8 +3516,8 @@ app.post('/api/checkout', authMiddleware, async (req, res) => {
         fee_type: 'monthly_eval',
         referralCode: referralCode || '',
       },
-      success_url: `${origin}/trade.html?subscription=success`,
-      cancel_url: `${origin}/trade.html?subscription=canceled`,
+      success_url: `${origin}/markets?subscription=success`,
+      cancel_url: `${origin}/markets?subscription=canceled`,
       custom_text: {
         submit: {
           message: 'Cancel anytime from your account dashboard. Cancellation takes effect at end of billing period.',
@@ -3545,8 +3586,8 @@ app.post('/api/account/:id/activate', authMiddleware, async (req, res) => {
         account_id: String(account.id),
         fee_type: 'activation',
       },
-      success_url: `${origin}/trade.html?activation=success&account_id=${account.id}`,
-      cancel_url: `${origin}/trade.html?activation=canceled&account_id=${account.id}`,
+      success_url: `${origin}/markets?activation=success&account_id=${account.id}`,
+      cancel_url: `${origin}/markets?activation=canceled&account_id=${account.id}`,
       custom_text: {
         submit: {
           message: 'One-time fee to activate your funded account. Your monthly subscription continues separately.',
@@ -3571,7 +3612,7 @@ app.post('/api/subscription/manage', authMiddleware, async (req, res) => {
     const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
-      return_url: `${origin}/trade.html?page=dashboard`,
+      return_url: `${origin}/markets?page=dashboard`,
     });
     res.json({ portal_url: session.url });
   } catch (e) {
@@ -3668,6 +3709,19 @@ app.post('/api/beta/claim', authMiddleware, async (req, res) => {
 
     console.log(`[beta] account claimed by user ${req.userId} (${user.email}) — $${betaBalance.toLocaleString()} balance`);
 
+    // Track referral if user signed up with a code
+    if (user.referred_by) {
+      try {
+        const affiliate = await dbSelectOne('affiliates', { code: user.referred_by });
+        if (affiliate && affiliate.user_id !== req.userId) {
+          await dbUpdate('affiliates', { id: affiliate.id }, {
+            total_referrals: (affiliate.total_referrals || 0) + 1,
+          });
+          console.log(`[referral] ${user.referred_by} gets +1 referral from user ${req.userId}`);
+        }
+      } catch (refErr) { console.error('[referral-track]', refErr.message); }
+    }
+
     // Send beta welcome email
     sendTemplateEmail('beta_welcome', user, { size: betaBalance, beta_ends_at: BETA_ENDS_AT }).catch(() => {});
 
@@ -3697,7 +3751,7 @@ app.get('/api/leaderboard', async (req, res) => {
         const curBal = Number(a.balance);
         const pnlCents = Math.round((curBal - startBal) * 100);
         return {
-          handle: user.handle || user.full_name || (user.email ? user.email.split('@')[0] : 'trader'),
+          handle: user.username || user.handle || user.full_name || (user.email ? user.email.split('@')[0] : 'trader'),
           pnl_cents: pnlCents,
           pnl_pct: startBal > 0 ? ((curBal - startBal) / startBal) * 100 : 0,
           total_trades: Number(a.trade_count) || 0,
@@ -3723,6 +3777,110 @@ app.get('/api/leaderboard', async (req, res) => {
   } catch (e) {
     console.error('[leaderboard]', e.message);
     res.status(500).json({ error: 'Failed to load leaderboard' });
+  }
+});
+
+// GET /api/referral-leaderboard — public referral leaderboard ($1K prize)
+app.get('/api/referral-leaderboard', async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const allAffiliates = await dbSelect('affiliates', {});
+    const allUsers = await dbSelect('users', {});
+    const userMap = {};
+    allUsers.forEach(u => { userMap[u.id] = u; });
+
+    const ranked = allAffiliates
+      .filter(a => (a.total_referrals || 0) > 0)
+      .map(a => {
+        const user = userMap[a.user_id] || {};
+        return {
+          handle: user.username || user.handle || user.full_name || (user.email ? user.email.split('@')[0] : 'trader'),
+          code: a.code,
+          total_referrals: a.total_referrals || 0,
+          user_id: a.user_id,
+        };
+      })
+      .sort((a, b) => b.total_referrals - a.total_referrals)
+      .slice(0, limit)
+      .map((entry, i) => ({ ...entry, rank: i + 1 }));
+
+    res.json({
+      leaderboard: ranked,
+      total_referrers: allAffiliates.filter(a => (a.total_referrals || 0) > 0).length,
+      beta_ends_at: BETA_ENDS_AT,
+      prize: 100000, // $1,000 in cents
+    });
+  } catch (e) {
+    console.error('[referral-leaderboard]', e.message);
+    res.status(500).json({ error: 'Failed to load referral leaderboard' });
+  }
+});
+
+// POST /api/user/username — pick a unique username
+app.post('/api/user/username', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.body || {};
+    if (!username || typeof username !== 'string') return res.status(400).json({ error: 'username required' });
+
+    const clean = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (clean.length < 3 || clean.length > 20) {
+      return res.status(400).json({ error: 'username must be 3-20 characters (letters, numbers, underscores)' });
+    }
+
+    // Reserved words
+    const reserved = ['admin', 'verdict', 'system', 'support', 'help', 'mod', 'moderator'];
+    if (reserved.includes(clean)) return res.status(400).json({ error: 'that username is reserved' });
+
+    // Check uniqueness
+    const allUsers = await dbSelect('users', {});
+    const taken = allUsers.find(u => u.username === clean && u.id !== req.userId);
+    if (taken) return res.status(400).json({ error: 'username already taken' });
+
+    await dbUpdate('users', { id: req.userId }, { username: clean });
+    // Also update handle on any accounts
+    const accounts = await dbSelect('accounts', { user_id: req.userId });
+    for (const acct of accounts) {
+      await dbUpdate('accounts', { id: acct.id }, { handle: clean });
+    }
+
+    res.json({ ok: true, username: clean });
+  } catch (e) {
+    console.error('[username]', e.message);
+    res.status(500).json({ error: 'failed to set username' });
+  }
+});
+
+// GET /api/user/profile — get user profile info
+app.get('/api/user/profile', authMiddleware, async (req, res) => {
+  try {
+    const user = await dbSelectOne('users', { id: req.userId });
+    if (!user) return res.status(404).json({ error: 'user not found' });
+    const affiliate = await dbSelectOne('affiliates', { user_id: req.userId });
+    res.json({
+      name: user.full_name,
+      email: user.email,
+      username: user.username || null,
+      email_verified: user.email_verified !== false,
+      referral_code: affiliate ? affiliate.code : null,
+      total_referrals: affiliate ? (affiliate.total_referrals || 0) : 0,
+      created_at: user.created_at,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'failed to load profile' });
+  }
+});
+
+// POST /api/user/settings — update user settings (name, etc)
+app.post('/api/user/settings', authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body || {};
+    const updates = {};
+    if (name && typeof name === 'string') updates.full_name = name.trim().substring(0, 100);
+    if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'nothing to update' });
+    await dbUpdate('users', { id: req.userId }, updates);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'failed to update settings' });
   }
 });
 
@@ -4714,6 +4872,115 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
 });
 
+// ============ SEED LEADERBOARD (dev mode only) ============
+function seedLeaderboard() {
+  if (!DEV_MODE) return;
+  if (memDB._tables.accounts.length > 0) return;
+
+  const startBal = BETA_STARTING_BALANCE_CENTS / 100; // $100,000
+
+  // Named traders from FundingPredicts community + generated names (100 total)
+  const names = [
+    'CarOnPolymarket','MuddyRC','KnightPredict','meustermint','hybridthegeek',
+    'drippy_eth','nyxxbt','WheresBroox','stacyonchain','mikecantmiss',
+    'E8Bruin','tomdnc','ruthybuilds','mahera777','kate_lv',
+    'mztacat','fortraderscom','unvint','devininsider','thetradoor',
+    'alphaseeker','betahunter','polywhale','onchainpapi','cryptojefe',
+    'deltahedge','vegaseller','thetaburner','gammaflip','rhotrader',
+    'sigmagrind','pipsniper','lotsize_king','marginrider','fundedAce',
+    'propfirmPro','evalKing','drawdownzero','riskMgmt','pnlchaser',
+    'yieldfarmer','degenalpha','smartmoney_x','wallst_wizard','bearslayer',
+    'bullrunner99','momentumX','swingkingdom','scalpergod','darkpool_d',
+    'flowrider','orderblockx','icebergOrder','volumeProfile','tickbyTick',
+    'nashEquil','bayesBet','kellyEdge','sharpeRatio','sortinoMax',
+    'calmarKing','infoRatio','alphaDecay','betaNeutral','volCrush',
+    'skewTrader','kurtosisKid','meanRevert','trendFollowX','breakoutBob',
+    'fibRetraceX','pivotpointPro','bollingerBro','vwapAnchored','rsiDiver',
+    'macdCross','ichimokuCloud','elliottWaver','harmonicPat','wyckoffWiz',
+    'smc_trader','liquidityVoid','fairvalueGap','breakerBlock','supplyzoneX',
+    'demandPull','sessKill','londonOpen','nySessionX','asianRange',
+    'newsSpiker','nfpTrader','fomc_fader','cpiSurfer','earningsEdge',
+    'ipoFlippa','spac_hunter','mergearb','eventDriven','catalystPlay',
+    'polyPredict','verdictAlpha','marketMaker99','edgeCapital','primeExec',
+  ];
+
+  // Generate PnL curve: top traders at ~$22K, smooth decay down to breached
+  const traders = names.map((username, i) => {
+    const rank = i + 1;
+    let pnlPct, trades, winRate;
+    if (rank <= 3) {
+      // Top 3: $20K-$22K PnL (20-22%)
+      pnlPct = 22 - (rank - 1) * 1.2;
+      trades = 500 - rank * 40;
+      winRate = 0.74 - rank * 0.02;
+    } else if (rank <= 10) {
+      // 4-10: $12K-$18K
+      pnlPct = 18.5 - (rank - 4) * 1.1;
+      trades = 380 - (rank - 4) * 20;
+      winRate = 0.68 - (rank - 4) * 0.015;
+    } else if (rank <= 25) {
+      // 11-25: $5K-$11K
+      pnlPct = 11.5 - (rank - 11) * 0.48;
+      trades = 300 - (rank - 11) * 8;
+      winRate = 0.60 - (rank - 11) * 0.008;
+    } else if (rank <= 50) {
+      // 26-50: $1K-$4.5K
+      pnlPct = 4.5 - (rank - 26) * 0.15;
+      trades = 200 - (rank - 26) * 3;
+      winRate = 0.54 - (rank - 26) * 0.004;
+    } else if (rank <= 75) {
+      // 51-75: -$500 to $800
+      pnlPct = 0.8 - (rank - 51) * 0.065;
+      trades = 130 - (rank - 51) * 2;
+      winRate = 0.50 - (rank - 51) * 0.003;
+    } else {
+      // 76-100: -$800 to -$3900
+      pnlPct = -0.8 - (rank - 76) * 0.13;
+      trades = 80 - Math.floor((rank - 76) * 1.2);
+      winRate = 0.44 - (rank - 76) * 0.004;
+    }
+    // Add small random jitter so it doesn't look perfectly linear
+    const jit = (Math.sin(rank * 7.3) * 0.3);
+    pnlPct = Math.round((pnlPct + jit) * 100) / 100;
+    trades = Math.max(20, Math.round(trades + Math.sin(rank * 3.1) * 15));
+    winRate = Math.max(0.28, Math.min(0.78, Math.round((winRate + Math.sin(rank * 5.7) * 0.02) * 100) / 100));
+    return { username, pnlPct, trades, winRate };
+  });
+
+  traders.forEach((t, i) => {
+    const userId = memDB._getId('users');
+    memDB._tables.users.push({
+      id: userId,
+      email: `${t.username.toLowerCase()}@demo.verdict`,
+      username: t.username,
+      full_name: t.username,
+      password_hash: 'SEED_ACCOUNT_NO_LOGIN',
+      email_verified: true,
+      created_at: new Date(Date.now() - (30 - (i % 30)) * 86400000).toISOString(),
+    });
+
+    const balance = Math.round(startBal * (1 + t.pnlPct / 100) * 100) / 100;
+    const state = t.pnlPct <= -4 ? 'beta_breached' : 'beta_active';
+    memDB._tables.accounts.push({
+      id: memDB._getId('accounts'),
+      user_id: userId,
+      plan: 'beta',
+      size: startBal,
+      balance: balance,
+      beta_starting_balance: startBal,
+      is_beta: true,
+      state: state,
+      trade_count: t.trades,
+      win_rate: t.winRate,
+      high_water_mark: Math.max(balance, startBal),
+      daily_loss_anchor: balance,
+      created_at: new Date(Date.now() - (30 - (i % 30)) * 86400000).toISOString(),
+    });
+  });
+
+  console.log(`  ✔  Seeded ${traders.length} demo traders on leaderboard`);
+}
+
 // ============ BOOT ============
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  VERDICT server running on port ${PORT}${APP_URL ? ' → ' + APP_URL : ''}`);
@@ -4730,4 +4997,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  • Execution:       CLOB orderbook walk (${SLIPPAGE_FALLBACK * 100}% fallback, ${SLIPPAGE_MAX * 100}% max cap)`);
   console.log(`  • Rules:           ${MAX_LOSS * 100}% drawdown / ${DAILY_LOSS_LIMIT * 100}% daily / ${POSITION_CAP * 100}% position cap`);
   console.log(`  • Resolution cron: every 60s (batched)\n`);
+  seedLeaderboard();
 });

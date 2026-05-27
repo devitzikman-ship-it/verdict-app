@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="logo.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet" />
 <style>
 :root {
   --bg-page: #0a0a0f;
@@ -21,9 +21,14 @@
   --text-2: #8b8b9e;
   --text-3: #55556a;
   --green: #00d4aa;
+  --green-bg: rgba(0,212,170,0.08);
   --red: #ff4757;
+  --red-bg: rgba(255,71,87,0.08);
   --blue: #4e8bff;
+  --blue-bg: rgba(78,139,255,0.08);
+  --purple: #8b5cf6;
   --yellow: #f0b90b;
+  --ice: #a9c8f0;
   --r: 8px;
   --r-lg: 12px;
   --r-xl: 16px;
@@ -32,243 +37,430 @@
 html,body{background:var(--bg-page);color:var(--text-1);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;font-size:14px}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
+.mono{font-family:'JetBrains Mono',monospace}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* NAV */
-.lb-nav{display:flex;align-items:center;gap:16px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-nav)}
-.lb-nav-logo{font-family:'Archivo Black',sans-serif;font-weight:900;font-size:18px;letter-spacing:1px;display:flex;align-items:center;gap:8px;color:#fff}
-.lb-nav-logo svg{width:20px;height:20px;color:var(--blue)}
-.lb-nav-links{display:flex;gap:16px;margin-left:auto}
-.lb-nav-link{font-size:13px;font-weight:600;color:var(--text-2);transition:color .2s}
-.lb-nav-link:hover{color:#fff}
-.lb-nav-link.active{color:var(--yellow)}
-.lb-nav-cta{padding:8px 16px;background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000;font-weight:700;font-size:12px;border-radius:var(--r);letter-spacing:.02em}
+/* ============ NAV ============ */
+.nav-1{
+  position:sticky;top:0;z-index:100;
+  background:rgba(14,14,20,0.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  height:60px;
+  display:grid;
+  grid-template-columns:auto minmax(220px,320px) auto 1fr auto;
+  align-items:center;gap:20px;padding:14px 28px;
+}
+.nav-logo{font-weight:900;font-size:18px;letter-spacing:-0.3px;flex-shrink:0;display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-logo svg{width:22px;height:22px;color:#A8C4DD}
+.nav-search{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px}
+.nav-search-icon{width:14px;height:14px;color:var(--text-3);flex-shrink:0}
+.nav-search-input{flex:1;background:none;border:none;color:var(--text-1);font-size:13px;font-family:inherit;outline:none;min-width:0}
+.nav-search-input::placeholder{color:var(--text-3)}
+.nav-search-kbd{font-size:10px;color:var(--text-3);border:1px solid var(--border-light);border-radius:4px;padding:1px 5px;line-height:1.4}
+.nav-links{display:flex;gap:4px}
+.nav-link{padding:7px 14px;font-size:13px;font-weight:600;color:var(--text-3);border-radius:6px;transition:all .15s;white-space:nowrap;text-decoration:none}
+.nav-link:hover{color:var(--text-1);background:rgba(255,255,255,0.04)}
+.nav-link.active{color:var(--ice);background:rgba(169,200,240,0.08)}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+.nav-btn-secondary{padding:8px 14px;background:transparent;border:none;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:color .15s}
+.nav-btn-secondary:hover{color:var(--text-1)}
+.nav-btn-primary{padding:9px 18px;background:var(--ice);color:#070b14;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:-0.005em;transition:background .15s}
+.nav-btn-primary:hover{background:#b5d0f5}
 
-/* HEADER */
-.lb-hero{text-align:center;padding:48px 24px 32px}
-.lb-hero h1{font-family:'Archivo Black',sans-serif;font-size:clamp(28px,5vw,48px);font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,#fff 0%,#a8c4dd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.lb-hero-sub{color:var(--text-2);font-size:15px;max-width:500px;margin:0 auto}
+/* ============ HEADER ============ */
+.lb-header{padding:56px 56px 24px;max-width:1400px;margin:0 auto}
+.lb-eyebrow{display:inline-flex;align-items:center;gap:10px;margin-bottom:16px}
+.lb-trophy-icon{width:16px;height:16px;color:var(--ice)}
+.lb-eyebrow-text{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.24em;color:var(--ice);text-transform:uppercase}
+.lb-title{font-size:56px;font-weight:800;letter-spacing:-0.03em;color:var(--text-1);line-height:1;margin-bottom:14px}
+.lb-subtitle{font-size:15px;color:var(--text-2);max-width:580px;line-height:1.5}
 
-/* META STATS */
-.lb-meta{display:flex;justify-content:center;gap:32px;margin:32px auto;max-width:600px;flex-wrap:wrap}
-.lb-meta-item{text-align:center}
-.lb-meta-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;margin-bottom:4px}
-.lb-meta-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;color:#fff}
-.lb-meta-val.gold{color:var(--yellow)}
+/* ============ PRIZE BANNER ============ */
+.lb-prize-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 56px 32px;max-width:1400px;margin:0 auto}
+.lb-prize-card{position:relative;padding:24px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.lb-prize-gold{border-color:rgba(244,192,58,0.3);background:linear-gradient(135deg,rgba(244,192,58,0.08),transparent 70%)}
+.lb-prize-silver{border-color:rgba(169,200,240,0.25);background:linear-gradient(135deg,rgba(169,200,240,0.06),transparent 70%)}
+.lb-prize-bronze{border-color:rgba(205,127,50,0.25);background:linear-gradient(135deg,rgba(205,127,50,0.06),transparent 70%)}
+.lb-prize-countdown{border-color:var(--border)}
+.lb-prize-rank{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.22em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px}
+.lb-prize-gold .lb-prize-rank{color:#f4c03a}
+.lb-prize-silver .lb-prize-rank{color:#d4e4f7}
+.lb-prize-bronze .lb-prize-rank{color:#cd7f32}
+.lb-prize-amount{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:800;color:var(--text-1);letter-spacing:-0.02em;line-height:1}
 
-/* PRIZES */
-.lb-prizes{display:flex;justify-content:center;gap:16px;margin:0 auto 40px;max-width:500px;padding:0 24px}
-.lb-prize{flex:1;text-align:center;padding:20px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);transition:transform .2s}
-.lb-prize:hover{transform:translateY(-2px)}
-.lb-prize-1{border-color:rgba(240,185,11,0.3);background:linear-gradient(135deg,rgba(240,185,11,0.05),var(--bg-card))}
-.lb-prize-2{border-color:rgba(192,192,192,0.2)}
-.lb-prize-3{border-color:rgba(205,127,50,0.2)}
-.lb-prize-medal{font-size:28px;margin-bottom:6px}
-.lb-prize-rank{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-3);text-transform:uppercase}
-.lb-prize-amount{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;margin-top:4px}
-.lb-prize-1 .lb-prize-amount{color:#f0b90b}
-.lb-prize-2 .lb-prize-amount{color:#c0c0c0}
-.lb-prize-3 .lb-prize-amount{color:#cd7f32}
+/* ============ YOUR RANK BANNER ============ */
+.lb-your-rank{max-width:1400px;margin:0 auto;padding:0 56px 20px;display:none}
+.lb-your-rank-card{background:linear-gradient(135deg,rgba(78,139,255,0.08),rgba(169,200,240,0.04));border:1px solid rgba(169,200,240,0.2);border-radius:12px;padding:18px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.lb-your-rank-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--text-3);text-transform:uppercase;margin-bottom:2px}
+.lb-your-rank-val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:22px;color:var(--ice)}
+.lb-your-pnl{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px}
+.lb-your-pnl.positive{color:var(--green)}.lb-your-pnl.negative{color:var(--red)}
+.lb-your-trade-link{margin-left:auto;padding:10px 20px;background:var(--ice);color:#070b14;font-weight:800;font-size:13px;border-radius:8px;text-decoration:none;transition:all .15s}
+.lb-your-trade-link:hover{background:#b5d0f5}
 
-/* TABLE */
-.lb-table{max-width:800px;margin:0 auto;padding:0 24px 60px}
-.lb-row{display:grid;grid-template-columns:60px 1fr 120px 90px 80px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s}
-.lb-row:hover{background:var(--bg-hover)}
-.lb-row-header{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;border-bottom:2px solid var(--border-light);background:none !important}
-.lb-row-top{background:rgba(240,185,11,0.03)}
+/* ============ TABLE ============ */
+.lb-table-wrap{padding:0 56px 80px;max-width:1400px;margin:0 auto}
+.lb-table{display:flex;flex-direction:column}
+.lb-row{display:grid;grid-template-columns:80px 1fr 180px 180px 100px 100px 60px;align-items:center;gap:16px;padding:18px 16px;border-bottom:1px solid var(--border);transition:background .1s}
+.lb-row:hover:not(.lb-row-header){background:rgba(169,200,240,0.03)}
+.lb-row-header{padding:16px 16px;border-bottom:1px solid var(--border)}
+.lb-row-header .lb-cell{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:0.18em;color:var(--text-3);text-transform:uppercase}
+.lb-row-me{background:rgba(78,139,255,0.05);border-left:2px solid var(--ice);margin-left:-2px}
 .lb-row-breached{opacity:0.5}
-.lb-col{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lb-col-rank{font-weight:800;font-size:15px;font-family:'JetBrains Mono',monospace}
-.lb-col-trader{font-weight:600;font-size:13px}
-.lb-col-pnl{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;text-align:right}
-.lb-col-pct{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-2)}
-.lb-col-trades{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-3)}
-.positive{color:var(--green) !important}
-.negative{color:var(--red) !important}
-.lb-medal{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:900;font-size:13px}
-.lb-medal-1{background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000}
-.lb-medal-2{background:linear-gradient(135deg,#c0c0c0,#a8a8a8);color:#000}
-.lb-medal-3{background:linear-gradient(135deg,#cd7f32,#b8702e);color:#fff}
+.lb-cell{display:flex;align-items:center}
+.lb-cell-rank{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700}
+.lb-rank-num{color:var(--text-2)}
+.lb-rank-medal{display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;border-radius:100px;font-weight:900;font-size:12px}
+.lb-rank-1{color:#f4c03a;background:rgba(244,192,58,0.12)}
+.lb-rank-2{color:#d4e4f7;background:rgba(212,228,247,0.1)}
+.lb-rank-3{color:#cd7f32;background:rgba(205,127,50,0.12)}
+.lb-cell-trader{display:flex;align-items:center;gap:12px}
+.lb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--ice),rgba(169,200,240,0.5));display:flex;align-items:center;justify-content:center;font-weight:700;color:#070b14;font-size:14px;flex-shrink:0}
+.lb-trader-text{min-width:0}
+.lb-trader-name{font-size:14px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-trader-handle{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);margin-top:2px}
+.lb-trader-breached{font-size:9px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 5px;border-radius:3px;margin-left:6px;letter-spacing:.04em}
+.lb-cell-balance,.lb-cell-pnl,.lb-cell-trades,.lb-cell-winrate{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--text-1)}
+.lb-cell-pnl.positive{color:var(--green)}.lb-cell-pnl.negative{color:var(--red)}
+.lb-cell-trades,.lb-cell-winrate{color:var(--text-2)}
+.lb-share-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-3);cursor:pointer;transition:all .1s}
+.lb-share-btn:hover{border-color:var(--ice);color:var(--ice)}
+.lb-share-btn svg{width:14px;height:14px}
 .lb-empty{text-align:center;padding:40px;color:var(--text-3);font-size:14px}
 
-/* YOUR RANK */
-.lb-your-rank{max-width:800px;margin:0 auto 24px;padding:0 24px}
-.lb-your-rank-card{background:linear-gradient(135deg,rgba(78,139,255,0.08),rgba(240,185,11,0.05));border:1px solid rgba(78,139,255,0.2);border-radius:var(--r-lg);padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.lb-your-rank-label{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-3);text-transform:uppercase}
-.lb-your-rank-val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:20px;color:var(--yellow)}
-.lb-your-pnl{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px}
+/* ============ TOAST ============ */
+.toast{position:fixed;bottom:20px;right:20px;z-index:2000;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--green);padding:12px 20px;border-radius:var(--r);font-size:13px;opacity:0;transform:translateY(16px);transition:opacity .3s,transform .3s;pointer-events:none;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateY(0)}
 
-/* FOOTER */
-.lb-footer{text-align:center;padding:24px;font-size:11px;color:var(--text-3);border-top:1px solid var(--border)}
+/* ============ FOOTER ============ */
+.site-footer{border-top:1px solid var(--border);background:var(--bg-page);padding:56px 56px 32px;margin-top:40px}
+.footer-inner{max-width:1400px;margin:0 auto}
+.footer-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px}
+.footer-brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:18px;letter-spacing:-0.3px;color:var(--text-1)}
+.footer-brand svg{width:22px;height:22px;color:#A8C4DD}
+.footer-socials{display:flex;gap:16px}
+.footer-socials a{color:var(--text-3);transition:color .15s}
+.footer-socials a:hover{color:var(--text-1)}
+.footer-socials svg{width:20px;height:20px}
+.footer-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;margin-bottom:48px}
+.footer-col-title{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:0.18em;color:var(--text-1);text-transform:uppercase;margin-bottom:16px}
+.footer-col a{display:block;font-size:13px;color:var(--text-3);margin-bottom:10px;transition:color .15s}
+.footer-col a:hover{color:var(--text-1)}
+.footer-col p{font-size:12px;color:var(--text-3);line-height:1.6;font-family:'JetBrains Mono',monospace}
+.footer-bottom{padding-top:24px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center}
+.footer-bottom a{color:var(--text-3);margin-left:16px;transition:color .15s}
+.footer-bottom a:hover{color:var(--text-1)}
+@media(max-width:768px){.footer-cols{grid-template-columns:repeat(2,1fr);gap:24px}.site-footer{padding:32px 16px 24px}.footer-top{flex-direction:column;gap:16px}}
 
+/* ============ RESPONSIVE ============ */
+@media(max-width:768px){
+  .lb-prize-banner{grid-template-columns:repeat(2,1fr);padding:0 16px 24px}
+  .lb-row{grid-template-columns:50px 1fr 100px 100px;gap:8px;padding:14px 12px;font-size:12px}
+  .lb-cell-trades,.lb-cell-winrate,.lb-cell-share{display:none}
+  .lb-cell-balance,.lb-cell-pnl{font-size:11px}
+  .lb-avatar{width:28px;height:28px;font-size:12px}
+  .lb-trader-name{font-size:12px}
+  .lb-trader-handle{font-size:10px}
+  .lb-header{padding:32px 16px 16px}
+  .lb-title{font-size:38px}
+  .lb-table-wrap{padding:0 0 60px}
+  .lb-your-rank{padding:0 16px 16px}
+}
+@media(max-width:768px){
+  .nav-1{display:flex;gap:12px;padding:10px 16px;height:auto;min-height:56px;flex-wrap:wrap}
+  .nav-search{order:10;flex:1 1 100%;min-width:0}
+  .nav-links{gap:2px}
+}
 @media(max-width:640px){
-  .lb-row{grid-template-columns:45px 1fr 90px 70px;font-size:12px}
-  .lb-col-trades{display:none}
-  .lb-prizes{flex-direction:column;align-items:center}
-  .lb-prize{width:100%;max-width:280px}
-  .lb-meta{gap:20px}
+  .nav-search{display:none}
+  .nav-links{display:none}
+}
+@media(max-width:480px){
+  .lb-title{font-size:28px}
+  .lb-prize-amount{font-size:24px}
+  .lb-prize-card{padding:16px}
 }
 </style>
 </head>
 <body>
 
-<nav class="lb-nav">
-  <a href="/trade.html" class="lb-nav-logo">
-    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 4L3 20h4.5L12 11l4.5 9H21z"/></svg>
-    VERDICT
+<!-- ============ NAV ============ -->
+<nav class="nav-1">
+  <a href="/markets" class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M2 4L12 20L22 4" stroke="currentColor" stroke-width="3" stroke-linecap="square"/></svg>
+    <span>VERDICT</span>
   </a>
-  <div class="lb-nav-links">
-    <a href="/trade.html" class="lb-nav-link">Markets</a>
-    <a href="/leaderboard.html" class="lb-nav-link active">Leaderboard</a>
+  <div class="nav-search">
+    <svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="nav-search-input" placeholder="Search markets..." autocomplete="off" onkeydown="if(event.key==='Enter'&&this.value.trim())window.location='/markets?q='+encodeURIComponent(this.value.trim())" />
+    <span class="nav-search-kbd mono">/</span>
   </div>
-  <a href="/trade.html" class="lb-nav-cta">Claim $100K — Free</a>
+  <div class="nav-links">
+    <a href="/markets" class="nav-link">Markets</a>
+    <a href="/leaderboard" class="nav-link active">Leaderboard</a>
+    <a href="/learn" class="nav-link">How It Works</a>
+  </div>
+  <div style="flex:1"></div>
+  <div class="nav-right">
+    <button class="nav-btn-secondary" onclick="window.location='/markets#login'">Log In</button>
+    <button class="nav-btn-primary" onclick="window.location='/markets#signup'">Claim $100K Demo</button>
+  </div>
 </nav>
 
-<div class="lb-hero">
-  <h1>Beta Leaderboard</h1>
-  <p class="lb-hero-sub">Trade prediction markets with $100K. Top 3 traders win cash prizes when beta ends.</p>
+<!-- ============ HEADER ============ -->
+<div class="lb-header">
+  <div class="lb-eyebrow">
+    <svg class="lb-trophy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+      <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+      <path d="M4 22h16"/>
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+      <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
+    </svg>
+    <span class="lb-eyebrow-text">BETA COMPETITION</span>
+  </div>
+  <h1 class="lb-title">Leaderboard</h1>
+  <p class="lb-subtitle">Live rankings across every VERDICT beta account, sorted by total P&L.</p>
 </div>
 
-<div class="lb-meta">
-  <div class="lb-meta-item">
-    <div class="lb-meta-label">Traders Competing</div>
-    <div class="lb-meta-val" id="total-traders">--</div>
+<!-- ============ PRIZE BANNER ============ -->
+<div class="lb-prize-banner">
+  <div class="lb-prize-card lb-prize-gold">
+    <div class="lb-prize-rank">1ST PLACE</div>
+    <div class="lb-prize-amount mono" id="prize1">$10,000</div>
   </div>
-  <div class="lb-meta-item">
-    <div class="lb-meta-label">Beta Ends In</div>
-    <div class="lb-meta-val gold" id="countdown">--</div>
+  <div class="lb-prize-card lb-prize-silver">
+    <div class="lb-prize-rank">2ND PLACE</div>
+    <div class="lb-prize-amount mono" id="prize2">$3,000</div>
   </div>
-  <div class="lb-meta-item">
-    <div class="lb-meta-label">Prize Pool</div>
-    <div class="lb-meta-val gold">$10,000</div>
+  <div class="lb-prize-card lb-prize-bronze">
+    <div class="lb-prize-rank">3RD PLACE</div>
+    <div class="lb-prize-amount mono" id="prize3">$2,000</div>
   </div>
-</div>
-
-<div class="lb-prizes">
-  <div class="lb-prize lb-prize-1">
-    <div class="lb-prize-medal">&#129351;</div>
-    <div class="lb-prize-rank">1st Place</div>
-    <div class="lb-prize-amount">$5,000</div>
-  </div>
-  <div class="lb-prize lb-prize-2">
-    <div class="lb-prize-medal">&#129352;</div>
-    <div class="lb-prize-rank">2nd Place</div>
-    <div class="lb-prize-amount">$3,000</div>
-  </div>
-  <div class="lb-prize lb-prize-3">
-    <div class="lb-prize-medal">&#129353;</div>
-    <div class="lb-prize-rank">3rd Place</div>
-    <div class="lb-prize-amount">$2,000</div>
+  <div class="lb-prize-card lb-prize-countdown">
+    <div class="lb-prize-rank">BETA ENDS</div>
+    <div class="lb-prize-amount mono" id="lb-countdown">--d --h --m</div>
   </div>
 </div>
 
-<div class="lb-your-rank" id="yourRankSection" style="display:none">
+<!-- ============ YOUR RANK ============ -->
+<div class="lb-your-rank" id="yourRankSection">
   <div class="lb-your-rank-card">
     <div>
-      <div class="lb-your-rank-label">Your Rank</div>
+      <div class="lb-your-rank-label">YOUR RANK</div>
       <div class="lb-your-rank-val" id="yourRank">#--</div>
     </div>
     <div>
-      <div class="lb-your-rank-label">Your P&L</div>
+      <div class="lb-your-rank-label">YOUR P&L</div>
       <div class="lb-your-pnl" id="yourPnl">$0</div>
     </div>
-    <div style="margin-left:auto">
-      <a href="/trade.html" style="padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:12px;border-radius:var(--r);display:inline-block">Trade Now</a>
+    <div>
+      <div class="lb-your-rank-label">WIN RATE</div>
+      <div class="lb-your-pnl" id="yourWinRate" style="color:var(--text-1)">--%</div>
+    </div>
+    <a href="/markets" class="lb-your-trade-link">Trade Now</a>
+  </div>
+</div>
+
+<!-- ============ TABLE ============ -->
+<div class="lb-table-wrap">
+  <div class="lb-table">
+    <div class="lb-row lb-row-header">
+      <div class="lb-cell lb-cell-rank">RANK</div>
+      <div class="lb-cell lb-cell-trader">TRADER</div>
+      <div class="lb-cell lb-cell-balance">BALANCE</div>
+      <div class="lb-cell lb-cell-pnl">P&L</div>
+      <div class="lb-cell lb-cell-trades">TRADES</div>
+      <div class="lb-cell lb-cell-winrate">WIN RATE</div>
+      <div class="lb-cell lb-cell-share"></div>
+    </div>
+    <div id="lb-body">
+      <div class="lb-empty">Loading leaderboard...</div>
     </div>
   </div>
 </div>
 
-<div class="lb-table">
-  <div class="lb-row lb-row-header">
-    <div class="lb-col lb-col-rank">Rank</div>
-    <div class="lb-col lb-col-trader">Trader</div>
-    <div class="lb-col lb-col-pnl">P&L</div>
-    <div class="lb-col lb-col-pct">Return</div>
-    <div class="lb-col lb-col-trades">Trades</div>
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M2 4L12 20L22 4" stroke="currentColor" stroke-width="3" stroke-linecap="square"/></svg>
+        <span>VERDICT</span>
+      </div>
+      <div class="footer-socials">
+        <a href="https://x.com/trade_verdict" target="_blank" rel="noopener" aria-label="X / Twitter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="mailto:support@verdict.markets" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <div class="footer-col-title">Support</div>
+        <a href="mailto:support@verdict.markets">Chat with us</a>
+        <a href="mailto:support@verdict.markets">support@verdict.markets</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Competition</div>
+        <a href="/learn">How It Works</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/learn">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Trading</div>
+        <a href="/markets">Markets</a>
+        <a href="/markets">Trade</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">About</div>
+        <a href="/learn">About Us</a>
+        <a href="mailto:support@verdict.markets">Contact</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 VERDICT Holdings, Inc.</span>
+      <div>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
   </div>
-  <div id="lb-body">
-    <div class="lb-empty">Loading leaderboard...</div>
-  </div>
-</div>
+</footer>
 
-<div class="lb-footer">
-  &copy; 2026 VERDICT Holdings, Inc. &middot;
-  <a href="/trade.html" style="color:var(--blue)">Markets</a> &middot;
-  <a href="/trade.html" style="color:var(--blue)">Claim $100K Account</a>
-</div>
+<!-- ============ TOAST ============ -->
+<div class="toast" id="toastEl"></div>
 
 <script>
-function fmt$(v){return '$'+Math.abs(v/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}
+/* ============ HELPERS ============ */
+function esc(s){return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c])}
+function fmtNum(n){return Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}
+function fmtDollars(cents){return '$'+fmtNum(cents/100)}
 
-async function loadLeaderboard(){
-  try{
-    const res=await fetch('/api/leaderboard');
-    const data=await res.json();
+function showToast(msg){
+  const t=document.getElementById('toastEl');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
 
-    document.getElementById('total-traders').textContent=data.total_traders.toLocaleString();
-    updateCountdown(data.beta_ends_at);
+/* ============ COUNTDOWN ============ */
+let _betaEndsAt=null;
+function updateCountdown(){
+  const el=document.getElementById('lb-countdown');if(!el||!_betaEndsAt)return;
+  const remaining=new Date(_betaEndsAt).getTime()-Date.now();
+  if(remaining<=0){el.textContent='ENDED';return}
+  const days=Math.floor(remaining/(1000*60*60*24));
+  const hours=Math.floor((remaining/(1000*60*60))%24);
+  const mins=Math.floor((remaining/(1000*60))%60);
+  el.textContent=days+'d '+hours+'h '+mins+'m';
+}
 
-    const tbody=document.getElementById('lb-body');
-    if(!data.leaderboard||!data.leaderboard.length){
-      tbody.innerHTML='<div class="lb-empty">No traders yet. Be the first to claim your $100K account!</div>';
-      return;
-    }
-
-    tbody.innerHTML=data.leaderboard.map(entry=>{
-      const pnlDollars=entry.pnl_cents/100;
-      const pnlStr=(pnlDollars>=0?'+':'-')+'$'+Math.abs(pnlDollars).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
-      const pctStr=(entry.pnl_pct>=0?'+':'')+entry.pnl_pct.toFixed(2)+'%';
-      return `<div class="lb-row ${entry.rank<=3?'lb-row-top':''} ${entry.state==='beta_breached'||entry.state==='failed'?'lb-row-breached':''}">
-        <div class="lb-col lb-col-rank">
-          ${entry.rank<=3?`<span class="lb-medal lb-medal-${entry.rank}">${entry.rank}</span>`:`#${entry.rank}`}
-        </div>
-        <div class="lb-col lb-col-trader">@${entry.handle}${entry.state==='beta_breached'?' <span style="color:var(--red);font-size:10px">DD</span>':''}</div>
-        <div class="lb-col lb-col-pnl ${entry.pnl_cents>=0?'positive':'negative'}">${pnlStr}</div>
-        <div class="lb-col lb-col-pct ${entry.pnl_pct>=0?'positive':'negative'}">${pctStr}</div>
-        <div class="lb-col lb-col-trades">${entry.total_trades}</div>
-      </div>`;
-    }).join('');
-  }catch(e){
-    document.getElementById('lb-body').innerHTML='<div class="lb-empty">Failed to load leaderboard. Try again later.</div>';
+/* ============ SHARE ============ */
+function shareRank(handle,rank,pnlCents){
+  const pnl=pnlCents/100;
+  const text='I\'m ranked #'+rank+' on VERDICT with '+(pnl>=0?'+':'-')+'$'+fmtNum(pnl)+' P&L. Compete in the beta: verdict.trade/leaderboard';
+  if(navigator.share){
+    navigator.share({title:'VERDICT Leaderboard',text:text,url:'https://verdict.trade/leaderboard'}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(text).then(()=>showToast('Copied to clipboard')).catch(()=>showToast('Copy failed'));
   }
 }
 
-function updateCountdown(endsAt){
-  const update=()=>{
-    const remaining=new Date(endsAt).getTime()-Date.now();
-    if(remaining<=0){document.getElementById('countdown').textContent='ENDED';return}
-    const days=Math.floor(remaining/(1000*60*60*24));
-    const hours=Math.floor((remaining/(1000*60*60))%24);
-    const mins=Math.floor((remaining/(1000*60))%60);
-    document.getElementById('countdown').textContent=days+'d '+hours+'h '+mins+'m';
-  };
-  update();
-  setInterval(update,60000);
+/* ============ LOAD LEADERBOARD ============ */
+let _myAccountHandle=null;
+
+async function loadLeaderboard(){
+  try{
+    const res=await fetch('/api/leaderboard?limit=100');
+    const data=await res.json();
+
+    // Set countdown + prizes
+    _betaEndsAt=data.beta_ends_at;
+    updateCountdown();
+
+    if(data.prizes){
+      const p1=document.getElementById('prize1');if(p1)p1.textContent=fmtDollars(data.prizes.first);
+      const p2=document.getElementById('prize2');if(p2)p2.textContent=fmtDollars(data.prizes.second);
+      const p3=document.getElementById('prize3');if(p3)p3.textContent=fmtDollars(data.prizes.third);
+    }
+
+    const body=document.getElementById('lb-body');
+    if(!data.leaderboard||!data.leaderboard.length){
+      body.innerHTML='<div class="lb-empty">No traders yet. Be the first to claim your $100K account!</div>';
+      return;
+    }
+
+    body.innerHTML=data.leaderboard.map(entry=>{
+      const rank=entry.rank;
+      const isMe=_myAccountHandle&&entry.handle===_myAccountHandle;
+      const isBreached=entry.state==='beta_breached'||entry.state==='failed';
+      const balance=entry.balance;
+      const pnl=entry.pnl_cents/100;
+      const winRate=entry.win_rate?Math.round(entry.win_rate*100):0;
+      const displayName=entry.handle||'trader';
+      const firstLetter=(displayName[0]||'V').toUpperCase();
+
+      return '<div class="lb-row'+(rank<=3?' lb-row-top':'')+(isMe?' lb-row-me':'')+(isBreached?' lb-row-breached':'')+'">'
+        +'<div class="lb-cell lb-cell-rank">'
+          +(rank<=3
+            ?'<span class="lb-rank-medal lb-rank-'+rank+'">#'+rank+'</span>'
+            :'<span class="lb-rank-num">#'+rank+'</span>')
+        +'</div>'
+        +'<div class="lb-cell lb-cell-trader">'
+          +'<div class="lb-avatar">'+esc(firstLetter)+'</div>'
+          +'<div class="lb-trader-text">'
+            +'<div class="lb-trader-name">'+esc(displayName)+(isBreached?'<span class="lb-trader-breached">DD</span>':'')+'</div>'
+            +'<div class="lb-trader-handle">@'+esc(entry.handle)+'</div>'
+          +'</div>'
+        +'</div>'
+        +'<div class="lb-cell lb-cell-balance mono">$'+fmtNum(balance)+'</div>'
+        +'<div class="lb-cell lb-cell-pnl '+(pnl>=0?'positive':'negative')+'">'+(pnl>=0?'+':'-')+'$'+fmtNum(pnl)+'</div>'
+        +'<div class="lb-cell lb-cell-trades mono">'+(entry.total_trades||0)+'</div>'
+        +'<div class="lb-cell lb-cell-winrate mono">'+winRate+'%</div>'
+        +'<div class="lb-cell lb-cell-share">'
+          +'<button class="lb-share-btn" onclick="shareRank(\''+esc(entry.handle)+'\','+rank+','+entry.pnl_cents+')">'
+            +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>'
+          +'</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }catch(e){
+    console.error('[leaderboard]',e.message);
+    document.getElementById('lb-body').innerHTML='<div class="lb-empty">Failed to load leaderboard.</div>';
+  }
 }
 
-// Load user's rank if logged in
+/* ============ LOAD MY RANK ============ */
 async function loadMyRank(){
-  const token=localStorage.getItem('jwt');
+  const token=localStorage.getItem('verdict_token');
   if(!token)return;
   try{
     const res=await fetch('/api/beta/status',{headers:{Authorization:'Bearer '+token}});
+    if(!res.ok)return;
     const data=await res.json();
     if(data.has_account){
+      _myAccountHandle=data.handle;
       const sec=document.getElementById('yourRankSection');
       sec.style.display='block';
-      document.getElementById('yourRank').textContent='#'+data.rank;
-      const pnl=data.pnl_cents/100;
+      document.getElementById('yourRank').textContent='#'+(data.rank||'--');
+      const pnl=(data.pnl_cents||0)/100;
       const pnlEl=document.getElementById('yourPnl');
-      pnlEl.textContent=(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toLocaleString();
+      pnlEl.textContent=(pnl>=0?'+':'-')+'$'+fmtNum(pnl);
       pnlEl.classList.add(pnl>=0?'positive':'negative');
+      const wrEl=document.getElementById('yourWinRate');
+      if(wrEl)wrEl.textContent=(data.win_rate?Math.round(data.win_rate*100):0)+'%';
     }
   }catch(e){}
 }
 
+/* ============ INIT ============ */
 loadLeaderboard();
 loadMyRank();
+updateCountdown();
+setInterval(updateCountdown,60000);
 setInterval(loadLeaderboard,30000);
 </script>
 </body>

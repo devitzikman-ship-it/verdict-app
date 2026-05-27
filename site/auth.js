@@ -155,7 +155,7 @@
         const res = await fakeApi.signIn(email, password);
         setSession(res);
         toast('Welcome back. Redirecting…', 'ok');
-        setTimeout(() => { window.location.href = 'trade.html'; }, 700);
+        setTimeout(() => { window.location.href = '/markets'; }, 700);
       } catch (err) {
         btn.classList.remove('is-loading');
         toast(err.toString(), 'err');
@@ -195,10 +195,10 @@
         const res = await fakeApi.signUp(payload);
         setSession(res);
         toast('Account created. Loading your eval…', 'ok');
-        // Preserve plan params from signup URL so trade.html can show checkout
+        // Preserve plan params from signup URL so /markets can show checkout
         const qs = new URLSearchParams(location.search);
         const plan = qs.get('plan');
-        const tradeUrl = plan ? `trade.html?plan=${plan}&size=${qs.get('size') || ''}&purchase=1` : 'trade.html';
+        const tradeUrl = plan ? `/markets?plan=${plan}&size=${qs.get('size') || ''}&purchase=1` : '/markets';
         setTimeout(() => { window.location.href = tradeUrl; }, 800);
       } catch (err) {
         btn.classList.remove('is-loading');
@@ -217,7 +217,7 @@
         const res = await fakeApi.googleOAuth();
         setSession(res);
         toast('Signed in via Google', 'ok');
-        setTimeout(() => { window.location.href = 'trade.html'; }, 600);
+        setTimeout(() => { window.location.href = '/markets'; }, 600);
       } catch(err) {
         btn.innerHTML = original;
         toast('Google sign-in failed', 'err');

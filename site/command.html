@@ -147,7 +147,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <div class="sb-section">Business</div>
     <div class="sb-item" data-page="revenue"><span class="icon">💰</span> Revenue</div>
     <div class="sb-item" data-page="roadmap"><span class="icon">🗺</span> Roadmap</div>
-    <div class="sb-item" onclick="window.location='trade.html'"><span class="icon">📊</span> Trading App</div>
+    <div class="sb-item" onclick="window.location='/markets'"><span class="icon">📊</span> Trading App</div>
   </aside>
 
   <!-- Main Content -->
@@ -191,7 +191,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div class="section-gap">
         <div class="section-title"><span class="st-dot"></span> Quick Actions</div>
         <div class="qa-grid">
-          <a class="qa-btn" href="trade.html" target="_blank"><span class="qa-icon">📊</span><span class="qa-label">Open App</span></a>
+          <a class="qa-btn" href="/markets" target="_blank"><span class="qa-icon">📊</span><span class="qa-label">Open App</span></a>
           <div class="qa-btn" onclick="showPage('agent-marketing')"><span class="qa-icon">📣</span><span class="qa-label">Marketing</span></div>
           <div class="qa-btn" onclick="showPage('tasks')"><span class="qa-icon">✅</span><span class="qa-label">Tasks</span></div>
           <div class="qa-btn" onclick="showPage('roadmap')"><span class="qa-icon">🗺</span><span class="qa-label">Roadmap</span></div>
@@ -563,7 +563,7 @@ document.getElementById('timeGreet').textContent = hr < 12 ? 'morning' : hr < 17
 // ===== Tasks Data =====
 const tasks = {
   critical: [
-    { text: 'Rebuild trade.html with pick-slip UX (PrizePicks style)', tag: 'product', done: false },
+    { text: 'Rebuild /markets with pick-slip UX (PrizePicks style)', tag: 'product', done: false },
     { text: 'Sign up for The Odds API key (the-odds-api.com)', tag: 'infra', done: false },
     { text: 'Deploy to Fly.io (fly deploy)', tag: 'infra', done: false },
     { text: 'Point DNS: trade-verdict.com → Fly.io', tag: 'infra', done: false },
