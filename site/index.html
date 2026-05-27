@@ -56,8 +56,14 @@
       var entered = false;
 
       if(video){
-        video.addEventListener('playing', function(){ video.classList.add('playing'); });
-        video.play().catch(function(){});
+        function showVideo(){ video.classList.add('playing'); }
+        video.addEventListener('playing', showVideo);
+        video.addEventListener('loadeddata', function(){
+          video.play().catch(function(){});
+        });
+        video.play().catch(function(){
+          setTimeout(function(){ video.play().catch(function(){}); }, 500);
+        });
       }
 
       // Text fully visible by ~3s. Hold a beat, then slowly dissolve at 4.5s (2.5s fade).

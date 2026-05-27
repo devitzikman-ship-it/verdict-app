@@ -1935,6 +1935,7 @@ app.set('trust proxy', 1); // Trust Fly.io reverse proxy for rate limiting
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
 // CORS — restrict to known origins
