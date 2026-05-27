@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leaderboard · VERDICT Beta</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg-page: #0a0a0f;
+  --bg-nav: #0e0e14;
+  --bg-card: #12121a;
+  --bg-hover: #1a1a24;
+  --bg-elevated: #1c1c28;
+  --border: #1e1e2a;
+  --border-light: #2a2a3a;
+  --text-1: #ffffff;
+  --text-2: #8b8b9e;
+  --text-3: #55556a;
+  --green: #00d4aa;
+  --red: #ff4757;
+  --blue: #4e8bff;
+  --yellow: #f0b90b;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg-page);color:var(--text-1);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;font-size:14px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#333;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* NAV */
+.lb-nav{display:flex;align-items:center;gap:16px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-nav)}
+.lb-nav-logo{font-family:'Archivo Black',sans-serif;font-weight:900;font-size:18px;letter-spacing:1px;display:flex;align-items:center;gap:8px;color:#fff}
+.lb-nav-logo svg{width:20px;height:20px;color:var(--blue)}
+.lb-nav-links{display:flex;gap:16px;margin-left:auto}
+.lb-nav-link{font-size:13px;font-weight:600;color:var(--text-2);transition:color .2s}
+.lb-nav-link:hover{color:#fff}
+.lb-nav-link.active{color:var(--yellow)}
+.lb-nav-cta{padding:8px 16px;background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000;font-weight:700;font-size:12px;border-radius:var(--r);letter-spacing:.02em}
+
+/* HEADER */
+.lb-hero{text-align:center;padding:48px 24px 32px}
+.lb-hero h1{font-family:'Archivo Black',sans-serif;font-size:clamp(28px,5vw,48px);font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,#fff 0%,#a8c4dd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lb-hero-sub{color:var(--text-2);font-size:15px;max-width:500px;margin:0 auto}
+
+/* META STATS */
+.lb-meta{display:flex;justify-content:center;gap:32px;margin:32px auto;max-width:600px;flex-wrap:wrap}
+.lb-meta-item{text-align:center}
+.lb-meta-label{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;margin-bottom:4px}
+.lb-meta-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;color:#fff}
+.lb-meta-val.gold{color:var(--yellow)}
+
+/* PRIZES */
+.lb-prizes{display:flex;justify-content:center;gap:16px;margin:0 auto 40px;max-width:500px;padding:0 24px}
+.lb-prize{flex:1;text-align:center;padding:20px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);transition:transform .2s}
+.lb-prize:hover{transform:translateY(-2px)}
+.lb-prize-1{border-color:rgba(240,185,11,0.3);background:linear-gradient(135deg,rgba(240,185,11,0.05),var(--bg-card))}
+.lb-prize-2{border-color:rgba(192,192,192,0.2)}
+.lb-prize-3{border-color:rgba(205,127,50,0.2)}
+.lb-prize-medal{font-size:28px;margin-bottom:6px}
+.lb-prize-rank{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-3);text-transform:uppercase}
+.lb-prize-amount{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;margin-top:4px}
+.lb-prize-1 .lb-prize-amount{color:#f0b90b}
+.lb-prize-2 .lb-prize-amount{color:#c0c0c0}
+.lb-prize-3 .lb-prize-amount{color:#cd7f32}
+
+/* TABLE */
+.lb-table{max-width:800px;margin:0 auto;padding:0 24px 60px}
+.lb-row{display:grid;grid-template-columns:60px 1fr 120px 90px 80px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s}
+.lb-row:hover{background:var(--bg-hover)}
+.lb-row-header{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-3);text-transform:uppercase;border-bottom:2px solid var(--border-light);background:none !important}
+.lb-row-top{background:rgba(240,185,11,0.03)}
+.lb-row-breached{opacity:0.5}
+.lb-col{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-col-rank{font-weight:800;font-size:15px;font-family:'JetBrains Mono',monospace}
+.lb-col-trader{font-weight:600;font-size:13px}
+.lb-col-pnl{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;text-align:right}
+.lb-col-pct{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-2)}
+.lb-col-trades{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-3)}
+.positive{color:var(--green) !important}
+.negative{color:var(--red) !important}
+.lb-medal{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:900;font-size:13px}
+.lb-medal-1{background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000}
+.lb-medal-2{background:linear-gradient(135deg,#c0c0c0,#a8a8a8);color:#000}
+.lb-medal-3{background:linear-gradient(135deg,#cd7f32,#b8702e);color:#fff}
+.lb-empty{text-align:center;padding:40px;color:var(--text-3);font-size:14px}
+
+/* YOUR RANK */
+.lb-your-rank{max-width:800px;margin:0 auto 24px;padding:0 24px}
+.lb-your-rank-card{background:linear-gradient(135deg,rgba(78,139,255,0.08),rgba(240,185,11,0.05));border:1px solid rgba(78,139,255,0.2);border-radius:var(--r-lg);padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.lb-your-rank-label{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-3);text-transform:uppercase}
+.lb-your-rank-val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:20px;color:var(--yellow)}
+.lb-your-pnl{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px}
+
+/* FOOTER */
+.lb-footer{text-align:center;padding:24px;font-size:11px;color:var(--text-3);border-top:1px solid var(--border)}
+
+@media(max-width:640px){
+  .lb-row{grid-template-columns:45px 1fr 90px 70px;font-size:12px}
+  .lb-col-trades{display:none}
+  .lb-prizes{flex-direction:column;align-items:center}
+  .lb-prize{width:100%;max-width:280px}
+  .lb-meta{gap:20px}
+}
+</style>
+</head>
+<body>
+
+<nav class="lb-nav">
+  <a href="/trade.html" class="lb-nav-logo">
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 4L3 20h4.5L12 11l4.5 9H21z"/></svg>
+    VERDICT
+  </a>
+  <div class="lb-nav-links">
+    <a href="/trade.html" class="lb-nav-link">Markets</a>
+    <a href="/leaderboard.html" class="lb-nav-link active">Leaderboard</a>
+  </div>
+  <a href="/trade.html" class="lb-nav-cta">Claim $100K — Free</a>
+</nav>
+
+<div class="lb-hero">
+  <h1>Beta Leaderboard</h1>
+  <p class="lb-hero-sub">Trade prediction markets with $100K. Top 3 traders win cash prizes when beta ends.</p>
+</div>
+
+<div class="lb-meta">
+  <div class="lb-meta-item">
+    <div class="lb-meta-label">Traders Competing</div>
+    <div class="lb-meta-val" id="total-traders">--</div>
+  </div>
+  <div class="lb-meta-item">
+    <div class="lb-meta-label">Beta Ends In</div>
+    <div class="lb-meta-val gold" id="countdown">--</div>
+  </div>
+  <div class="lb-meta-item">
+    <div class="lb-meta-label">Prize Pool</div>
+    <div class="lb-meta-val gold">$10,000</div>
+  </div>
+</div>
+
+<div class="lb-prizes">
+  <div class="lb-prize lb-prize-1">
+    <div class="lb-prize-medal">&#129351;</div>
+    <div class="lb-prize-rank">1st Place</div>
+    <div class="lb-prize-amount">$5,000</div>
+  </div>
+  <div class="lb-prize lb-prize-2">
+    <div class="lb-prize-medal">&#129352;</div>
+    <div class="lb-prize-rank">2nd Place</div>
+    <div class="lb-prize-amount">$3,000</div>
+  </div>
+  <div class="lb-prize lb-prize-3">
+    <div class="lb-prize-medal">&#129353;</div>
+    <div class="lb-prize-rank">3rd Place</div>
+    <div class="lb-prize-amount">$2,000</div>
+  </div>
+</div>
+
+<div class="lb-your-rank" id="yourRankSection" style="display:none">
+  <div class="lb-your-rank-card">
+    <div>
+      <div class="lb-your-rank-label">Your Rank</div>
+      <div class="lb-your-rank-val" id="yourRank">#--</div>
+    </div>
+    <div>
+      <div class="lb-your-rank-label">Your P&L</div>
+      <div class="lb-your-pnl" id="yourPnl">$0</div>
+    </div>
+    <div style="margin-left:auto">
+      <a href="/trade.html" style="padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:12px;border-radius:var(--r);display:inline-block">Trade Now</a>
+    </div>
+  </div>
+</div>
+
+<div class="lb-table">
+  <div class="lb-row lb-row-header">
+    <div class="lb-col lb-col-rank">Rank</div>
+    <div class="lb-col lb-col-trader">Trader</div>
+    <div class="lb-col lb-col-pnl">P&L</div>
+    <div class="lb-col lb-col-pct">Return</div>
+    <div class="lb-col lb-col-trades">Trades</div>
+  </div>
+  <div id="lb-body">
+    <div class="lb-empty">Loading leaderboard...</div>
+  </div>
+</div>
+
+<div class="lb-footer">
+  &copy; 2026 VERDICT Holdings, Inc. &middot;
+  <a href="/trade.html" style="color:var(--blue)">Markets</a> &middot;
+  <a href="/trade.html" style="color:var(--blue)">Claim $100K Account</a>
+</div>
+
+<script>
+function fmt$(v){return '$'+Math.abs(v/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}
+
+async function loadLeaderboard(){
+  try{
+    const res=await fetch('/api/leaderboard');
+    const data=await res.json();
+
+    document.getElementById('total-traders').textContent=data.total_traders.toLocaleString();
+    updateCountdown(data.beta_ends_at);
+
+    const tbody=document.getElementById('lb-body');
+    if(!data.leaderboard||!data.leaderboard.length){
+      tbody.innerHTML='<div class="lb-empty">No traders yet. Be the first to claim your $100K account!</div>';
+      return;
+    }
+
+    tbody.innerHTML=data.leaderboard.map(entry=>{
+      const pnlDollars=entry.pnl_cents/100;
+      const pnlStr=(pnlDollars>=0?'+':'-')+'$'+Math.abs(pnlDollars).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+      const pctStr=(entry.pnl_pct>=0?'+':'')+entry.pnl_pct.toFixed(2)+'%';
+      return `<div class="lb-row ${entry.rank<=3?'lb-row-top':''} ${entry.state==='beta_breached'||entry.state==='failed'?'lb-row-breached':''}">
+        <div class="lb-col lb-col-rank">
+          ${entry.rank<=3?`<span class="lb-medal lb-medal-${entry.rank}">${entry.rank}</span>`:`#${entry.rank}`}
+        </div>
+        <div class="lb-col lb-col-trader">@${entry.handle}${entry.state==='beta_breached'?' <span style="color:var(--red);font-size:10px">DD</span>':''}</div>
+        <div class="lb-col lb-col-pnl ${entry.pnl_cents>=0?'positive':'negative'}">${pnlStr}</div>
+        <div class="lb-col lb-col-pct ${entry.pnl_pct>=0?'positive':'negative'}">${pctStr}</div>
+        <div class="lb-col lb-col-trades">${entry.total_trades}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    document.getElementById('lb-body').innerHTML='<div class="lb-empty">Failed to load leaderboard. Try again later.</div>';
+  }
+}
+
+function updateCountdown(endsAt){
+  const update=()=>{
+    const remaining=new Date(endsAt).getTime()-Date.now();
+    if(remaining<=0){document.getElementById('countdown').textContent='ENDED';return}
+    const days=Math.floor(remaining/(1000*60*60*24));
+    const hours=Math.floor((remaining/(1000*60*60))%24);
+    const mins=Math.floor((remaining/(1000*60))%60);
+    document.getElementById('countdown').textContent=days+'d '+hours+'h '+mins+'m';
+  };
+  update();
+  setInterval(update,60000);
+}
+
+// Load user's rank if logged in
+async function loadMyRank(){
+  const token=localStorage.getItem('jwt');
+  if(!token)return;
+  try{
+    const res=await fetch('/api/beta/status',{headers:{Authorization:'Bearer '+token}});
+    const data=await res.json();
+    if(data.has_account){
+      const sec=document.getElementById('yourRankSection');
+      sec.style.display='block';
+      document.getElementById('yourRank').textContent='#'+data.rank;
+      const pnl=data.pnl_cents/100;
+      const pnlEl=document.getElementById('yourPnl');
+      pnlEl.textContent=(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toLocaleString();
+      pnlEl.classList.add(pnl>=0?'positive':'negative');
+    }
+  }catch(e){}
+}
+
+loadLeaderboard();
+loadMyRank();
+setInterval(loadLeaderboard,30000);
+</script>
+</body>
+</html>

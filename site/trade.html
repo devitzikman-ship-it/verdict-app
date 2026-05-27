@@ -945,7 +945,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
     How It Works
   </button>
+  <a href="/leaderboard.html" class="nav-hiw" style="color:var(--yellow)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+    Leaderboard
+  </a>
   <div class="nav-right">
+    <div class="nav-rank-pill" id="navRankPill" style="display:none">
+      <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--text-3)">RANK</span>
+      <span id="navRank" style="font-weight:800;color:var(--yellow)">#--</span>
+      <span style="color:var(--text-3)">·</span>
+      <span id="navRankPnl" style="font-weight:700">$0</span>
+    </div>
     <div class="nav-bal" id="navBal" style="display:none">
       <span class="nav-bal-v" id="navBalV">$0</span>
       <span class="nav-bal-pnl" id="navPnl">+$0</span>
@@ -1007,22 +1017,22 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   <div class="ab-i"><span class="ab-pill eval" id="statusPill"><span class="ab-dot"></span> EVAL</span></div>
 </div>
 
-<!-- ============ EVAL BANNER ============ -->
+<!-- ============ BETA BANNER ============ -->
 <div class="eval-bar" id="evalBar" style="display:none">
-  <span class="eval-bar-text">Prove your edge. <b>Get funded up to $100K. Keep 80% of profits. Weekly USDC payouts.</b></span>
-  <button class="btn primary" onclick="openPlansModal()">Start your eval · from $89/mo</button>
+  <span class="eval-bar-text"><b>BETA</b> — Claim your free $100K account. Trade prediction markets. Top 3 win <b>$10,000 in cash prizes.</b></span>
+  <button class="btn primary" onclick="openBetaClaimModal()">Claim $100K Account — Free</button>
   <button class="eval-bar-dismiss" onclick="this.parentElement.style.display='none'" title="Dismiss">&times;</button>
 </div>
 
 <!-- ============ TRUST BADGES ============ -->
 <div class="trust-strip" id="trustStrip">
-  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="tb-accent">On-Chain Proof</span></div>
+  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="tb-accent">$100K Free Account</span></div>
   <div class="trust-dot"></div>
-  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="tb-blue">80 / 20 Profit Split</span></div>
+  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg><span class="tb-blue">$10K Prize Pool</span></div>
   <div class="trust-dot"></div>
-  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg><span class="tb-purple">Doxxed Team</span></div>
+  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="tb-purple">Live Leaderboard</span></div>
   <div class="trust-dot"></div>
-  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Weekly USDC Payouts</span></div>
+  <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>No Deposit Required</span></div>
 </div>
 
 <!-- ============ MAIN 3-COLUMN LAYOUT ============ -->
@@ -1134,7 +1144,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 
     <!-- DASHBOARD -->
     <div class="page-section" id="page-dashboard">
-      <div id="dashNoAcct" style="display:none"><div class="no-acct-banner"><h2>No Active Account</h2><p>Start an eval to trade real Polymarket odds and unlock a funded account.</p><button class="btn primary" onclick="openPlansModal()">Start Eval</button></div></div>
+      <div id="dashNoAcct" style="display:none"><div class="no-acct-banner"><h2>Claim Your $100K Beta Account</h2><p>Trade prediction markets with $100,000. Compete on the leaderboard. Top 3 win $10,000 in cash prizes.</p><button class="btn primary" onclick="claimBetaAccount()" style="background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000">Claim My $100K Account</button></div></div>
       <div id="dashContent" style="display:none"></div>
     </div>
 
@@ -1155,7 +1165,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <!-- AFFILIATE -->
     <div class="page-section" id="page-affiliate"><div class="pg-head"><h1 class="pg-title">Affiliate</h1></div><div class="dash-grid" id="affiliateContent"><div class="dash-card"><div class="dc-lbl">Referral Link</div><div class="dc-val" id="affLink" style="font-size:11px;word-break:break-all">Loading...</div><button class="btn" style="margin-top:10px" id="affCopyBtn">Copy</button></div><div class="dash-card"><div class="dc-lbl">Code</div><div class="dc-val" id="affCode" style="letter-spacing:.1em">--</div></div><div class="dash-card"><div class="dc-lbl">Referrals</div><div class="dc-val" id="affReferrals">0</div></div><div class="dash-card"><div class="dc-lbl">Earned</div><div class="dc-val" id="affEarned">$0</div></div><div class="dash-card"><div class="dc-lbl">Pending</div><div class="dc-val" id="affPending">$0</div></div><div class="dash-card"><div class="dc-lbl">Rate</div><div class="dc-val" id="affRate">10%</div></div><div class="dash-card full"><div class="dc-lbl">Custom Code</div><div style="display:flex;gap:8px;margin-top:8px"><input class="f-input" id="affCustomCode" placeholder="YOURNAME" style="flex:1;text-transform:uppercase" maxlength="16" /><button class="btn primary" id="affSetCodeBtn">Set</button></div></div></div></div>
     <!-- PAYOUTS -->
-    <div class="page-section" id="page-payouts"><div class="pg-head"><h1 class="pg-title">Payouts</h1><button class="btn primary" id="requestPayoutBtn" onclick="openPayoutModal()">Request Payout</button></div><div id="payoutsNoAcct" style="display:none"><div class="no-acct-banner"><h2>No Active Account</h2><p>Pass your eval to unlock withdrawals.</p><button class="btn primary" onclick="openPlansModal()">Start Eval</button></div></div><div id="payoutsContent"><div class="dash-grid" style="margin-bottom:20px"><div class="dash-card"><div class="dc-lbl">Status</div><div class="dc-val" id="payoutAcctStatus">--</div></div><div class="dash-card"><div class="dc-lbl">Profit</div><div class="dc-val" id="payoutProfit">--</div></div><div class="dash-card"><div class="dc-lbl">Your Split (80%)</div><div class="dc-val green" id="payoutSplit">--</div></div></div><div class="dash-card full"><div class="dc-lbl" style="margin-bottom:10px">History</div><div id="payoutPageHistory">Loading...</div></div></div></div>
+    <div class="page-section" id="page-payouts"><div class="pg-head"><h1 class="pg-title">Payouts</h1><button class="btn primary" id="requestPayoutBtn" onclick="openPayoutModal()">Request Payout</button></div><div id="payoutsNoAcct" style="display:none"><div class="no-acct-banner"><h2>Beta Mode</h2><p>Payouts are disabled during beta. Win prizes on the leaderboard instead!</p><a href="/leaderboard.html" class="btn primary">View Leaderboard</a></div></div><div id="payoutsContent"><div class="dash-grid" style="margin-bottom:20px"><div class="dash-card"><div class="dc-lbl">Status</div><div class="dc-val" id="payoutAcctStatus">--</div></div><div class="dash-card"><div class="dc-lbl">Profit</div><div class="dc-val" id="payoutProfit">--</div></div><div class="dash-card"><div class="dc-lbl">Your Split (80%)</div><div class="dc-val green" id="payoutSplit">--</div></div></div><div class="dash-card full"><div class="dc-lbl" style="margin-bottom:10px">History</div><div id="payoutPageHistory">Loading...</div></div></div></div>
     <!-- PROFILE -->
     <div class="page-section" id="page-profile"><div class="pg-head"><h1 class="pg-title">Profile</h1></div><div class="dash-grid"><div class="dash-card"><div class="dc-lbl">Name</div><div class="dc-val" id="profileName">--</div></div><div class="dash-card"><div class="dc-lbl">Email</div><div class="dc-val" id="profileEmail">--</div></div><div class="dash-card"><div class="dc-lbl">Plan</div><div class="dc-val" id="profilePlan">--</div></div><div class="dash-card"><div class="dc-lbl">Since</div><div class="dc-val" id="profileJoined">--</div></div></div></div>
   </div>
@@ -1219,8 +1229,57 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 <!-- PAYOUT MODAL -->
 <div class="modal-overlay" id="payoutModal" style="display:none"><div class="modal-card"><div class="modal-head"><h3>Request Payout</h3><button class="modal-x" id="payoutClose">&times;</button></div><div class="modal-body" id="payoutBody"><div class="payout-summary" id="payoutSummary"></div><label class="f-label">Payout Method</label><select class="f-input" id="payoutMethod" style="margin-bottom:14px"><option value="crypto">Crypto (USDC/ETH/BTC)</option><option value="rise">Rise Pay</option><option value="paypal">PayPal</option><option value="bank_wire">Bank Wire</option></select><div id="fieldsCrypto"><label class="f-label">Network</label><select class="f-input" id="cryptoNetwork" style="margin-bottom:10px"><option value="ethereum">Ethereum</option><option value="polygon">Polygon</option><option value="solana">Solana</option><option value="bitcoin">Bitcoin</option><option value="arbitrum">Arbitrum</option><option value="base">Base</option></select><label class="f-label">Wallet Address</label><input class="f-input" id="cryptoAddress" placeholder="0x..." /></div><div id="fieldsRise" style="display:none"><label class="f-label">Rise Email</label><input class="f-input" id="riseEmail" type="email" placeholder="your@rise.co" /></div><div id="fieldsPaypal" style="display:none"><label class="f-label">PayPal Email</label><input class="f-input" id="paypalEmail" type="email" placeholder="you@paypal.com" /></div><div id="fieldsBank" style="display:none"><label class="f-label">Bank Name</label><input class="f-input" id="bankName" placeholder="Bank of America" style="margin-bottom:10px" /><label class="f-label">Account Holder</label><input class="f-input" id="bankHolder" placeholder="Full name" style="margin-bottom:10px" /><label class="f-label">Routing Number</label><input class="f-input" id="bankRouting" placeholder="021000021" style="margin-bottom:10px" /><label class="f-label">Account (last 4)</label><input class="f-input" id="bankLast4" placeholder="1234" maxlength="4" /></div><button class="tp-trade-btn" id="payoutSubmit" style="margin-top:16px">Submit</button></div><div style="padding:14px 20px" id="payoutHistory"></div></div></div>
 
-<!-- PLANS MODAL -->
-<div class="modal-overlay" id="plansModal" style="display:none"><div class="modal-card" style="max-width:860px"><div class="modal-head"><h3>Choose Your Account Size</h3><button class="modal-x" id="plansClose">&times;</button></div><div class="modal-body"><div class="plans-launch-banner"><div class="plans-launch-pulse"></div><div class="plans-launch-text"><span class="plans-launch-tag">LAUNCH PRICING</span><span class="plans-launch-sub">Up to 31% off &middot; Cancel anytime &middot; Pass the eval, get funded</span></div></div><div class="plans-subtitle">Monthly subscription. Pass eval + verification, pay one-time $49 to unlock funded account. Keep 80% of profits, weekly USDC payouts.</div><div class="plans-grid" id="plansGrid" style="margin-top:18px"></div><div style="margin-top:20px;padding:16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--r-lg)"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">Why VERDICT</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:11px;color:var(--text-2)"><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> 80/20 profit split when funded</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> 2-phase eval system</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> Cancel subscription anytime</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> No overnight restrictions</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> On-chain proof of payouts</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> No reset fees, no hidden charges</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> Doxxed team &amp; transparent rules</span><span style="display:flex;align-items:center;gap:4px"><span style="color:var(--green)">&#10003;</span> One-time $49 activation when you pass</span></div></div></div></div></div>
+<!-- SIGNUP MODAL (inline) -->
+<div class="modal-overlay" id="signupModal" style="display:none">
+<div class="modal-card" style="max-width:440px">
+<div class="modal-head"><h3>Create Your Account</h3><button class="modal-x" id="signupModalClose">&times;</button></div>
+<div class="modal-body">
+  <form id="signupModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:14px">
+    <input class="f-input" type="text" id="signupName" placeholder="Full name" autocomplete="name" required style="padding:14px 16px;font-size:14px" />
+    <input class="f-input" type="email" id="signupEmail" placeholder="Email" autocomplete="email" required style="padding:14px 16px;font-size:14px" />
+    <input class="f-input" type="password" id="signupPassword" placeholder="Password (8+ chars)" autocomplete="new-password" required minlength="8" style="padding:14px 16px;font-size:14px" />
+    <input class="f-input" type="password" id="signupConfirm" placeholder="Confirm password" autocomplete="new-password" required style="padding:14px 16px;font-size:14px" />
+    <div id="signupModalError" style="color:var(--red);font-size:12px;min-height:18px"></div>
+    <button type="submit" class="tp-trade-btn" id="signupModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">CREATE ACCOUNT</button>
+  </form>
+  <p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center">Already have an account? <a href="#" id="signupToLogin" style="color:var(--blue);font-weight:600">Log In</a></p>
+</div>
+</div>
+</div>
+
+<!-- BETA CLAIM MODAL — non-dismissable for unclaimed users -->
+<div class="modal-overlay" id="betaClaimModal" style="display:none">
+<div class="modal-card" style="max-width:520px">
+<div class="modal-body" style="text-align:center;padding:40px 32px">
+  <div style="font-size:48px;margin-bottom:12px">&#127942;</div>
+  <h2 style="font-size:24px;font-weight:900;margin-bottom:8px">Claim Your Free $100K Account</h2>
+  <p style="color:var(--text-2);font-size:14px;line-height:1.6;margin-bottom:24px">Compete in our beta trading competition. Trade prediction markets with $100,000 in virtual capital. Top 3 traders win <strong style="color:var(--yellow)">$10,000 in cash prizes</strong>.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
+    <div style="background:var(--bg-elevated);border:1px solid rgba(240,185,11,0.2);border-radius:var(--r-lg);padding:16px">
+      <div style="font-size:10px;letter-spacing:.08em;color:var(--text-3);font-weight:700;margin-bottom:4px">1ST PLACE</div>
+      <div style="font-size:22px;font-weight:900;color:#f0b90b">$5,000</div>
+    </div>
+    <div style="background:var(--bg-elevated);border:1px solid rgba(192,192,192,0.15);border-radius:var(--r-lg);padding:16px">
+      <div style="font-size:10px;letter-spacing:.08em;color:var(--text-3);font-weight:700;margin-bottom:4px">2ND PLACE</div>
+      <div style="font-size:22px;font-weight:900;color:#c0c0c0">$3,000</div>
+    </div>
+    <div style="background:var(--bg-elevated);border:1px solid rgba(205,127,50,0.15);border-radius:var(--r-lg);padding:16px">
+      <div style="font-size:10px;letter-spacing:.08em;color:var(--text-3);font-weight:700;margin-bottom:4px">3RD PLACE</div>
+      <div style="font-size:22px;font-weight:900;color:#cd7f32">$2,000</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;margin-bottom:24px;font-size:12px;color:var(--text-2)">
+    <div style="display:flex;align-items:center;gap:6px"><span style="color:var(--green)">&#10003;</span> $100,000 starting balance</div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="color:var(--green)">&#10003;</span> 4% max drawdown</div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="color:var(--green)">&#10003;</span> No deposit required</div>
+    <div style="display:flex;align-items:center;gap:6px"><span style="color:var(--green)">&#10003;</span> One shot — no resets</div>
+  </div>
+  <button class="btn primary" id="betaClaimBtn" onclick="claimBetaAccount()" style="width:100%;padding:14px;font-size:16px;font-weight:800">Claim My $100K Account</button>
+  <p style="color:var(--text-3);font-size:11px;margin-top:12px">One account per person. Beta ends July 1, 2026.</p>
+  <div id="betaClaimStatus" style="margin-top:12px;font-size:13px;display:none"></div>
+</div>
+</div>
+</div>
 
 <!-- LOGIN MODAL -->
 <div class="modal-overlay" id="loginModal" style="display:none"><div class="modal-card" style="max-width:400px"><div class="modal-head"><h3>Log In</h3><button class="modal-x" id="loginModalClose">&times;</button></div><div class="modal-body"><form id="loginModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:14px"><input class="f-input" type="email" id="loginEmail" placeholder="Email" autocomplete="email" required style="padding:14px 16px;font-size:14px" /><input class="f-input" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required style="padding:14px 16px;font-size:14px" /><div id="loginModalError" style="color:var(--red);font-size:12px;min-height:18px"></div><button type="submit" class="tp-trade-btn" id="loginModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">LOG IN</button></form><p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center">Don't have an account? <a href="#" id="loginToSignup" style="color:var(--blue);font-weight:600">Sign Up</a></p></div></div></div>
@@ -1289,7 +1348,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
           <div class="hiw-step-title">Cash out anytime</div>
           <div class="hiw-step-body">Sell back to the market before the event resolves, or hold to expiry and collect $1 per winning share. Withdraw in USDC.</div>
           <button class="hiw-next green" onclick="document.getElementById('hiwModal').classList.remove('open')">Get started</button>
-          <div style="font-size:12px;color:var(--text-3);margin-top:12px;text-align:center">Want to trade with our capital? <a class="hiw-eval-link" onclick="document.getElementById('hiwModal').classList.remove('open');openPlansModal()">Start your eval — from $89/mo</a></div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:12px;text-align:center">Ready to compete? <a class="hiw-eval-link" onclick="document.getElementById('hiwModal').classList.remove('open');openBetaClaimModal()">Claim your free $100K account</a></div>
         </div>
       </div>
     </div>
@@ -1346,8 +1405,8 @@ $('#logoutBtn').onclick=()=>{localStorage.removeItem('verdict_token');localStora
 
 /* Nav auth button handlers */
 $('#navLoginBtn').onclick=()=>openLoginModal();
-$('#navSignupBtn').onclick=()=>openPlansModal();
-function openSignupFlow(){openPlansModal()}
+$('#navSignupBtn').onclick=()=>openSignupFlow();
+function openSignupFlow(){$('#signupModal').style.display='flex';setTimeout(()=>$('#signupEmail').focus(),100)}
 
 /* ============ PAGES ============ */
 function switchPage(p){
@@ -1493,7 +1552,7 @@ function renderAcct(){
   const has=!!S.account;
   const isAuth=!!S.token;
   $('#acctBar').style.display=has?'flex':'none';
-  $('#evalBar').style.display=(isAuth&&!has)?'flex':'none';
+  $('#evalBar').style.display=(!has)?'flex':'none';
   $('#navBal').style.display=has?'flex':'none';
   // Show verification banner if email not verified
   const vb=$('#verifyBanner');
@@ -1511,11 +1570,11 @@ function renderAcct(){
   const lr=a.size-(a.loss_floor||a.size*0.96),lu=Math.max(0,a.size-a.balance),lp=lr>0?Math.min(100,lu/lr*100):0;
   $('#ddPctStrip').textContent=lp.toFixed(0)+'%';$('#ddPctStrip').classList.toggle('red',lp>60);
   const pill=$('#statusPill'),rawSt=a.status||'eval',phase=a.phase||'eval',state=a.state||rawSt;
-  let dispSt=phase==='eval'?'EVAL · P1':phase==='verification'?'EVAL · P2':phase==='funded'?'FUNDED':rawSt==='failed'?'FAILED':rawSt==='live'?'LIVE':rawSt.replace('_',' ').toUpperCase();
-  if(state==='passed_pending_activation')dispSt='PASSED · ACTIVATE';
-  if(state==='dunning')dispSt='PAYMENT DUE';
+  let dispSt=phase==='eval'?'EVAL · P1':phase==='verification'?'EVAL · P2':phase==='funded'?'FUNDED':phase==='beta'?'BETA':rawSt==='failed'?'FAILED':rawSt==='beta_breached'?'BREACHED':rawSt==='live'?'LIVE':rawSt.replace('_',' ').toUpperCase();
+  if(state==='beta_active')dispSt='BETA';
+  if(state==='beta_breached')dispSt='BREACHED';
   pill.innerHTML='<span class="ab-dot"></span> '+dispSt;
-  pill.className='ab-pill '+(state==='passed_pending_activation'?'passed':state==='dunning'?'failed':rawSt==='passed'||rawSt==='live'?'passed':rawSt==='failed'?'failed':'eval');
+  pill.className='ab-pill '+(state==='beta_active'?'eval':state==='beta_breached'?'failed':rawSt==='passed'||rawSt==='live'?'passed':rawSt==='failed'?'failed':'eval');
 }
 async function createTestAccount(){try{await api('/api/account/test',{method:'POST',body:JSON.stringify({plan:'pro'})});toast('Test account created!','ok');await loadAccount()}catch(e){toast(e.message,'err')}}
 
@@ -1541,7 +1600,7 @@ function renderDashboard(){
         <div class="activation-hero-stat"><div class="ahs-label">Win Rate</div><div class="ahs-val">${winRate}%</div></div>
       </div>
       <button class="activation-hero-btn" id="activateBtn" onclick="activateFundedAccount()">Activate Funded Account &mdash; $49<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
-      <div class="activation-hero-note">One-time fee. Your monthly subscription stops after activation. Keep 80% of all profits.</div>
+      <div class="activation-hero-note">One-time fee. Keep 80% of all profits.</div>
     </div>`;
     return;
   }
@@ -1644,62 +1703,17 @@ function renderDashboard(){
   ${renderSubManageSection(a)}`;
 }
 
-// PHASE 9: Subscription management section (inline in dashboard)
+/* BETA_DISABLED_START — subscription management section, activation flow, billing portal
+   Re-enable when launching paid subscriptions */
 function renderSubManageSection(a){
-  const plan=(a.plan||'pro').charAt(0).toUpperCase()+(a.plan||'pro').slice(1);
-  const monthly=a.subscription_monthly_cents?'$'+(a.subscription_monthly_cents/100):
-    ({starter:'$89',standard:'$159',pro:'$299',elite:'$499',whale:'$899'}[a.plan]||'$299');
-  const nextBill=a.subscription_current_period_end?new Date(a.subscription_current_period_end).toLocaleDateString():'--';
-  const willCancel=a.subscription_will_cancel_at;
-  const cancelNote=willCancel?`<div class="sub-cancel-note" style="color:var(--yellow)">Subscription cancels at end of period (${new Date(willCancel).toLocaleDateString()})</div>`:'';
-  return `<div class="sub-manage-card">
-    <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Subscription</h3>
-    <div class="sub-manage-grid">
-      <div class="sub-manage-item"><div class="smi-label">Plan</div><div class="smi-val">${esc(plan)}</div></div>
-      <div class="sub-manage-item"><div class="smi-label">Monthly</div><div class="smi-val">${monthly}/mo</div></div>
-      <div class="sub-manage-item"><div class="smi-label">Next Billing</div><div class="smi-val">${nextBill}</div></div>
-    </div>
-    <div class="sub-manage-actions">
-      <button class="btn primary" onclick="openSubscriptionPortal()">Manage Billing</button>
-      ${!willCancel?'<button class="btn" style="border:1px solid var(--border);color:var(--text-2)" onclick="cancelSubscription()">Cancel Subscription</button>':''}
-    </div>
-    ${cancelNote}
-  </div>`;
+  // Beta mode: no subscription section
+  if(a.is_beta || a.plan==='beta') return '';
+  return '';
 }
-
-// PHASE 7: Activation flow — redirect to Stripe payment
-async function activateFundedAccount(){
-  const btn=$('#activateBtn');if(btn){btn.disabled=true;btn.textContent='Processing...';}
-  try{
-    const r=await api('/api/account/'+S.account.id+'/activate',{method:'POST'});
-    if(r.url)window.location.href=r.url;
-    else{toast('Activation checkout created','ok');}
-  }catch(e){
-    toast(e.message||'Activation failed','err');
-    if(btn){btn.disabled=false;btn.innerHTML='Activate Funded Account &mdash; $49<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';}
-  }
-}
-
-// PHASE 9: Open Stripe Customer Portal for billing management
-async function openSubscriptionPortal(){
-  try{
-    const r=await api('/api/subscription/manage',{method:'POST'});
-    if(r.portal_url)window.location.href=r.portal_url;
-    else toast('Could not open billing portal','err');
-  }catch(e){toast(e.message||'Failed to open portal','err')}
-}
-
-// PHASE 9: Cancel subscription (at period end)
-async function cancelSubscription(){
-  if(!confirm('Cancel your subscription? You can still trade until the end of your current billing period.'))return;
-  try{
-    const r=await api('/api/subscription/cancel',{method:'POST'});
-    if(r.success){
-      toast('Subscription will cancel at end of billing period','ok');
-      await loadAccount();renderDashboard();
-    }
-  }catch(e){toast(e.message||'Failed to cancel','err')}
-}
+function activateFundedAccount(){ toast('Activation unavailable during beta','err'); }
+function openSubscriptionPortal(){ toast('Billing portal unavailable during beta','err'); }
+function cancelSubscription(){ toast('No subscription to cancel during beta','err'); }
+/* BETA_DISABLED_END */
 
 // Handle activation success/canceled URL params
 (function checkActivationReturn(){
@@ -2128,8 +2142,7 @@ function updateTradePanel(fromInput){
     fetchFillPreview(m.id,S.side,dollarAmt,'buy');
     if(!S.token){renderCtaState('conversion')}
     else if(!S.account){renderCtaState('no-account')}
-    else if((S.account.state||S.account.status)==='passed_pending_activation'){renderCtaState('activation-needed')}
-    else if((S.account.state||S.account.status)==='dunning'){renderCtaState('dunning-blocked')}
+    else if((S.account.state||S.account.status)==='beta_breached'){renderCtaState('beta-breached')}
     else if(overCap){renderCtaState('overcap')}
     else{renderCtaState('trade',{label:`Buy ${S.side} @ ${Math.round(px*100)}¢`})}
   }
@@ -2139,40 +2152,29 @@ function updateTradePanel(fromInput){
 function renderCtaState(state,opts={}){
   const cta=$('#tpCta');if(!cta)return;
   if(state==='conversion'){
-    // UNAUTHENTICATED — full conversion card (subscription model)
-    cta.innerHTML=`<div class="tp-conversion-card">
-      <div class="tp-conv-headline">Sign up to place this trade</div>
-      <div class="tp-conv-sub">Subscribe, pass the eval, get funded up to $100K. Keep 80% of profits.</div>
-      <div class="tp-conv-price-row">
-        <div class="tp-conv-price-label">STARTS AT</div>
-        <div class="tp-conv-price-amount"><span style="font-size:13px;text-decoration:line-through;color:var(--text-3);margin-right:6px">$129/mo</span>$89<span style="font-size:14px;color:var(--text-2);font-weight:600">/mo</span></div>
-        <div class="tp-conv-price-note">Cancel anytime &middot; Launch pricing</div>
-      </div>
-      <button class="tp-conv-cta-btn" onclick="openSignupFlow()">Sign Up &mdash; Start Your Eval<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+    // UNAUTHENTICATED — beta claim CTA
+    cta.innerHTML=`<div class="tp-conversion-card" style="border-color:rgba(240,185,11,0.2)">
+      <div class="tp-conv-headline">Claim Your Free $100K Account</div>
+      <div class="tp-conv-sub">Sign up to trade prediction markets with $100K. Top 3 win <strong style="color:var(--yellow)">$10,000 in prizes</strong>. No deposit required.</div>
+      <button class="tp-conv-cta-btn" style="background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000" onclick="openSignupFlow()">Sign Up &mdash; Claim $100K<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
       <div class="tp-conv-secondary">Already have an account? <a href="#" onclick="openLoginModal();return false;">Log in</a></div>
       <div class="tp-conv-trust-row">
-        <div class="tp-conv-trust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Cancel anytime</div>
-        <div class="tp-conv-trust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4m-7-7H1m22 0h-4m-2.3-5.7l2.8-2.8M4.5 19.5l2.8-2.8m0-9.4L4.5 4.5m15 15l-2.8-2.8"/></svg>Weekly USDC payouts</div>
+        <div class="tp-conv-trust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>$100K Free</div>
+        <div class="tp-conv-trust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>$10K Prizes</div>
       </div>
     </div>`;
   }else if(state==='no-account'){
-    // AUTHENTICATED but no active eval
-    cta.innerHTML=`<div class="tp-conversion-card">
-      <div class="tp-conv-headline">Start an eval to trade</div>
-      <div class="tp-conv-sub">Subscribe monthly. Pass eval + verification. Get funded.</div>
-      <button class="tp-conv-cta-btn" onclick="openPlansModal()">Start Your Eval<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+    // AUTHENTICATED but hasn't claimed beta account
+    cta.innerHTML=`<div class="tp-conversion-card" style="border-color:rgba(240,185,11,0.2)">
+      <div class="tp-conv-headline" style="color:var(--yellow)">Claim your $100K account</div>
+      <div class="tp-conv-sub">You're signed up! Claim your free beta account to start trading.</div>
+      <button class="tp-conv-cta-btn" style="background:linear-gradient(135deg,#f0b90b,#e6a800);color:#000" onclick="claimBetaAccount()">Claim My $100K Account<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
     </div>`;
-  }else if(state==='activation-needed'){
-    cta.innerHTML=`<div class="tp-conversion-card" style="border-color:rgba(0,212,170,0.3)">
-      <div class="tp-conv-headline" style="color:var(--green)">Activate your funded account</div>
-      <div class="tp-conv-sub">You passed! Pay the one-time $49 activation fee to start trading with real capital.</div>
-      <button class="tp-conv-cta-btn" style="background:linear-gradient(135deg,var(--green),#00e6b8);color:#000" onclick="activateFundedAccount()">Activate — $49<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
-    </div>`;
-  }else if(state==='dunning-blocked'){
+  }else if(state==='beta-breached'){
     cta.innerHTML=`<div class="tp-conversion-card" style="border-color:rgba(255,71,87,0.3)">
-      <div class="tp-conv-headline" style="color:var(--red)">Payment failed</div>
-      <div class="tp-conv-sub">Update your payment method to resume trading.</div>
-      <button class="tp-conv-cta-btn" style="background:var(--red)" onclick="openSubscriptionPortal()">Update Payment<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      <div class="tp-conv-headline" style="color:var(--red)">Account Breached</div>
+      <div class="tp-conv-sub">Your beta account hit the drawdown limit. You're still on the leaderboard with your final P&L. No resets during beta.</div>
+      <a href="/leaderboard.html" class="tp-conv-cta-btn" style="display:inline-flex;text-decoration:none;background:var(--blue)">View Leaderboard<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
     </div>`;
   }else if(state==='select'){
     cta.innerHTML=`<button class="tp-trade-btn" id="tpTradeBtn" disabled>Select outcome</button><div class="tp-terms">By trading, you agree to the Terms of Use.</div>`;
@@ -2287,49 +2289,117 @@ $('#payoutClose').onclick=()=>pm.style.display='none';pm.onclick=e=>{if(e.target
 $('#payoutSubmit').onclick=async()=>{const m=pmt.value;let det={};if(m==='crypto'){det={network:$('#cryptoNetwork').value,address:$('#cryptoAddress').value.trim()};if(!det.address){toast('Enter address','err');return}}else if(m==='rise'){det={rise_email:$('#riseEmail').value.trim()}}else if(m==='paypal'){det={paypal_email:$('#paypalEmail').value.trim()}}else if(m==='bank_wire'){det={bank_name:$('#bankName').value.trim(),account_holder:$('#bankHolder').value.trim(),routing:$('#bankRouting').value.trim(),account_last4:$('#bankLast4').value.trim()}}const b=$('#payoutSubmit');b.disabled=true;b.textContent='Submitting...';try{const ac=await api('/api/account');const r=await api('/api/payout/request',{method:'POST',body:JSON.stringify({account_id:ac.account.id,payout_method:m,payout_details:det})});toast('Submitted: '+fmt$(r.amount),'ok');b.textContent='Done'}catch(e){toast(e.message,'err');b.disabled=false;b.textContent='Submit'}};
 async function renderPayoutsPage(){if(!S.account){$('#payoutsNoAcct').style.display='block';$('#payoutsContent').style.display='none';return}$('#payoutsNoAcct').style.display='none';$('#payoutsContent').style.display='block';const a=S.account,pr=a.balance-a.size,sp=Math.max(0,pr*.8);const pSt=a.phase||a.status||'eval';$('#payoutAcctStatus').textContent=(pSt==='eval'?'EVAL · P1':pSt==='verification'?'EVAL · P2':pSt==='funded'?'FUNDED':pSt==='live'?'LIVE':pSt.replace('_',' ').toUpperCase());const pe=$('#payoutProfit');pe.textContent=(pr>=0?'+':'')+fmt$(pr);pe.className='dc-val '+(pr>=0?'green':'red');$('#payoutSplit').textContent=pr>0?fmt$(sp):'$0';const rb=$('#requestPayoutBtn');rb.style.display=(a.status==='passed'||a.status==='live')&&pr>0?'inline-flex':'none';try{const ps=await api('/api/payouts');$('#payoutPageHistory').innerHTML=ps.length?ps.map(p=>`<div class="ph-row"><div><div style="font-weight:600">${fmt$(p.amount)}</div><div style="color:var(--text-3);font-size:10px">${p.payout_method} · ${new Date(p.requested_at).toLocaleDateString()}</div></div><span class="ph-status ${p.status}">${p.status}</span></div>`).join(''):'<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px">No payouts yet.</div>'}catch(e){}}
 
-/* ============ PLANS ============ */
-const plans=[
-  {id:'starter',  size:5000,  sizeLabel:'$5,000 Account',  monthlyPrice:89,  anchorMonthly:129, discountPct:31, target:'$300',  targetPct:'6%', dd:'$200',  ddPct:'4%', daily:'$100',  dailyPct:'2%', pos:'$1,000',  posPct:'20%', minDays:7},
-  {id:'standard', size:10000, sizeLabel:'$10,000 Account', monthlyPrice:159, anchorMonthly:229, discountPct:31, target:'$600',  targetPct:'6%', dd:'$400',  ddPct:'4%', daily:'$200',  dailyPct:'2%', pos:'$2,000',  posPct:'20%', minDays:7},
-  {id:'pro',      size:25000, sizeLabel:'$25,000 Account', monthlyPrice:299, anchorMonthly:429, discountPct:30, target:'$1,500',targetPct:'6%', dd:'$1,000',ddPct:'4%', daily:'$500',  dailyPct:'2%', pos:'$5,000',  posPct:'20%', minDays:7, popular:true},
-  {id:'elite',    size:50000, sizeLabel:'$50,000 Account', monthlyPrice:499, anchorMonthly:719, discountPct:31, target:'$3,000',targetPct:'6%', dd:'$2,000',ddPct:'4%', daily:'$1,000',dailyPct:'2%', pos:'$10,000', posPct:'20%', minDays:7},
-  {id:'whale',    size:100000,sizeLabel:'$100,000 Account',monthlyPrice:899, anchorMonthly:1299,discountPct:31, target:'$6,000',targetPct:'6%', dd:'$4,000',ddPct:'4%', daily:'$2,000',dailyPct:'2%', pos:'$20,000', posPct:'20%', minDays:7}
-];
-function openPlansModal(){
-  $('#plansGrid').innerHTML=plans.map(p=>{
-    const tier=p.id.charAt(0).toUpperCase()+p.id.slice(1);
-    return `<div class="plan-card${p.popular?' popular':''}">
-      ${p.popular?'<div class="plan-badge">MOST POPULAR</div>':''}
-      <div class="plan-discount-pill">${p.discountPct}% OFF</div>
-      <div class="plan-tier">${tier}</div>
-      <div class="plan-size">${p.sizeLabel}</div>
-      <div class="plan-anchor">$${p.anchorMonthly}/mo</div>
-      <div class="plan-current">$${p.monthlyPrice}<span style="font-size:14px;color:var(--text-2);font-weight:600">/mo</span></div>
-      <div class="plan-price-tag">LAUNCH PRICING</div>
-      <ul class="plan-features">
-        <li><span class="pf-ck">&#10003;</span>${p.targetPct} profit target (${p.target})</li>
-        <li><span class="pf-ck">&#10003;</span>${p.ddPct} max drawdown (${p.dd})</li>
-        <li><span class="pf-ck">&#10003;</span>${p.dailyPct} daily loss limit (${p.daily})</li>
-        <li><span class="pf-ck">&#10003;</span>${p.posPct} max per trade (${p.pos})</li>
-        <li><span class="pf-ck">&#10003;</span>Min ${p.minDays} trading days</li>
-        <li><span class="pf-ck">&#10003;</span>80/20 profit split when funded</li>
-        <li><span class="pf-ck">&#10003;</span>2-phase: Eval &rarr; Verify &rarr; Funded</li>
-      </ul>
-      <button class="plan-btn" data-plan="${p.id}">Start Eval &mdash; $${p.monthlyPrice}/mo</button>
-      <div class="plan-guarantee"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Cancel anytime &middot; No long-term commitment</div>
-    </div>`;
-  }).join('');
-  $('#plansModal').style.display='flex';
-  $$('.plan-btn').forEach(b=>{b.onclick=async e=>{const pl=e.target.dataset.plan;e.target.textContent='...';e.target.disabled=true;try{const d=await api('/api/checkout',{method:'POST',body:JSON.stringify({plan:pl})});if(d.url)window.location.href=d.url}catch(err){if(err.message.includes('not configured')){try{await api('/api/account/test',{method:'POST',body:JSON.stringify({plan:pl})});toast('Test account!','ok');$('#plansModal').style.display='none';await loadAccount()}catch(e2){toast(e2.message,'err')}}else toast(err.message,'err');e.target.textContent='Start Eval';e.target.disabled=false}}});
+/* ============ SIGNUP MODAL ============ */
+$('#signupModalClose').onclick=()=>$('#signupModal').style.display='none';
+$('#signupModal').onclick=e=>{if(e.target===e.currentTarget)$('#signupModal').style.display='none'};
+$('#signupToLogin').onclick=e=>{e.preventDefault();$('#signupModal').style.display='none';openLoginModal()};
+$('#signupModalForm').onsubmit=async e=>{
+  e.preventDefault();
+  const name=$('#signupName').value.trim(),email=$('#signupEmail').value.trim(),pass=$('#signupPassword').value,confirm=$('#signupConfirm').value;
+  const btn=$('#signupModalSubmit'),err=$('#signupModalError');
+  err.textContent='';
+  if(!name||!email||!pass){err.textContent='All fields required';return}
+  if(pass.length<8){err.textContent='Password must be 8+ characters';return}
+  if(pass!==confirm){err.textContent='Passwords do not match';return}
+  btn.disabled=true;btn.textContent='Creating...';
+  try{
+    const r=await fetch('/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password:pass})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'Signup failed');
+    localStorage.setItem('verdict_token',data.token);
+    localStorage.setItem('verdict_user',JSON.stringify(data.user));
+    S.token=data.token;S.user=data.user;
+    updateNavAuth();
+    $('#signupModal').style.display='none';
+    toast('Account created!','ok');
+    // Auto-show beta claim modal (non-dismissable)
+    openBetaClaimModal();
+  }catch(ex){err.textContent=ex.message||'Signup failed';btn.disabled=false;btn.textContent='CREATE ACCOUNT'}
+};
+
+/* ============ BETA CLAIM ============ */
+function openBetaClaimModal(){
+  if(!S.token){openSignupFlow();return}
+  $('#betaClaimModal').style.display='flex';
 }
-$('#plansClose').onclick=()=>$('#plansModal').style.display='none';$('#plansModal').onclick=e=>{if(e.target===e.currentTarget)$('#plansModal').style.display='none'};
-if(new URLSearchParams(location.search).get('purchase')==='1'){setTimeout(openPlansModal,500);history.replaceState({},'','trade.html')}
+// NON-DISMISSABLE: clicking outside does NOT close the beta claim modal
+// Users MUST claim their account to proceed
+function openPlansModal(){openBetaClaimModal()} // Legacy compat
+
+// Auto-show beta claim modal on page load for logged-in users without an account
+(async function autoBetaPrompt(){
+  if(!S.token)return;
+  try{
+    const d=await api('/api/account');
+    if(!d.account){
+      // User is logged in but has no account — force claim modal
+      openBetaClaimModal();
+    }
+  }catch(e){
+    // If 404/no account, show claim modal
+    if(!S.account)openBetaClaimModal();
+  }
+})();
+
+async function claimBetaAccount(){
+  const btn=$('#betaClaimBtn');
+  const status=$('#betaClaimStatus');
+  if(btn){btn.disabled=true;btn.textContent='Claiming...';}
+  try{
+    const r=await api('/api/beta/claim',{method:'POST'});
+    if(r.ok){
+      toast('$100K account claimed!','ok');
+      if(status){status.style.display='block';status.style.color='var(--green)';status.textContent='Account created! Loading...';}
+      setTimeout(async()=>{
+        $('#betaClaimModal').style.display='none';
+        await loadAccount();
+      },1000);
+    }
+  }catch(e){
+    // If not logged in, redirect to signup
+    if(e.message.includes('401')||e.message.includes('Unauthorized')){
+      openSignupFlow();
+      return;
+    }
+    // If email not verified
+    if(e.message.includes('Verify your email')){
+      if(status){status.style.display='block';status.style.color='var(--yellow)';status.textContent='Verify your email first, then come back to claim.';}
+      if(btn){btn.disabled=false;btn.textContent='Claim My $100K Account';}
+      return;
+    }
+    toast(e.message,'err');
+    if(status){status.style.display='block';status.style.color='var(--red)';status.textContent=e.message;}
+    if(btn){btn.disabled=false;btn.textContent='Claim My $100K Account';}
+  }
+}
+
+// Beta rank pill — updates every 60s
+async function updateBetaRank(){
+  if(!S.token)return;
+  try{
+    const r=await api('/api/beta/status');
+    if(r.has_account){
+      const pill=$('#navRankPill');
+      const rankEl=$('#navRank');
+      const pnlEl=$('#navRankPnl');
+      if(pill){pill.style.display='flex';pill.style.gap='6px';pill.style.alignItems='center';pill.style.background='var(--bg-elevated)';pill.style.padding='4px 10px';pill.style.borderRadius='20px';pill.style.border='1px solid var(--border)';pill.style.fontSize='12px';}
+      if(rankEl)rankEl.textContent='#'+r.rank;
+      if(pnlEl){
+        const pnl=r.pnl_cents/100;
+        pnlEl.textContent=(pnl>=0?'+':'')+fmt$(Math.abs(pnl));
+        pnlEl.style.color=pnl>=0?'var(--green)':'var(--red)';
+      }
+    }
+  }catch(e){}
+}
+setInterval(updateBetaRank,60000);
+setTimeout(updateBetaRank,2000);
 
 /* ============ LOGIN MODAL ============ */
 function openLoginModal(){$('#loginModal').style.display='flex';$('#loginEmail').focus()}
 $('#loginModalClose').onclick=()=>$('#loginModal').style.display='none';
 $('#loginModal').onclick=e=>{if(e.target===e.currentTarget)$('#loginModal').style.display='none'};
-$('#loginToSignup').onclick=e=>{e.preventDefault();$('#loginModal').style.display='none';openPlansModal()};
+$('#loginToSignup').onclick=e=>{e.preventDefault();$('#loginModal').style.display='none';openSignupFlow()};
 /* ============ HOW IT WORKS MODAL ============ */
 let _hiwStep=0,_hiwConfettiFired=false;
 function openHIWModal(){_hiwStep=0;_hiwConfettiFired=false;hiwRender();$('#hiwModal').classList.add('open')}
@@ -2345,7 +2415,7 @@ $('#hiwClose').onclick=()=>$('#hiwModal').classList.remove('open');
 $('#hiwModal').onclick=e=>{if(e.target===e.currentTarget)$('#hiwModal').classList.remove('open')};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#hiwModal').classList.contains('open'))$('#hiwModal').classList.remove('open')});
 
-$('#loginModalForm').onsubmit=async e=>{e.preventDefault();const email=$('#loginEmail').value.trim(),pass=$('#loginPassword').value,btn=$('#loginModalSubmit'),err=$('#loginModalError');err.textContent='';if(!email||!pass){err.textContent='Enter email and password';return}btn.disabled=true;btn.textContent='Logging in...';try{const r=await fetch('/api/signin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Login failed');localStorage.setItem('verdict_token',data.token);localStorage.setItem('verdict_user',JSON.stringify(data.user));S.token=data.token;S.user=data.user;updateNavAuth();$('#loginModal').style.display='none';toast('Logged in','ok');loadAccount()}catch(ex){err.textContent=ex.message||'Invalid credentials';btn.disabled=false;btn.textContent='LOG IN'}};
+$('#loginModalForm').onsubmit=async e=>{e.preventDefault();const email=$('#loginEmail').value.trim(),pass=$('#loginPassword').value,btn=$('#loginModalSubmit'),err=$('#loginModalError');err.textContent='';if(!email||!pass){err.textContent='Enter email and password';return}btn.disabled=true;btn.textContent='Logging in...';try{const r=await fetch('/api/signin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Login failed');localStorage.setItem('verdict_token',data.token);localStorage.setItem('verdict_user',JSON.stringify(data.user));S.token=data.token;S.user=data.user;updateNavAuth();$('#loginModal').style.display='none';toast('Logged in','ok');loadAccount().then(()=>{if(!S.account)openBetaClaimModal()})}catch(ex){err.textContent=ex.message||'Invalid credentials';btn.disabled=false;btn.textContent='LOG IN'}};
 
 /* ============ PLAYER PROPS VIEW ============ */
 async function loadProps(){

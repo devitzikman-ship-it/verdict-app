@@ -101,6 +101,15 @@ if (!ODDS_API_KEY) {
   console.log('  ✔  The Odds API connected — player props & moneylines enabled');
 }
 
+// ============ BETA MODE CONFIG ============
+const BETA_MODE = (process.env.BETA_MODE || 'true') === 'true';
+const BETA_ENDS_AT = process.env.BETA_ENDS_AT || '2026-07-01T23:59:59Z';
+const BETA_PRIZE_FIRST_CENTS  = Number(process.env.BETA_PRIZE_FIRST_CENTS  || 500000);
+const BETA_PRIZE_SECOND_CENTS = Number(process.env.BETA_PRIZE_SECOND_CENTS || 300000);
+const BETA_PRIZE_THIRD_CENTS  = Number(process.env.BETA_PRIZE_THIRD_CENTS  || 200000);
+const BETA_STARTING_BALANCE_CENTS = Number(process.env.BETA_STARTING_BALANCE_CENTS || 10000000); // $100,000
+
+// BETA MODE - re-enable when launching paid
 // Plan pricing — SUBSCRIPTION model ($XX/month recurring + $49 one-time activation on pass)
 // stripe_price_id must be set in env vars; if missing, inline price_data is used as fallback
 const PLANS = {
@@ -114,10 +123,9 @@ const ACTIVATION_FEE_CENTS = 4900;
 const ACTIVATION_STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ACTIVATION;
 
 // Legacy compat: some old code references planInfo.price / planInfo.activation
-// Map those to new fields so nothing breaks during migration
 for (const [k, v] of Object.entries(PLANS)) {
-  v.price = v.monthly_cents;       // legacy compat
-  v.activation = ACTIVATION_FEE_CENTS; // legacy compat
+  v.price = v.monthly_cents;
+  v.activation = ACTIVATION_FEE_CENTS;
 }
 
 // Profit split: trader keeps 80%
@@ -275,6 +283,40 @@ const EMAIL_TEMPLATES = {
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your VERDICT subscription has been canceled. You can continue trading until the end of your current billing period.</p>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">If you change your mind, you can start a new eval anytime.</p>
       <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Visit VERDICT</a>
+    `),
+  }),
+
+  // ============ BETA EMAIL TEMPLATES ============
+  beta_welcome: (user, data) => ({
+    subject: 'Welcome to VERDICT Beta — Your $100K Account is Live',
+    html: emailWrap(`
+      <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px">Your $100K Beta Account is Live!</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Welcome to the VERDICT beta competition. You have $${(data.size || 100000).toLocaleString()} to trade prediction markets. Top 3 traders win cash prizes.</p>
+      <div style="background:#1c1c28;border-radius:8px;padding:16px;margin:0 0 20px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Starting Balance</span><span style="color:#fff;font-weight:700">$${(data.size || 100000).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Max Drawdown</span><span style="color:#ff4757;font-weight:700">-4%</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Prize Pool</span><span style="color:#f0b90b;font-weight:700">$10,000</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Beta Ends</span><span style="color:#fff;font-weight:700">${new Date(data.beta_ends_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #f0b90b33;border-radius:8px;padding:16px;margin:0 0 20px;text-align:center">
+        <div style="font-size:12px;color:#f0b90b;font-weight:700;letter-spacing:1px;margin-bottom:8px">PRIZES</div>
+        <div style="display:flex;justify-content:center;gap:24px">
+          <div><div style="font-size:18px;font-weight:900;color:#f0b90b">$5,000</div><div style="font-size:11px;color:#55556a">1st Place</div></div>
+          <div><div style="font-size:18px;font-weight:900;color:#c0c0c0">$3,000</div><div style="font-size:11px;color:#55556a">2nd Place</div></div>
+          <div><div style="font-size:18px;font-weight:900;color:#cd7f32">$2,000</div><div style="font-size:11px;color:#55556a">3rd Place</div></div>
+        </div>
+      </div>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+    `),
+  }),
+
+  beta_breach: (user, account) => ({
+    subject: 'Your Beta Account Hit the Drawdown Limit',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Breached</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your beta account exceeded the 4% max drawdown limit. Trading is locked, but you stay on the leaderboard with your final P&L.</p>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">One account per person during beta — no resets. Check the leaderboard to see where you stand.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/leaderboard.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">View Leaderboard</a>
     `),
   }),
 };
@@ -1844,15 +1886,21 @@ async function executePhaseTransition(account, ruleResult) {
   }
 
   if (ruleResult.action === 'fail') {
-    const failUpdate = { status: 'failed' };
+    // Beta accounts → beta_breached (stays on leaderboard with final P&L)
+    const isBeta = account.is_beta || account.plan === 'beta';
+    const failUpdate = { status: isBeta ? 'beta_breached' : 'failed', state: isBeta ? 'beta_breached' : 'failed' };
     if (ruleResult.code === 'DAILY_LOSS') failUpdate.daily_loss_breached_at = new Date().toISOString();
     if (ruleResult.code === 'CONSISTENCY') failUpdate.consistency_breached_at = new Date().toISOString();
     await dbUpdate('accounts', { id: account.id }, failUpdate);
-    console.log(`[phase] account ${account.id} → failed (${ruleResult.code})`);
+    console.log(`[phase] account ${account.id} → ${failUpdate.status} (${ruleResult.code})`);
     // Send breach email
     const user = await dbSelectOne('users', { id: account.user_id });
-    const template = ruleResult.code === 'DAILY_LOSS' ? 'breach_daily' : 'breach_drawdown';
-    sendTemplateEmail(template, user, account).catch(() => {});
+    if (isBeta) {
+      sendTemplateEmail('beta_breach', user, account).catch(() => {});
+    } else {
+      const template = ruleResult.code === 'DAILY_LOSS' ? 'breach_daily' : 'breach_drawdown';
+      sendTemplateEmail(template, user, account).catch(() => {});
+    }
     return account;
   }
 
@@ -1903,47 +1951,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Stripe webhook needs raw body — must come BEFORE express.json()
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  if (!stripe || !STRIPE_WEBHOOK) return res.status(400).json({ error: 'Stripe not configured' });
-
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], STRIPE_WEBHOOK);
-  } catch (err) {
-    console.error('[stripe-webhook] signature verify failed:', err.message);
-    return res.status(400).send('Webhook signature failed');
-  }
-
-  console.log(`[stripe-webhook] ${event.type}`);
-
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object);
-        break;
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object);
-        break;
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object);
-        break;
-      case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object);
-        break;
-      case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object);
-        break;
-      default:
-        console.log(`[stripe-webhook] unhandled: ${event.type}`);
-    }
-    res.json({ received: true });
-  } catch (e) {
-    console.error('[stripe-webhook] handler error:', e.message);
-    res.status(500).json({ error: 'Webhook handler failed' });
-  }
+// BETA MODE - Stripe webhook stubbed. Re-enable when launching paid.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  res.json({ received: true, mode: 'beta' });
 });
 
+// BETA MODE - All Stripe handler functions commented out. Re-enable when launching paid.
+/* BETA_DISABLED_START
 async function handleCheckoutCompleted(session) {
   const feeType = session.metadata?.fee_type;
 
@@ -2163,6 +2177,7 @@ async function handleInvoicePaymentFailed(invoice) {
   await dbUpdate('accounts', { id: account.id }, { subscription_status: 'past_due' });
   console.log(`[stripe] payment failed for account ${account.id}`);
 }
+BETA_DISABLED_END */
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'site'), { extensions: ['html'] }));
@@ -2307,6 +2322,16 @@ app.get('/api/verify-email', async (req, res) => {
     return res.status(500).send(verifyPage('Something went wrong', false));
   }
 });
+
+// DEV ONLY: force-verify email for testing
+if (process.env.NODE_ENV !== 'production' && !process.env.FLY_APP_NAME) {
+  app.post('/api/dev/verify-email', authMiddleware, async (req, res) => {
+    try {
+      await dbUpdate('users', { id: req.userId }, { email_verified: true });
+      res.json({ ok: true, message: 'email force-verified (dev mode)' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+}
 
 app.post('/api/resend-verification', authMiddleware, async (req, res) => {
   try {
@@ -2770,7 +2795,7 @@ app.get('/api/account', authMiddleware, async (req, res) => {
   try {
     const accounts = await dbSelect('accounts', { user_id: req.userId });
     // Return the most recent active account; if none active, return most recent overall
-    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live', 'passed_pending_activation', 'dunning'];
+    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live', 'passed_pending_activation', 'dunning', 'beta_active', 'beta_breached'];
     const sorted = accounts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const account = sorted.find(a => activeStatuses.includes(a.state || a.status)) || sorted[0] || null;
     if (!account) return res.json({ account: null, positions: [], fills: [] });
@@ -2879,7 +2904,7 @@ app.post('/api/order', authMiddleware, orderLimiter, async (req, res) => {
 
     const accounts = await dbSelect('accounts', { user_id: req.userId });
     // Find the most recent ACTIVE account (prefer verification > eval > funded)
-    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live'];
+    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live', 'beta_active'];
     const account = accounts
       .filter(a => activeStatuses.includes(a.state || a.status))
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
@@ -3139,38 +3164,35 @@ app.post('/api/position/:id/close', authMiddleware, orderLimiter, async (req, re
 app.post('/api/account/test', authMiddleware, async (req, res) => {
   if (!DEV_MODE) return res.status(403).json({ error: 'not available in production' });
   try {
-    const { plan = 'pro' } = req.body || {};
-    const validPlans = ['starter', 'standard', 'pro', 'elite', 'whale'];
-    const cleanPlan = validPlans.includes(plan) ? plan : 'pro';
-    const planInfo = PLANS[cleanPlan];
-    if (!planInfo) return res.status(400).json({ error: 'invalid plan' });
-
-    // Check for existing active account
+    // In beta mode, test account creates a beta account
     const existing = await dbSelect('accounts', { user_id: req.userId });
-    const active = existing.find(a => ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'].includes(a.status));
+    const active = existing.find(a => ['beta_active', 'eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'].includes(a.state || a.status));
     if (active) return res.status(400).json({ error: 'You already have an active account.' });
 
     const now = new Date();
-    const evalEnd = new Date(now.getTime() + EVAL_TIME_LIMIT_DAYS * 86400 * 1000);
+    const betaBalance = BETA_STARTING_BALANCE_CENTS / 100;
 
     const account = await dbInsert('accounts', {
       user_id: req.userId,
-      plan: cleanPlan,
-      size: planInfo.size,
-      balance: planInfo.size,
-      high_water: planInfo.size,
-      status: 'eval',
-      phase: 'eval',
-      profit_target_pct: PROFIT_TARGET,
+      plan: 'beta',
+      size: betaBalance,
+      balance: betaBalance,
+      high_water: betaBalance,
+      status: 'beta_active',
+      state: 'beta_active',
+      phase: 'beta',
+      is_beta: true,
+      beta_starting_balance: betaBalance,
+      beta_ends_at: BETA_ENDS_AT,
+      profit_target_pct: 999,
       max_loss_pct: MAX_LOSS,
-      subscription_status: 'active',
-      state: 'eval_active',
-      subscription_started_at: now.toISOString(),
       eval_started_at: now.toISOString(),
-      eval_ends_at: evalEnd.toISOString(),
+      eval_ends_at: BETA_ENDS_AT,
     });
 
-    return res.json({ ok: true, account_id: account.id, plan: cleanPlan, size: planInfo.size, phase: 'eval' });
+    await dbUpdate('users', { id: req.userId }, { has_claimed_beta_account: true });
+
+    return res.json({ ok: true, account_id: account.id, plan: 'beta', size: betaBalance, phase: 'beta' });
   } catch (e) {
     console.error('[test-account]', e.message);
     return res.status(500).json({ error: 'failed to create test account' });
@@ -3372,10 +3394,11 @@ app.get('/api/market/:id/full', async (req, res) => {
 
 // Helper: check if user can trade on this account
 function canTrade(account) {
-  return ['eval', 'eval_active', 'verification', 'verification_active', 'funded', 'funded_active'].includes(account.state || account.status);
+  return ['eval', 'eval_active', 'verification', 'verification_active', 'funded', 'funded_active', 'beta_active'].includes(account.state || account.status);
 }
 
-// Subscription checkout — creates recurring monthly charge
+// BETA MODE - Subscription checkout disabled. Re-enable when launching paid.
+/* BETA_DISABLED_START
 app.post('/api/checkout', authMiddleware, async (req, res) => {
   if (!stripe) return res.status(500).json({ error: 'Payments not configured' });
 
@@ -3575,24 +3598,190 @@ app.post('/api/subscription/cancel', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Failed to cancel subscription' });
   }
 });
+BETA_DISABLED_END */
 
+// ============ BETA ENDPOINTS ============
+
+// POST /api/beta/claim — create $100K beta account
+app.post('/api/beta/claim', authMiddleware, async (req, res) => {
+  try {
+    const user = await dbSelectOne('users', { id: req.userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Require email verification
+    if (user.email_verified === false) {
+      return res.status(403).json({ error: 'Verify your email before claiming your beta account' });
+    }
+
+    // Check for existing claim
+    if (user.has_claimed_beta_account) {
+      return res.status(400).json({ error: 'You have already claimed your beta account' });
+    }
+
+    // Check for existing active account
+    const existing = await dbSelect('accounts', { user_id: req.userId });
+    const active = existing.find(a => ['beta_active'].includes(a.state || a.status));
+    if (active) return res.status(400).json({ error: 'You already have an active beta account' });
+
+    // IP-based duplicate check (basic abuse prevention)
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const allUsers = await dbSelect('users', {});
+    const existingFromIP = allUsers.find(u => u.beta_signup_ip === ip && u.id !== req.userId);
+    if (existingFromIP) {
+      return res.status(400).json({ error: 'Beta account already claimed from this network. One account per person.' });
+    }
+
+    // Check beta hasn't ended
+    if (new Date(BETA_ENDS_AT) < new Date()) {
+      return res.status(400).json({ error: 'Beta period has ended' });
+    }
+
+    const now = new Date();
+    const betaBalance = BETA_STARTING_BALANCE_CENTS / 100; // $100,000
+
+    // Generate handle from email
+    const handle = user.full_name || user.email.split('@')[0];
+
+    const account = await dbInsert('accounts', {
+      user_id: req.userId,
+      plan: 'beta',
+      size: betaBalance,
+      balance: betaBalance,
+      high_water: betaBalance,
+      status: 'beta_active',
+      state: 'beta_active',
+      phase: 'beta',
+      is_beta: true,
+      beta_starting_balance: betaBalance,
+      beta_ends_at: BETA_ENDS_AT,
+      profit_target_pct: 999, // No profit target in beta
+      max_loss_pct: MAX_LOSS,
+      eval_started_at: now.toISOString(),
+      eval_ends_at: BETA_ENDS_AT,
+    });
+
+    await dbUpdate('users', { id: req.userId }, {
+      has_claimed_beta_account: true,
+      beta_signup_ip: ip,
+      handle: handle,
+    });
+
+    console.log(`[beta] account claimed by user ${req.userId} (${user.email}) — $${betaBalance.toLocaleString()} balance`);
+
+    // Send beta welcome email
+    sendTemplateEmail('beta_welcome', user, { size: betaBalance, beta_ends_at: BETA_ENDS_AT }).catch(() => {});
+
+    res.json({ ok: true, account });
+  } catch (e) {
+    console.error('[beta-claim]', e.message);
+    res.status(500).json({ error: 'Failed to claim beta account' });
+  }
+});
+
+// GET /api/leaderboard — public ranked leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+    const allAccounts = await dbSelect('accounts', {});
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+
+    const allUsers = await dbSelect('users', {});
+    const userMap = {};
+    allUsers.forEach(u => { userMap[u.id] = u; });
+
+    const ranked = betaAccounts
+      .filter(a => a.state === 'beta_active' || a.state === 'beta_breached' || a.status === 'failed')
+      .map(a => {
+        const user = userMap[a.user_id] || {};
+        const startBal = Number(a.beta_starting_balance || a.size);
+        const curBal = Number(a.balance);
+        const pnlCents = Math.round((curBal - startBal) * 100);
+        return {
+          handle: user.handle || user.full_name || (user.email ? user.email.split('@')[0] : 'trader'),
+          pnl_cents: pnlCents,
+          pnl_pct: startBal > 0 ? ((curBal - startBal) / startBal) * 100 : 0,
+          total_trades: Number(a.trade_count) || 0,
+          win_rate: Number(a.win_rate) || 0,
+          balance: curBal,
+          state: a.state || a.status,
+        };
+      })
+      .sort((a, b) => b.pnl_cents - a.pnl_cents)
+      .slice(0, limit)
+      .map((entry, i) => ({ ...entry, rank: i + 1 }));
+
+    res.json({
+      leaderboard: ranked,
+      total_traders: betaAccounts.length,
+      beta_ends_at: BETA_ENDS_AT,
+      prizes: {
+        first: BETA_PRIZE_FIRST_CENTS,
+        second: BETA_PRIZE_SECOND_CENTS,
+        third: BETA_PRIZE_THIRD_CENTS,
+      },
+    });
+  } catch (e) {
+    console.error('[leaderboard]', e.message);
+    res.status(500).json({ error: 'Failed to load leaderboard' });
+  }
+});
+
+// GET /api/beta/status — current user's rank and stats
+app.get('/api/beta/status', authMiddleware, async (req, res) => {
+  try {
+    const accounts = await dbSelect('accounts', { user_id: req.userId });
+    const account = accounts.find(a => a.is_beta);
+    if (!account) return res.json({ has_account: false });
+
+    const allAccounts = await dbSelect('accounts', {});
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+    const ranked = betaAccounts
+      .map(a => ({ id: a.id, pnl: Number(a.balance) - Number(a.beta_starting_balance || a.size) }))
+      .sort((a, b) => b.pnl - a.pnl);
+    const rank = ranked.findIndex(a => a.id === account.id) + 1;
+
+    const startBal = Number(account.beta_starting_balance || account.size);
+    const curBal = Number(account.balance);
+
+    res.json({
+      has_account: true,
+      account_id: account.id,
+      pnl_cents: Math.round((curBal - startBal) * 100),
+      pnl_pct: startBal > 0 ? ((curBal - startBal) / startBal) * 100 : 0,
+      current_balance: curBal,
+      rank,
+      total_traders: betaAccounts.length,
+      state: account.state || account.status,
+      beta_ends_at: BETA_ENDS_AT,
+      time_remaining_ms: new Date(BETA_ENDS_AT).getTime() - Date.now(),
+    });
+  } catch (e) {
+    console.error('[beta-status]', e.message);
+    res.status(500).json({ error: 'Failed to get beta status' });
+  }
+});
+
+// GET /api/beta/stats — public aggregate stats
+app.get('/api/beta/stats', async (req, res) => {
+  try {
+    const allAccounts = await dbSelect('accounts', {});
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+    const profitable = betaAccounts.filter(a => Number(a.balance) > Number(a.beta_starting_balance || a.size)).length;
+
+    res.json({
+      total_traders: betaAccounts.length,
+      profitable_traders: profitable,
+      beta_ends_at: BETA_ENDS_AT,
+      time_remaining_ms: new Date(BETA_ENDS_AT).getTime() - Date.now(),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get beta stats' });
+  }
+});
+
+// BETA MODE - /api/plans disabled during beta
 app.get('/api/plans', (req, res) => {
-  const plans = Object.entries(PLANS).map(([key, val]) => ({
-    id: key,
-    label: val.label,
-    monthly_price: val.monthly_cents / 100,
-    anchor_monthly_price: val.anchor_monthly_cents / 100,
-    activation_fee: ACTIVATION_FEE_CENTS / 100,
-    size: val.size,
-    target_pct: PROFIT_TARGET,
-    verification_target_pct: VERIFICATION_TARGET,
-    max_loss_pct: MAX_LOSS,
-    daily_loss_pct: DAILY_LOSS_LIMIT,
-    position_cap_pct: POSITION_CAP,
-    min_trading_days: MIN_TRADING_DAYS,
-    consistency_max_pct: CONSISTENCY_MAX_PCT,
-  }));
-  res.json(plans);
+  res.json({ mode: 'beta', message: 'Plans disabled during beta. Claim your free $100K account.' });
 });
 
 // ============ AFFILIATE ROUTES ============
@@ -4025,7 +4214,8 @@ app.post('/api/admin/refund', authMiddleware, adminMiddleware, async (req, res) 
   });
 });
 
-// PHASE 12: Admin — comp (free) account creation
+// BETA MODE - comp/activate/cancel-subscription admin endpoints disabled. Re-enable when launching paid.
+/* BETA_DISABLED_START
 app.post('/api/admin/comp-account', authMiddleware, adminMiddleware, async (req, res) => {
   const { user_id, plan, reason } = req.body || {};
   if (!user_id || !plan || !PLANS[plan]) return res.status(400).json({ error: 'user_id and valid plan required' });
@@ -4140,6 +4330,86 @@ app.post('/api/admin/cancel-subscription', authMiddleware, adminMiddleware, asyn
   } catch (e) {
     console.error('[admin-cancel-sub]', e.message);
     res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+BETA_DISABLED_END */
+
+// ============ BETA ADMIN ENDPOINTS ============
+
+// GET /api/admin/beta/overview
+app.get('/api/admin/beta/overview', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const allUsers = await dbSelect('users', {});
+    const allAccounts = await dbSelect('accounts', {});
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+    const active = betaAccounts.filter(a => a.state === 'beta_active');
+    const breached = betaAccounts.filter(a => a.state === 'beta_breached' || a.status === 'failed');
+    const profitable = betaAccounts.filter(a => Number(a.balance) > Number(a.beta_starting_balance || a.size));
+
+    // Top P&L
+    const topPnl = betaAccounts
+      .map(a => ({ id: a.id, user_id: a.user_id, pnl: Number(a.balance) - Number(a.beta_starting_balance || a.size) }))
+      .sort((a, b) => b.pnl - a.pnl)
+      .slice(0, 5);
+
+    res.json({
+      total_signups: allUsers.length,
+      accounts_claimed: betaAccounts.length,
+      accounts_active: active.length,
+      accounts_breached: breached.length,
+      profitable_traders: profitable.length,
+      top_pnl: topPnl,
+      beta_ends_at: BETA_ENDS_AT,
+      days_remaining: Math.ceil((new Date(BETA_ENDS_AT) - Date.now()) / (1000 * 60 * 60 * 24)),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get beta overview' });
+  }
+});
+
+// POST /api/admin/beta/disqualify — disqualify a user for cheating
+app.post('/api/admin/beta/disqualify/:userId', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    await dbUpdate('users', { id: Number(req.params.userId) }, { is_disqualified: true });
+    console.log(`[admin] disqualified user ${req.params.userId} by admin ${req.userId}`);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to disqualify user' });
+  }
+});
+
+// GET /api/admin/beta/winners — final winners (after beta ends)
+app.get('/api/admin/beta/winners', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const allAccounts = await dbSelect('accounts', {});
+    const allUsers = await dbSelect('users', {});
+    const userMap = {};
+    allUsers.forEach(u => { userMap[u.id] = u; });
+
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+    const top3 = betaAccounts
+      .filter(a => !(userMap[a.user_id] || {}).is_disqualified)
+      .map(a => ({
+        ...a,
+        pnl: Number(a.balance) - Number(a.beta_starting_balance || a.size),
+        user: userMap[a.user_id] || {},
+      }))
+      .sort((a, b) => b.pnl - a.pnl)
+      .slice(0, 3);
+
+    const prizes = [BETA_PRIZE_FIRST_CENTS, BETA_PRIZE_SECOND_CENTS, BETA_PRIZE_THIRD_CENTS];
+    res.json({
+      winners: top3.map((a, i) => ({
+        rank: i + 1,
+        user_id: a.user_id,
+        email: a.user.email,
+        handle: a.user.handle || a.user.full_name,
+        pnl: a.pnl,
+        prize_cents: prizes[i],
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to get winners' });
   }
 });
 
@@ -4377,7 +4647,8 @@ async function dailyMTMUpdate() {
 }
 cron.schedule('*/5 * * * *', dailyMTMUpdate); // Every 5 minutes
 
-// ============ DUNNING CRON — handle failed subscription payments ============
+// BETA MODE - Dunning cron disabled. Re-enable when launching paid.
+/* BETA_DISABLED_START
 async function runDunningCron() {
   try {
     const allAccounts = await dbSelect('accounts', {});
@@ -4426,6 +4697,7 @@ async function runDunningCron() {
   }
 }
 cron.schedule('0 * * * *', runDunningCron); // Every hour
+BETA_DISABLED_END */
 
 // ============ CATCH-ALL 404 ============
 app.use((req, res, _next) => {
@@ -4446,15 +4718,16 @@ process.on('unhandledRejection', (reason) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  VERDICT server running on port ${PORT}${APP_URL ? ' → ' + APP_URL : ''}`);
   console.log(`  • Mode:            ${DEV_MODE ? 'DEV (in-memory)' : 'PRODUCTION (Supabase)'}`);
+  console.log(`  • BETA MODE:       ${BETA_MODE ? 'ACTIVE — free $100K accounts' : 'OFF — paid subscriptions'}`);
+  if (BETA_MODE) {
+    console.log(`  • Beta ends:       ${BETA_ENDS_AT}`);
+    console.log(`  • Prize pool:      $${(BETA_PRIZE_FIRST_CENTS + BETA_PRIZE_SECOND_CENTS + BETA_PRIZE_THIRD_CENTS) / 100} ($${BETA_PRIZE_FIRST_CENTS/100}/$${BETA_PRIZE_SECOND_CENTS/100}/$${BETA_PRIZE_THIRD_CENTS/100})`);
+    console.log(`  • Starting bal:    $${(BETA_STARTING_BALANCE_CENTS / 100).toLocaleString()}`);
+  }
   if (!DEV_MODE) console.log(`  • Supabase:        connected`);
-  console.log(`  • Stripe:          ${stripe ? 'enabled' : 'DISABLED (no key)'}`);
+  console.log(`  • Stripe:          ${stripe ? 'enabled' : 'DISABLED (no key)'} ${BETA_MODE ? '(paused for beta)' : ''}`);
   console.log(`  • Auth:            JWT (${JWT_EXPIRES} expiry) + bcrypt`);
-  console.log(`  • Market cache:    ${CACHE_TTL_MARKETS / 1000}s list / ${CACHE_TTL_MARKET / 1000}s single / ${CACHE_TTL_EVENTS / 1000}s events`);
-  console.log(`  • Rate limits:     200/min global, 10/min auth, 30/min orders`);
   console.log(`  • Execution:       CLOB orderbook walk (${SLIPPAGE_FALLBACK * 100}% fallback, ${SLIPPAGE_MAX * 100}% max cap)`);
-  console.log(`  • Profit split:    ${PROFIT_SPLIT * 100}% to trader`);
-  console.log(`  • Affiliate:       ${AFFILIATE_COMMISSION * 100}% commission`);
-  console.log(`  • Rules:           ${PROFIT_TARGET * 100}% target (P1) / ${VERIFICATION_TARGET * 100}% (P2) / ${MAX_LOSS * 100}% drawdown / 30-day eval / ${POSITION_CAP * 100}% position cap`);
-  console.log(`  • API endpoints:   markets, events, categories, search, trending`);
+  console.log(`  • Rules:           ${MAX_LOSS * 100}% drawdown / ${DAILY_LOSS_LIMIT * 100}% daily / ${POSITION_CAP * 100}% position cap`);
   console.log(`  • Resolution cron: every 60s (batched)\n`);
 });
