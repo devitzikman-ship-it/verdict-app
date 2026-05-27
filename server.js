@@ -149,6 +149,145 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+// ============ EMAIL TEMPLATES (Phase 11) ============
+function emailWrap(content) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+<div style="max-width:560px;margin:0 auto;padding:40px 20px">
+<div style="text-align:center;margin-bottom:32px"><span style="font-family:'Arial Black',sans-serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:2px">VERDICT</span></div>
+<div style="background:#12121a;border:1px solid #1e1e2a;border-radius:12px;padding:32px">${content}</div>
+<div style="text-align:center;margin-top:24px;font-size:11px;color:#55556a">
+<p>VERDICT · Prediction Market Prop Trading</p>
+<p><a href="${APP_URL || 'https://verdict.markets'}" style="color:#4e8bff;text-decoration:none">verdict.markets</a></p>
+</div></div></body></html>`;
+}
+
+const EMAIL_TEMPLATES = {
+  welcome: (user, plan) => ({
+    subject: 'Welcome to VERDICT — Your eval starts now',
+    html: emailWrap(`
+      <h2 style="color:#fff;margin:0 0 12px;font-size:20px">Welcome to VERDICT</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your ${plan.label || 'Pro'} eval account is live. You have 30 days to hit the profit target and earn your funded account.</p>
+      <div style="background:#1c1c28;border-radius:8px;padding:16px;margin:0 0 20px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Account Size</span><span style="color:#fff;font-weight:700">$${(plan.size||25000).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Profit Target</span><span style="color:#00d4aa;font-weight:700">+6%</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Max Drawdown</span><span style="color:#ff4757;font-weight:700">-4%</span></div>
+      </div>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+    `),
+  }),
+
+  eval_passed: (user, account) => ({
+    subject: 'Phase 1 Passed — Verification starts now',
+    html: emailWrap(`
+      <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px">Phase 1 Complete!</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You hit the 6% profit target on your ${account.plan || 'Pro'} account. Phase 2 (verification) starts now — hit +4% to unlock your funded account.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#00d4aa;color:#000;font-weight:700;border-radius:8px;text-decoration:none">View Dashboard</a>
+    `),
+  }),
+
+  verification_passed: (user, account) => ({
+    subject: 'You passed! Activate your funded account',
+    html: emailWrap(`
+      <div style="text-align:center;font-size:48px;margin-bottom:16px">&#127942;</div>
+      <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px;text-align:center">You Passed Both Phases!</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px;text-align:center">Pay the one-time $49 activation fee to unlock your funded account and start earning real profits.</p>
+      <div style="text-align:center"><a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00d4aa,#00e6b8);color:#000;font-weight:800;border-radius:8px;text-decoration:none">Activate — $49</a></div>
+      <p style="color:#55556a;font-size:11px;text-align:center;margin-top:16px">One-time fee. Keep 80% of all profits. Weekly USDC payouts.</p>
+    `),
+  }),
+
+  activation_success: (user, account) => ({
+    subject: 'Funded account activated — Start trading!',
+    html: emailWrap(`
+      <h2 style="color:#00d4aa;margin:0 0 12px;font-size:20px">You're Funded!</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your $${(account.size||25000).toLocaleString()} funded account is live. Trade prediction markets and keep 80% of profits. Withdraw anytime.</p>
+      <div style="background:#1c1c28;border-radius:8px;padding:16px;margin:0 0 20px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Account Size</span><span style="color:#fff;font-weight:700">$${(account.size||25000).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Profit Split</span><span style="color:#00d4aa;font-weight:700">80% yours</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#55556a;font-size:11px;text-transform:uppercase">Payouts</span><span style="color:#fff;font-weight:700">Weekly USDC</span></div>
+      </div>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start Trading</a>
+    `),
+  }),
+
+  breach_drawdown: (user, account) => ({
+    subject: 'Account breached — Max drawdown exceeded',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Failed</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your ${account.plan || 'Pro'} account exceeded the -4% max drawdown limit. Your eval has ended.</p>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime. Your subscription has been canceled — no further charges.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+    `),
+  }),
+
+  breach_daily: (user, account) => ({
+    subject: 'Account breached — Daily loss limit exceeded',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Failed</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your ${account.plan || 'Pro'} account exceeded the -2% daily loss limit. Your eval has ended.</p>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime. Your subscription has been canceled — no further charges.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+    `),
+  }),
+
+  payment_failed: (user) => ({
+    subject: 'Payment failed — Update your payment method',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Payment Failed</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">We couldn't process your subscription payment. Update your payment method within 7 days to avoid account closure.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
+    `),
+  }),
+
+  dunning_reminder_3: (user) => ({
+    subject: 'Reminder: 4 days left to update payment',
+    html: emailWrap(`
+      <h2 style="color:#f0b90b;margin:0 0 12px;font-size:20px">Payment Still Pending</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your payment is still outstanding. You have <strong style="color:#fff">4 days</strong> remaining before your account is closed. Update your payment method now.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#f0b90b;color:#000;font-weight:700;border-radius:8px;text-decoration:none">Update Payment</a>
+    `),
+  }),
+
+  dunning_reminder_6: (user) => ({
+    subject: 'Final warning: 1 day left before account closure',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Final Warning</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">This is your last chance. Your account will be <strong style="color:#ff4757">permanently closed tomorrow</strong> if payment is not updated.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html?page=dashboard" style="display:inline-block;padding:12px 24px;background:#ff4757;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Update Payment Now</a>
+    `),
+  }),
+
+  account_closed: (user) => ({
+    subject: 'Account closed — Payment not resolved',
+    html: emailWrap(`
+      <h2 style="color:#ff4757;margin:0 0 12px;font-size:20px">Account Closed</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your account has been closed due to unresolved payment. Your subscription has been canceled — no further charges.</p>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">You can start a new eval anytime with a fresh subscription.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Start New Eval</a>
+    `),
+  }),
+
+  subscription_canceled: (user) => ({
+    subject: 'Subscription canceled',
+    html: emailWrap(`
+      <h2 style="color:#fff;margin:0 0 12px;font-size:20px">Subscription Canceled</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Your VERDICT subscription has been canceled. You can continue trading until the end of your current billing period.</p>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">If you change your mind, you can start a new eval anytime.</p>
+      <a href="${APP_URL || 'https://verdict.markets'}/trade.html" style="display:inline-block;padding:12px 24px;background:#4e8bff;color:#fff;font-weight:700;border-radius:8px;text-decoration:none">Visit VERDICT</a>
+    `),
+  }),
+};
+
+// Helper to send templated email
+async function sendTemplateEmail(templateName, user, extraData) {
+  if (!user?.email) return false;
+  const tmpl = EMAIL_TEMPLATES[templateName];
+  if (!tmpl) { console.error(`[email] Unknown template: ${templateName}`); return false; }
+  const { subject, html } = tmpl(user, extraData);
+  return sendEmail(user.email, subject, html);
+}
+
 // In-memory token store for password resets & email verification
 // { token: { userId, email, type, expiresAt } }
 const tokenStore = new Map();
@@ -1683,6 +1822,9 @@ async function executePhaseTransition(account, ruleResult) {
     });
 
     console.log(`[phase] account ${account.id} → completed_eval | new verification account ${verificationAccount.id}`);
+    // Send eval passed email
+    const user = await dbSelectOne('users', { id: account.user_id });
+    sendTemplateEmail('eval_passed', user, account).catch(() => {});
     return verificationAccount;
   }
 
@@ -1695,6 +1837,9 @@ async function executePhaseTransition(account, ruleResult) {
       verification_passed_at: new Date().toISOString(),
     });
     console.log(`[phase] account ${account.id} → passed_pending_activation | awaiting $49 activation fee`);
+    // Send verification passed email
+    const user = await dbSelectOne('users', { id: account.user_id });
+    sendTemplateEmail('verification_passed', user, account).catch(() => {});
     return account;
   }
 
@@ -1704,6 +1849,10 @@ async function executePhaseTransition(account, ruleResult) {
     if (ruleResult.code === 'CONSISTENCY') failUpdate.consistency_breached_at = new Date().toISOString();
     await dbUpdate('accounts', { id: account.id }, failUpdate);
     console.log(`[phase] account ${account.id} → failed (${ruleResult.code})`);
+    // Send breach email
+    const user = await dbSelectOne('users', { id: account.user_id });
+    const template = ruleResult.code === 'DAILY_LOSS' ? 'breach_daily' : 'breach_drawdown';
+    sendTemplateEmail(template, user, account).catch(() => {});
     return account;
   }
 
@@ -1876,6 +2025,10 @@ async function handleCheckoutCompleted(session) {
     }
 
     console.log(`[stripe] eval account created for user ${userId} — ${planInfo.label} ($${planInfo.monthly_cents / 100}/mo)`);
+
+    // Send welcome email
+    const user = await dbSelectOne('users', { id: userId });
+    sendTemplateEmail('welcome', user, planInfo).catch(() => {});
   }
 
   else if (feeType === 'activation') {
@@ -1916,6 +2069,10 @@ async function handleCheckoutCompleted(session) {
     });
 
     console.log(`[stripe] account ${accountId} activated — funded trading unlocked`);
+
+    // Send activation success email
+    const user = await dbSelectOne('users', { id: account.user_id });
+    sendTemplateEmail('activation_success', user, { ...account, size: planInfo.size }).catch(() => {});
   }
 }
 
@@ -1935,6 +2092,9 @@ async function handleSubscriptionUpdated(subscription) {
     updates.state = 'dunning';
     updates.dunning_started_at = new Date().toISOString();
     console.log(`[stripe] account ${account.id} entering dunning (payment failed)`);
+    // Send payment failed email
+    const user = await dbSelectOne('users', { id: account.user_id });
+    sendTemplateEmail('payment_failed', user).catch(() => {});
   }
 
   // Active again after past_due → restore
@@ -1964,6 +2124,9 @@ async function handleSubscriptionDeleted(subscription) {
     status: finalState === 'funded_dead' ? 'funded_dead' : 'canceled',
   });
   console.log(`[stripe] subscription deleted — account ${account.id} → ${finalState}`);
+  // Send subscription canceled email
+  const user = await dbSelectOne('users', { id: account.user_id });
+  sendTemplateEmail('subscription_canceled', user).catch(() => {});
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
@@ -2607,9 +2770,9 @@ app.get('/api/account', authMiddleware, async (req, res) => {
   try {
     const accounts = await dbSelect('accounts', { user_id: req.userId });
     // Return the most recent active account; if none active, return most recent overall
-    const activeStatuses = ['eval', 'challenge', 'verification', 'funded', 'funded_express', 'funded_live', 'live'];
+    const activeStatuses = ['eval', 'eval_active', 'challenge', 'verification', 'verification_active', 'funded', 'funded_active', 'funded_express', 'funded_live', 'live', 'passed_pending_activation', 'dunning'];
     const sorted = accounts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    const account = sorted.find(a => activeStatuses.includes(a.status)) || sorted[0] || null;
+    const account = sorted.find(a => activeStatuses.includes(a.state || a.status)) || sorted[0] || null;
     if (!account) return res.json({ account: null, positions: [], fills: [] });
 
     const positions = await dbSelect('positions', { account_id: account.id });
@@ -3000,9 +3163,9 @@ app.post('/api/account/test', authMiddleware, async (req, res) => {
       phase: 'eval',
       profit_target_pct: PROFIT_TARGET,
       max_loss_pct: MAX_LOSS,
-      eval_fee_paid_cents: planInfo.price,
-      activation_fee_paid_cents: planInfo.activation,
-      total_paid_cents: planInfo.price + planInfo.activation,
+      subscription_status: 'active',
+      state: 'eval_active',
+      subscription_started_at: now.toISOString(),
       eval_started_at: now.toISOString(),
       eval_ends_at: evalEnd.toISOString(),
     });
@@ -3862,6 +4025,124 @@ app.post('/api/admin/refund', authMiddleware, adminMiddleware, async (req, res) 
   });
 });
 
+// PHASE 12: Admin — comp (free) account creation
+app.post('/api/admin/comp-account', authMiddleware, adminMiddleware, async (req, res) => {
+  const { user_id, plan, reason } = req.body || {};
+  if (!user_id || !plan || !PLANS[plan]) return res.status(400).json({ error: 'user_id and valid plan required' });
+
+  const user = await dbSelectOne('users', { id: Number(user_id) });
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const planInfo = PLANS[plan];
+  const now = new Date();
+  const evalEnd = new Date(now.getTime() + 30 * 86400 * 1000);
+
+  const account = await dbInsert('accounts', {
+    user_id: Number(user_id),
+    plan,
+    size: planInfo.size,
+    balance: planInfo.size,
+    high_water: planInfo.size,
+    status: 'eval',
+    state: 'eval_active',
+    phase: 'eval',
+    profit_target_pct: PROFIT_TARGET,
+    max_loss_pct: MAX_LOSS,
+    subscription_status: 'comped',
+    eval_started_at: now.toISOString(),
+    eval_ends_at: evalEnd.toISOString(),
+    comped: true,
+    comp_reason: reason || 'Admin comp',
+    comped_by: req.userId,
+  });
+
+  console.log(`[admin] comp-account created for user ${user_id} (${plan}) by admin ${req.userId}: ${reason || ''}`);
+  sendTemplateEmail('welcome', user, planInfo).catch(() => {});
+  res.json({ ok: true, account_id: account.id, plan, size: planInfo.size });
+});
+
+// PHASE 12: Admin — force-activate (skip $49 payment)
+app.post('/api/admin/force-activate', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, reason } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+
+  const state = account.state || account.status;
+  if (state !== 'passed_pending_activation') {
+    return res.status(400).json({ error: `Account is not in passed_pending_activation state (current: ${state})` });
+  }
+
+  const planInfo = PLANS[account.plan] || PLANS.pro;
+  await dbUpdate('accounts', { id: account.id }, {
+    state: 'funded_active',
+    status: 'funded',
+    phase: 'funded',
+    activation_fee_paid_cents: 0,
+    activation_paid_at: new Date().toISOString(),
+    funded_at: new Date().toISOString(),
+    balance: planInfo.size,
+    pnl: 0,
+    high_water: planInfo.size,
+    force_activated_by: req.userId,
+    force_activate_reason: reason || 'Admin force-activate',
+  });
+
+  console.log(`[admin] force-activate account ${account_id} by user ${req.userId}: ${reason || ''}`);
+  const user = await dbSelectOne('users', { id: account.user_id });
+  sendTemplateEmail('activation_success', user, { ...account, size: planInfo.size }).catch(() => {});
+  res.json({ ok: true, account_id, status: 'funded_active', note: '$49 activation fee waived by admin' });
+});
+
+// PHASE 12: Admin — cancel subscription
+app.post('/api/admin/cancel-subscription', authMiddleware, adminMiddleware, async (req, res) => {
+  const { account_id, reason, immediate } = req.body || {};
+  if (!account_id) return res.status(400).json({ error: 'account_id required' });
+
+  const account = await dbSelectOne('accounts', { id: Number(account_id) });
+  if (!account) return res.status(404).json({ error: 'account not found' });
+  if (!account.stripe_subscription_id) return res.status(400).json({ error: 'account has no subscription' });
+
+  try {
+    if (immediate && stripe) {
+      await stripe.subscriptions.cancel(account.stripe_subscription_id);
+      await dbUpdate('accounts', { id: account.id }, {
+        subscription_status: 'canceled',
+        subscription_canceled_at: new Date().toISOString(),
+        state: 'canceled',
+        status: 'canceled',
+        admin_cancel_reason: reason || 'Admin cancel',
+        admin_canceled_by: req.userId,
+      });
+    } else if (stripe) {
+      await stripe.subscriptions.update(account.stripe_subscription_id, { cancel_at_period_end: true });
+      await dbUpdate('accounts', { id: account.id }, {
+        subscription_will_cancel_at: account.subscription_current_period_end || new Date(Date.now() + 30 * 86400 * 1000).toISOString(),
+        admin_cancel_reason: reason || 'Admin cancel (end of period)',
+        admin_canceled_by: req.userId,
+      });
+    } else {
+      // No Stripe — just update state directly
+      await dbUpdate('accounts', { id: account.id }, {
+        subscription_status: 'canceled',
+        state: 'canceled',
+        status: 'canceled',
+        admin_cancel_reason: reason || 'Admin cancel (no Stripe)',
+        admin_canceled_by: req.userId,
+      });
+    }
+
+    console.log(`[admin] cancel-subscription account ${account_id} by user ${req.userId} (immediate: ${!!immediate}): ${reason || ''}`);
+    const user = await dbSelectOne('users', { id: account.user_id });
+    sendTemplateEmail('subscription_canceled', user).catch(() => {});
+    res.json({ ok: true, account_id, immediate: !!immediate });
+  } catch (e) {
+    console.error('[admin-cancel-sub]', e.message);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
 // Public: pass rate (no auth)
 app.get('/api/public/pass-rate', async (req, res) => {
   try {
@@ -4123,12 +4404,21 @@ async function runDunningCron() {
           closed_at: new Date().toISOString(),
         });
         console.log(`[dunning] account ${account.id} closed after 7 days unpaid → ${finalState}`);
-      } else if (daysSince >= 3 && !account.dunning_day3_sent) {
-        await dbUpdate('accounts', { id: account.id }, { dunning_day3_sent: true });
-        console.log(`[dunning] account ${account.id} day-3 reminder`);
+        // Send account closed email
+        const user = await dbSelectOne('users', { id: account.user_id });
+        sendTemplateEmail('account_closed', user).catch(() => {});
       } else if (daysSince >= 6 && !account.dunning_day6_sent) {
         await dbUpdate('accounts', { id: account.id }, { dunning_day6_sent: true });
         console.log(`[dunning] account ${account.id} day-6 final warning`);
+        // Send day-6 final warning email
+        const user = await dbSelectOne('users', { id: account.user_id });
+        sendTemplateEmail('dunning_reminder_6', user).catch(() => {});
+      } else if (daysSince >= 3 && !account.dunning_day3_sent) {
+        await dbUpdate('accounts', { id: account.id }, { dunning_day3_sent: true });
+        console.log(`[dunning] account ${account.id} day-3 reminder`);
+        // Send day-3 reminder email
+        const user = await dbSelectOne('users', { id: account.user_id });
+        sendTemplateEmail('dunning_reminder_3', user).catch(() => {});
       }
     }
   } catch (e) {

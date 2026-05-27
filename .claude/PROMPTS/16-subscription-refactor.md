@@ -1,6 +1,6 @@
 # 16 — Subscription + Activation Refactor
 
-## Status: IN PROGRESS
+## Status: DONE
 
 ## Summary
 Foundational refactor from one-time fees to subscription ($89-$899/mo) + one-time activation ($49). 12 phases covering backend checkout, webhooks, state machine, dunning, frontend plans modal, activation flow, and admin panel.
