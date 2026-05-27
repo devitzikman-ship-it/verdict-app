@@ -16,6 +16,7 @@
     #verdict-splash::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 80% at 50% 50%,rgba(5,11,17,0) 0%,rgba(5,11,17,0.35) 100%),linear-gradient(180deg,rgba(11,18,24,0.20) 0%,rgba(11,18,24,0.08) 50%,rgba(11,18,24,0.50) 100%);pointer-events:none}
     .vs-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
     .vs-mark{font-family:'Archivo Black',sans-serif;font-weight:900;font-size:clamp(72px,16vw,220px);letter-spacing:0.02em;color:#fff;line-height:0.95;text-shadow:0 4px 40px rgba(0,0,0,0.5);opacity:0;animation:vsFadeUp 1.4s cubic-bezier(.2,.7,.2,1) 1.2s both}
+    .vs-sub{font-family:'Archivo Black',sans-serif;font-weight:400;font-size:clamp(11px,2.2vw,22px);letter-spacing:0.28em;text-transform:uppercase;color:rgba(168,196,221,0.75);margin-top:clamp(8px,1.5vw,20px);opacity:0;animation:vsFadeUp 1.2s cubic-bezier(.2,.7,.2,1) 1.8s both}
     @keyframes vsFadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
     #verdict-splash.exiting{opacity:0;transform:scale(1.08);transition:opacity 1.2s cubic-bezier(.6,.05,.2,1),transform 1.2s cubic-bezier(.6,.05,.2,1)}
   </style>
@@ -26,8 +27,8 @@
       <source src="verdict_bg.mp4" type="video/mp4" />
     </video>
     <div class="vs-inner">
-      <svg class="vs-logo-icon" viewBox="0 0 24 24" fill="#A8C4DD" stroke="none" style="width:clamp(48px,10vw,120px);height:clamp(48px,10vw,120px);opacity:0;animation:vsFadeUp 1.2s cubic-bezier(.2,.7,.2,1) 0.8s both"><path d="M12 4L3 20h4.5L12 11l4.5 9H21z"/></svg>
       <div class="vs-mark">VERDICT</div>
+      <div class="vs-sub">Trade Prediction Markets With Our Capital</div>
     </div>
   </section>
   <script>
