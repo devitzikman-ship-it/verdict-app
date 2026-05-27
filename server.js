@@ -2254,25 +2254,27 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     // Store referral code if provided
     const referralCode = (typeof ref === 'string' && ref.length >= 4 && ref.length <= 20) ? ref.toUpperCase() : null;
 
-    const user = await dbInsert('users', {
+    const insertData = {
       email: cleanEmail,
       password_hash: passwordHash,
       full_name: cleanName,
       username: cleanUsername || null,
-      referred_by: referralCode || null,
-      is_admin: ADMIN_EMAILS.includes(cleanEmail),
-    });
+    };
+    if (referralCode) insertData.referred_by = referralCode;
+    const user = await dbInsert('users', insertData);
 
     // Auto-generate affiliate code for new user
     const affCode = generateAffiliateCode();
-    await dbInsert('affiliates', {
-      user_id: user.id,
-      code: affCode,
-      total_referrals: 0,
-      total_earned_cents: 0,
-      pending_cents: 0,
-      paid_cents: 0,
-    });
+    try {
+      await dbInsert('affiliates', {
+        user_id: user.id,
+        code: affCode,
+        total_referrals: 0,
+        total_earned_cents: 0,
+        pending_cents: 0,
+        paid_cents: 0,
+      });
+    } catch (_) { console.log('[signup] affiliates insert skipped:', _.message); }
 
     // Send verification email
     const verifyCode = crypto.randomBytes(32).toString('hex');
