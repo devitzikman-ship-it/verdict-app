@@ -2254,14 +2254,11 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     // Store referral code if provided
     const referralCode = (typeof ref === 'string' && ref.length >= 4 && ref.length <= 20) ? ref.toUpperCase() : null;
 
-    const insertData = {
+    const user = await dbInsert('users', {
       email: cleanEmail,
       password_hash: passwordHash,
       full_name: cleanName,
-      username: cleanUsername || null,
-    };
-    if (referralCode) insertData.referred_by = referralCode;
-    const user = await dbInsert('users', insertData);
+    });
 
     // Auto-generate affiliate code for new user
     const affCode = generateAffiliateCode();
