@@ -149,10 +149,11 @@ async function sendEmail(to, subject, html) {
     return false;
   }
   try {
-    await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+    const result = await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+    console.log(`[email] sent to ${to} | subject: ${subject} | id: ${result?.data?.id || 'unknown'}`);
     return true;
   } catch (e) {
-    console.error('[email]', e.message);
+    console.error('[email] FAILED to send to', to, '|', e.message);
     return false;
   }
 }
@@ -1663,7 +1664,7 @@ async function getDailyPnl(accountId, currentBalance) {
       date: today,
       starting_bal: currentBalance,
       ending_bal: currentBalance,
-      realized_pnl: 0,
+      pnl: 0,
       trade_count: 0,
     });
   }
@@ -1680,13 +1681,13 @@ async function updateDailyPnl(accountId, newBalance, pnl) {
       date: today,
       starting_bal: newBalance - pnl, // approximate starting bal
       ending_bal: newBalance,
-      realized_pnl: pnl,
+      pnl: pnl,
       trade_count: 1,
     });
   } else {
     await dbUpdate('daily_pnl', { id: row.id }, {
       ending_bal: newBalance,
-      realized_pnl: +(Number(row.realized_pnl) + pnl).toFixed(2),
+      pnl: +(Number(row.pnl) + pnl).toFixed(2),
       trade_count: (Number(row.trade_count) || 0) + 1,
     });
   }
@@ -1803,7 +1804,7 @@ async function evaluateRules(account, context = {}) {
       if (totalProfit > 0) {
         const allDailyRows = await dbSelect('daily_pnl', { account_id: account.id });
         for (const dr of allDailyRows) {
-          const dayProfit = Number(dr.realized_pnl);
+          const dayProfit = Number(dr.pnl);
           if (dayProfit > 0 && dayProfit > totalProfit * CONSISTENCY_MAX_PCT) {
             return {
               ok: false, code: 'CONSISTENCY',
@@ -2225,17 +2226,10 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = (full_name || cleanEmail.split('@')[0]).substring(0, 100);
-    const validPlans = ['starter', 'standard', 'pro', 'elite', 'whale'];
-    if (plan && !validPlans.includes(plan)) {
-      return res.status(400).json({ error: `Invalid plan. Choose: ${validPlans.join(', ')}` });
-    }
-    const cleanPlan = plan || 'pro';
-    const cleanSize = Math.max(5000, Math.min(100000, Number(size) || 25000));
 
     const existing = await dbSelectOne('users', { email: cleanEmail });
     if (existing) return res.status(400).json({ error: 'email already exists' });
 
-    // Validate username if provided
     let cleanUsername = null;
     if (username && typeof username === 'string') {
       cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
@@ -2250,17 +2244,68 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
-    // Store referral code if provided
     const referralCode = (typeof ref === 'string' && ref.length >= 4 && ref.length <= 20) ? ref.toUpperCase() : null;
 
-    const user = await dbInsert('users', {
-      email: cleanEmail,
-      password_hash: passwordHash,
-      full_name: cleanName,
+    // Don't create user yet — send 2FA code first
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const twoFaId = crypto.randomBytes(16).toString('hex');
+    tokenStore.set(twoFaId, {
+      type: 'signup_2fa',
+      code,
+      attempts: 0,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      signupData: { cleanEmail, passwordHash, cleanName, cleanUsername, referralCode },
     });
 
-    // Auto-generate affiliate code for new user
+    const maskedEmail = cleanEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 6)) + c);
+
+    sendEmail(cleanEmail, `${code} — Verify your VERDICT signup`, emailWrap(`
+      <h2 style="color:#fff;margin:0 0 12px;font-size:20px">Verify Your Email</h2>
+      <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Enter this code to complete your signup:</p>
+      <div style="background:#1c1c28;border-radius:12px;padding:24px;text-align:center;margin:0 0 20px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:900;letter-spacing:12px;color:#fff">${code}</span>
+      </div>
+      <p style="color:#55556a;font-size:12px;margin:0">This code expires in 10 minutes. If you didn't sign up, ignore this email.</p>
+    `)).catch(() => {});
+
+    return res.json({ requires_2fa: true, twofa_id: twoFaId, masked_email: maskedEmail });
+  } catch (e) {
+    console.error('[signup]', e.message, e.stack);
+    return res.status(500).json({ error: e.message || 'signup failed' });
+  }
+});
+
+app.post('/api/signup/verify-code', authLimiter, async (req, res) => {
+  try {
+    const { twofa_id, code } = req.body || {};
+    if (!twofa_id || !code) return res.status(400).json({ error: 'code required' });
+
+    const entry = tokenStore.get(twofa_id);
+    if (!entry || entry.type !== 'signup_2fa') return res.status(400).json({ error: 'Invalid or expired session. Try signing up again.' });
+    if (entry.expiresAt < Date.now()) { tokenStore.delete(twofa_id); return res.status(400).json({ error: 'Code expired. Try signing up again.' }); }
+
+    entry.attempts = (entry.attempts || 0) + 1;
+    if (entry.attempts > 5) { tokenStore.delete(twofa_id); return res.status(400).json({ error: 'Too many attempts. Try signing up again.' }); }
+
+    if (String(code).trim() !== entry.code) return res.status(400).json({ error: 'Incorrect code' });
+
+    tokenStore.delete(twofa_id);
+    const d = entry.signupData;
+
+    // Re-check email isn't taken (race condition guard)
+    const existing = await dbSelectOne('users', { email: d.cleanEmail });
+    if (existing) return res.status(400).json({ error: 'email already exists' });
+
+    const user = await dbInsert('users', {
+      email: d.cleanEmail,
+      password_hash: d.passwordHash,
+      full_name: d.cleanName,
+    });
+
+    if (d.referralCode) {
+      try { await dbUpdate('users', { id: user.id }, { referred_by: d.referralCode }); } catch (_) {}
+    }
+
     const affCode = generateAffiliateCode();
     try {
       await dbInsert('affiliates', {
@@ -2273,32 +2318,15 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       });
     } catch (_) { console.log('[signup] affiliates insert skipped:', _.message); }
 
-    // Send verification email
-    const verifyCode = crypto.randomBytes(32).toString('hex');
-    tokenStore.set(verifyCode, { userId: user.id, email: cleanEmail, type: 'verify', expiresAt: Date.now() + 24 * 3600 * 1000 });
-    const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
-    const verifyLink = `${origin}/api/verify-email?token=${verifyCode}`;
-    sendEmail(cleanEmail, 'Verify your VERDICT account', `
-      <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px;color:#fff;background:#0a0a0f">
-        <h1 style="font-size:24px;font-weight:900;margin-bottom:8px">VERDICT</h1>
-        <p style="color:#8b8b9e;margin-bottom:24px">Welcome! Verify your email to get started.</p>
-        <a href="${verifyLink}" style="display:inline-block;padding:12px 32px;background:#4e8bff;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px">Verify Email</a>
-        <p style="color:#55556a;font-size:12px;margin-top:24px">This link expires in 24 hours. If you didn't create this account, ignore this email.</p>
-      </div>
-    `);
-
-    // NOTE: account is NOT created here — user must purchase an eval first
-    // (or use /api/account/test in dev mode)
-
-    const token = signToken({ userId: user.id, email: cleanEmail });
+    const token = signToken({ userId: user.id, email: d.cleanEmail });
 
     return res.json({
       token,
-      user: { id: user.id, email: cleanEmail, name: cleanName, username: cleanUsername || null, email_verified: false },
+      user: { id: user.id, email: d.cleanEmail, name: d.cleanName, username: d.cleanUsername || null, email_verified: true },
     });
   } catch (e) {
-    console.error('[signup]', e.message, e.stack);
-    return res.status(500).json({ error: e.message || 'signup failed' });
+    console.error('[signup/verify-code]', e.message, e.stack);
+    return res.status(500).json({ error: e.message || 'verification failed' });
   }
 });
 
@@ -2308,17 +2336,15 @@ app.post('/api/signin', authLimiter, async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'email or username + password required' });
 
     const cleanInput = email.trim().toLowerCase();
-    // Try email first, then username
     let user = await dbSelectOne('users', { email: cleanInput });
     if (!user) {
-      // Try username lookup
       const allUsers = await dbSelect('users', {});
       user = allUsers.find(u => u.username === cleanInput);
     }
-    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+    if (!user) { console.log(`[signin] user not found: ${cleanInput}`); return res.status(401).json({ error: 'invalid credentials' }); }
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'invalid credentials' });
+    if (!valid) { console.log(`[signin] bad password for: ${user.email}`); return res.status(401).json({ error: 'invalid credentials' }); }
 
     const token = signToken({ userId: user.id, email: user.email });
 
@@ -2846,7 +2872,7 @@ app.get('/api/account', authMiddleware, async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const dailyRows = await dbSelect('daily_pnl', { account_id: account.id, date: today });
     const dailyRow = dailyRows[0];
-    const dailyPnl = dailyRow ? Number(dailyRow.realized_pnl) : 0;
+    const dailyPnl = dailyRow ? Number(dailyRow.pnl) : 0;
     const dailyLoss = dailyRow ? Math.max(0, Number(dailyRow.starting_bal) - Number(dailyRow.ending_bal)) : 0;
 
     res.json({
@@ -3170,11 +3196,16 @@ app.post('/api/position/:id/close', authMiddleware, orderLimiter, async (req, re
       fill_source: execution.source,
     });
 
+    const newTradeCount = (Number(account.trade_count) || 0) + 1;
+    const newWinningTrades = (Number(account.winning_trades) || 0) + (pnl > 0 ? 1 : 0);
+    const newWinRate = newTradeCount > 0 ? +(newWinningTrades / newTradeCount).toFixed(4) : 0;
     const closeUpdate = {
       balance: newBalance,
       high_water: Math.max(Number(account.high_water), newBalance),
+      trade_count: newTradeCount,
+      winning_trades: newWinningTrades,
+      win_rate: newWinRate,
     };
-    if (pnl > 0) closeUpdate.winning_trades = (Number(account.winning_trades) || 0) + 1;
     await dbUpdate('accounts', { id: account.id }, closeUpdate);
 
     // Track daily PnL for this close
@@ -3687,8 +3718,12 @@ app.post('/api/beta/claim', authMiddleware, async (req, res) => {
       plan: 'beta',
       size: betaBalance,
       balance: betaBalance,
+      high_water: betaBalance,
       status: 'beta_active',
       phase: 'beta',
+      handle: handle,
+      is_beta: true,
+      beta_starting_balance: betaBalance,
     });
 
     try { await dbUpdate('users', { id: req.userId }, { has_claimed_beta_account: true }); } catch (_) {}
@@ -3718,6 +3753,62 @@ app.post('/api/beta/claim', authMiddleware, async (req, res) => {
   }
 });
 
+// Seed-based PRNG for deterministic fake leaderboard
+function seededRng(seed) {
+  let s = seed;
+  return function() { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; };
+}
+
+const FAKE_HANDLES = [
+  'alpha_edge','cryptowolf','deltatrader','ev_maxi','foxhound','gridlock','hyperion',
+  'ironclad','jackknife','kitesurf','liquidator','maverick','nightowl','oddslayer',
+  'prism_trade','quantumleap','razorsharp','signalflow','turbohedge','upswing',
+  'vortex_cap','wavelength','xenon_arb','yieldking','zenith_fx','axionprime',
+  'blitzscale','crosswind','darkpool','echostrike','firebolt','glitchless',
+  'hawkeye_pm','icebreaker','jetstream','kronos_bet','luckfactor','magnumops',
+  'nebula_risk','omegapulse','peakvision','quasar_run','rippletide','stormchaser',
+  'thundercap','ultrascope','vendetta_x','warpspeed','xfactor_pm','yolo_sage',
+  'zerohour','arb_machine','betabreaker','cashflow_k','driftking','elitenode',
+  'flashpoint','grinderset','hexacore','infinityedge','juggernaut','kilowatt',
+  'laserlock','momentum_x','nocturnalpm','overclocked','phaseshifter','quickdraw',
+  'rocketfuel','sharpangle','titanforge','underdog_w','vipersnipe','wolfpack_t',
+  'xcelerate','yachtmoney','zerolatency','aceofspades','binarystar','catalyst_v',
+  'deepvalue','edgerunner','frostbyte','goldengear','highroller','impactzone',
+  'jadebull','kineticbet','longshot_w','metaplex','novaflare','orbitalpm',
+  'powerplay','quiksilver','redshift_t','silverline','tradewind','uncharted_v',
+  'voltaic','windfall_x','xplosive','yellowjackt','zigzag_arb',
+  'apexrider','bigsignal','chieftrade','doubledown','eagleeye_t'
+];
+
+let _fakeLeaderboard = null;
+function getFakeLeaderboard() {
+  if (_fakeLeaderboard) return _fakeLeaderboard;
+  const rng = seededRng(42);
+  _fakeLeaderboard = FAKE_HANDLES.slice(0, 100).map((handle, i) => {
+    const r = rng();
+    const pnlRange = i < 5 ? r * 18000 + 2000
+      : i < 15 ? r * 8000 + 500
+      : i < 40 ? r * 4000 - 500
+      : i < 70 ? r * 3000 - 1500
+      : r * 4000 - 3000;
+    const pnlCents = Math.round(pnlRange * 100);
+    const balance = 100000 + pnlCents / 100;
+    const trades = Math.round(rng() * 80 + 10);
+    const winRate = Math.min(0.95, Math.max(0.15, 0.5 + (pnlCents / 100) / 40000 + (rng() - 0.5) * 0.3));
+    return {
+      handle,
+      pnl_cents: pnlCents,
+      pnl_pct: pnlCents / 1000,
+      total_trades: trades,
+      win_rate: winRate,
+      balance,
+      state: balance <= 0 ? 'beta_breached' : 'beta_active',
+      _fake: true,
+    };
+  });
+  return _fakeLeaderboard;
+}
+
 // GET /api/leaderboard — public ranked leaderboard
 app.get('/api/leaderboard', async (req, res) => {
   try {
@@ -3729,8 +3820,11 @@ app.get('/api/leaderboard', async (req, res) => {
     const userMap = {};
     allUsers.forEach(u => { userMap[u.id] = u; });
 
-    const ranked = betaAccounts
-      .filter(a => a.state === 'beta_active' || a.state === 'beta_breached' || a.status === 'failed')
+    const realEntries = betaAccounts
+      .filter(a => {
+        const s = a.state || a.status;
+        return s === 'beta_active' || s === 'beta_breached' || s === 'failed';
+      })
       .map(a => {
         const user = userMap[a.user_id] || {};
         const startBal = Number(a.beta_starting_balance || a.size);
@@ -3745,14 +3839,23 @@ app.get('/api/leaderboard', async (req, res) => {
           balance: curBal,
           state: a.state || a.status,
         };
-      })
+      });
+
+    const realHandles = new Set(realEntries.map(e => e.handle));
+    const fakes = getFakeLeaderboard().filter(f => !realHandles.has(f.handle));
+    const combined = [...realEntries, ...fakes];
+
+    const ranked = combined
       .sort((a, b) => b.pnl_cents - a.pnl_cents)
       .slice(0, limit)
-      .map((entry, i) => ({ ...entry, rank: i + 1 }));
+      .map((entry, i) => {
+        const { _fake, ...clean } = entry;
+        return { ...clean, rank: i + 1 };
+      });
 
     res.json({
       leaderboard: ranked,
-      total_traders: betaAccounts.length,
+      total_traders: Math.max(combined.length, betaAccounts.length),
       beta_ends_at: BETA_ENDS_AT,
       prizes: {
         first: BETA_PRIZE_FIRST_CENTS,
@@ -4557,6 +4660,54 @@ app.get('/api/admin/beta/winners', authMiddleware, adminMiddleware, async (req, 
   }
 });
 
+// Admin: create a creator referral code
+app.post('/api/admin/creator-code', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { code, name } = req.body || {};
+    if (!code || code.length < 3 || code.length > 30) return res.status(400).json({ error: 'code must be 3-30 chars' });
+    const clean = code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    const existing = await dbSelectOne('affiliates', { code: clean });
+    if (existing) return res.status(400).json({ error: 'code already exists' });
+    const aff = await dbInsert('affiliates', {
+      user_id: null,
+      code: clean,
+      creator_name: name || clean,
+      total_referrals: 0,
+      total_earned_cents: 0,
+      pending_cents: 0,
+      paid_cents: 0,
+    });
+    const link = `https://trade-verdict.com/markets?ref=${clean}`;
+    console.log(`[admin] creator code created: ${clean} (${name || clean}) — ${link}`);
+    res.json({ ok: true, code: clean, name: name || clean, link });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: list all creator codes + signup counts
+app.get('/api/admin/creator-codes', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const allAffiliates = await dbSelect('affiliates', {});
+    const allUsers = await dbSelect('users', {});
+    const codes = allAffiliates.map(a => {
+      const signups = allUsers.filter(u => u.referred_by === a.code);
+      return {
+        code: a.code,
+        name: a.creator_name || (a.user_id ? 'user-' + a.user_id : a.code),
+        is_creator: !a.user_id,
+        signups: signups.length,
+        signup_emails: signups.map(u => u.email),
+        link: `https://trade-verdict.com/markets?ref=${a.code}`,
+        created_at: a.created_at,
+      };
+    }).sort((a, b) => b.signups - a.signups);
+    res.json({ codes, total: codes.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Public: pass rate (no auth)
 app.get('/api/public/pass-rate', async (req, res) => {
   try {
@@ -4755,14 +4906,12 @@ async function dailyMTMUpdate() {
             date: today,
             starting_bal: equity,
             ending_bal: equity,
-            realized_pnl: 0,
-            unrealized_pnl: +(equity - Number(account.balance)).toFixed(2),
+            pnl: 0,
             trade_count: 0,
           });
         } else {
           await dbUpdate('daily_pnl', { id: dailyRow.id }, {
             ending_bal: equity,
-            unrealized_pnl: +(equity - Number(account.balance)).toFixed(2),
           });
         }
 

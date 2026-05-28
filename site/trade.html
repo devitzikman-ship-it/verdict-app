@@ -850,6 +850,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .rule-row-label{color:var(--text-2);font-weight:500}
 .rule-row-val{font-weight:700;color:var(--text-1)}
 
+/* Locked dropdown (coming soon) */
+.rules-dropdown.locked{opacity:0.5;pointer-events:none;position:relative}
+.rules-dropdown.locked .rules-dd-header{cursor:default}
+.rules-dropdown.locked .rules-dd-header:hover{background:transparent}
+.rules-dd-lock{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);background:var(--bg-elevated);padding:3px 10px;border-radius:20px}
+.rules-dd-lock svg{width:12px;height:12px}
+
+/* Beta rules expanded section */
+.beta-rules-expanded{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:16px}
+.beta-rules-expanded .rules-dd-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
 /* ============ POSITIONS PANEL ============ */
 .pos-panel{margin-top:16px}
 .pos-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;display:flex;justify-content:space-between}
@@ -1383,8 +1394,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 <!-- User dropdown -->
 <div class="user-dd" id="userDD">
   <button class="user-dd-item" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</button>
-  <button class="user-dd-item" data-page="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg> Account Stats</button>
-  <button class="user-dd-item" data-page="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 104 0M9 5a2 2 0 004 0m-5 9l2 2 4-4"/></svg> Activity &amp; Rules</button>
   <button class="user-dd-item" data-page="affiliate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Affiliate</button>
   <button class="user-dd-item" data-page="payouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg> Payouts</button>
   <button class="user-dd-item" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/></svg> Profile &amp; Settings</button>
@@ -1681,17 +1690,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
       <div id="dashContent" style="display:none"></div>
     </div>
 
-    <!-- STATS -->
-    <div class="page-section" id="page-stats">
-      <div class="pg-head"><h1 class="pg-title">Account Stats</h1></div>
-      <div id="statsContent"></div>
-    </div>
-
-    <!-- ACTIVITY & RULES -->
-    <div class="page-section" id="page-activity">
-      <div class="pg-head"><h1 class="pg-title">Activity &amp; Rules</h1></div>
-      <div id="activityContent"></div>
-    </div>
+    <!-- STATS (merged into dashboard) -->
+    <div class="page-section" id="page-stats" style="display:none"></div>
+    <!-- ACTIVITY (merged into dashboard) -->
+    <div class="page-section" id="page-activity" style="display:none"></div>
 
     <!-- LEADERBOARD -->
     <div class="page-section" id="page-leaderboard"><div class="pg-head"><h1 class="pg-title">Leaderboard</h1></div><div class="no-acct-banner"><h2>Coming Soon</h2><p>Compete with other traders on the leaderboard.</p></div></div>
@@ -1800,6 +1802,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 <div class="modal-overlay" id="signupModal" style="display:none">
 <div class="modal-card" style="max-width:460px;border:1px solid rgba(169,200,240,0.1);background:#0d0d15;position:relative">
 <button class="modal-x" id="signupModalClose" style="position:absolute;top:16px;right:16px;z-index:2">&times;</button>
+<div id="signupStep1">
 <div style="padding:32px 32px 0">
   <div class="sf-eyebrow">STEP 2 OF 2 &mdash; REGISTRATION</div>
   <h2 class="sf-headline" style="margin-bottom:4px">Create your account.</h2>
@@ -1835,14 +1838,24 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
       </div>
     </div>
     <div class="sf-promo-wrap">
-      <label class="sf-field-label">Promo Code <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional)</span></label>
-      <input class="sf-input" type="text" id="signupPromoCode" placeholder="VERDICT100" maxlength="20" style="text-transform:uppercase" />
-      <div class="sf-promo-hint">Pre-filled. Beta cohort access.</div>
+      <label class="sf-field-label">Creator Code <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional)</span></label>
+      <input class="sf-input" type="text" id="signupPromoCode" placeholder="Enter creator code" maxlength="30" style="text-transform:uppercase" />
+      <div class="sf-promo-hint" id="signupPromoHint" style="display:none">Pre-filled from your invite link.</div>
     </div>
     <div id="signupModalError" style="color:var(--red);font-size:12px;min-height:16px"></div>
     <button type="submit" class="sf-cta" id="signupModalSubmit">Create account &amp; start trading <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
   </form>
   <p class="sf-footer" style="text-align:left">Already have an account? <a href="#" id="signupToLogin">Log in &rarr;</a></p>
+</div>
+</div>
+<div id="signupStep2" style="display:none;padding:32px;text-align:center">
+  <div style="font-size:32px;margin-bottom:8px">&#128274;</div>
+  <h2 style="font-size:18px;font-weight:800;margin-bottom:4px">Verify your email</h2>
+  <p style="color:var(--text-2);font-size:13px;margin-bottom:20px">We sent a 6-digit code to <span id="signup2faMasked" style="color:var(--ice);font-weight:600"></span></p>
+  <input class="f-input" type="text" id="signup2faCode" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="padding:16px;font-size:24px;text-align:center;letter-spacing:8px;font-family:'JetBrains Mono',monospace;font-weight:700" />
+  <div id="signup2faError" style="color:var(--red);font-size:12px;min-height:18px;margin-top:8px"></div>
+  <button class="sf-cta" id="signup2faSubmit" style="margin-top:4px;width:100%">VERIFY &amp; CREATE ACCOUNT</button>
+  <p style="color:var(--text-3);font-size:11px;margin-top:14px;cursor:pointer" id="signup2faBack">&larr; Back to signup</p>
 </div>
 </div>
 </div>
@@ -1875,7 +1888,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 </div>
 
 <!-- LOGIN MODAL -->
-<div class="modal-overlay" id="loginModal" style="display:none"><div class="modal-card" style="max-width:400px"><div class="modal-head"><h3>Log In</h3><button class="modal-x" id="loginModalClose">&times;</button></div><div class="modal-body"><form id="loginModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:14px"><input class="f-input" type="text" id="loginEmail" placeholder="Email or username" autocomplete="email" required style="padding:14px 16px;font-size:14px" /><input class="f-input" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required style="padding:14px 16px;font-size:14px" /><div id="loginModalError" style="color:var(--red);font-size:12px;min-height:18px"></div><button type="submit" class="tp-trade-btn" id="loginModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">LOG IN</button></form><p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center">Don't have an account? <a href="#" id="loginToSignup" style="color:var(--blue);font-weight:600">Sign Up</a></p></div></div></div>
+<div class="modal-overlay" id="loginModal" style="display:none"><div class="modal-card" style="max-width:400px"><div class="modal-head"><h3>Log In</h3><button class="modal-x" id="loginModalClose">&times;</button></div><div class="modal-body"><form id="loginModalForm" autocomplete="on" style="display:flex;flex-direction:column;gap:14px"><input class="f-input" type="text" id="loginEmail" placeholder="Email or username" autocomplete="email" required style="padding:14px 16px;font-size:14px" /><input class="f-input" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required style="padding:14px 16px;font-size:14px" /><div id="loginModalError" style="color:var(--red);font-size:12px;min-height:18px"></div><button type="submit" class="tp-trade-btn" id="loginModalSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">LOG IN</button></form><p style="color:var(--text-3);font-size:12px;margin-top:10px;text-align:right"><a href="#" id="loginForgotPw" style="color:var(--text-3);text-decoration:none;opacity:0.7;transition:opacity .2s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">Forgot password?</a></p><p style="color:var(--text-3);font-size:12px;margin-top:8px;text-align:center">Don't have an account? <a href="#" id="loginToSignup" style="color:var(--blue);font-weight:600">Sign Up</a></p></div></div></div>
+<!-- Forgot Password Modal -->
+<div class="modal-overlay" id="forgotPwModal" style="display:none"><div class="modal-card" style="max-width:400px"><div class="modal-head"><h3>Reset Password</h3><button class="modal-x" id="forgotPwClose">&times;</button></div><div class="modal-body"><p style="color:var(--text-3);font-size:13px;margin-bottom:16px">Enter your email and we'll send you a link to reset your password.</p><form id="forgotPwForm" style="display:flex;flex-direction:column;gap:14px"><input class="f-input" type="email" id="forgotPwEmail" placeholder="Email address" required style="padding:14px 16px;font-size:14px" /><div id="forgotPwMsg" style="font-size:12px;min-height:18px"></div><button type="submit" class="tp-trade-btn" id="forgotPwSubmit" style="width:100%;padding:14px;font-size:14px;font-weight:700">Send Reset Link</button></form><p style="color:var(--text-3);font-size:12px;margin-top:16px;text-align:center"><a href="#" id="forgotPwBackToLogin" style="color:var(--blue);font-weight:600">Back to Log In</a></p></div></div></div>
 
 <!-- CTA INTERCEPT — Pricing Tier Modal -->
 <div class="modal-overlay" id="ctaInterceptModal" style="display:none">
@@ -2082,14 +2097,17 @@ $('#navLoginBtn').onclick=()=>openLoginModal();
 $('#navSignupBtn').onclick=()=>openCtaModal();
 function openSignupFlow(){
   S._modalOpened=true;
+  $('#ctaInterceptModal').style.display='none';$('#loginModal').style.display='none';$('#congratsModal').style.display='none';
+  $('#signupStep1').style.display='block';$('#signupStep2').style.display='none';_signupTwofaId=null;
   $('#signupModal').style.display='flex';
-  if(S._urlRef&&$('#signupPromoCode'))$('#signupPromoCode').value=S._urlRef;
+  if(S._urlRef&&$('#signupPromoCode')){$('#signupPromoCode').value=S._urlRef;var _h=$('#signupPromoHint');if(_h){_h.style.display='block'}}
   setTimeout(()=>$('#signupName').focus(),100);
 }
 
 /* ============ CTA INTERCEPT MODAL ============ */
 function openCtaModal(){
   S._modalOpened=true;
+  $('#signupModal').style.display='none';$('#loginModal').style.display='none';
   $('#ctaInterceptModal').style.display='flex';
 }
 function openCongratsModal(){
@@ -2103,10 +2121,12 @@ function requireAuth(){
 
 /* ============ PAGES ============ */
 function switchPage(p){
+  // Redirect old stats/activity pages to dashboard
+  if(p==='stats'||p==='activity')p='dashboard';
   // Always close detail view when switching pages
   if(S.chartInterval){clearInterval(S.chartInterval);S.chartInterval=null}
   $('#detailView').classList.remove('show');$('#marketsGridView').style.display='';
-  $$('.page-section').forEach(s=>{s.classList.remove('active');s.style.removeProperty('display')});const t=document.getElementById('page-'+p);if(t)t.classList.add('active');if(p==='dashboard')renderDashboard();if(p==='stats')renderStats();if(p==='activity')renderActivity();if(p==='affiliate')loadAffiliate();if(p==='profile')renderProfile();if(p==='markets')showGrid();if(p==='payouts')renderPayoutsPage()
+  $$('.page-section').forEach(s=>{s.classList.remove('active');s.style.removeProperty('display')});const t=document.getElementById('page-'+p);if(t)t.classList.add('active');if(p==='dashboard')renderDashboard();if(p==='affiliate')loadAffiliate();if(p==='profile')renderProfile();if(p==='markets')showGrid();if(p==='payouts')renderPayoutsPage()
 }
 
 /* ============ FILTER STATE MACHINE ============ */
@@ -2323,10 +2343,29 @@ function renderDashboard(){
   const dd=Math.max(0,sz-bal);
   const maxDD=sz*(a.max_loss_pct||0.04);
   const ddPct=Math.min(100,(dd/maxDD)*100);
-  const open=(S.positions||[]).filter(p=>p.status==='open').length;
-  const closed=(S.positions||[]).filter(p=>p.status!=='open').length;
-  const wins=(S.positions||[]).filter(p=>p.pnl>0).length;
+  const allPos=S.positions||[];
+  const openPos=allPos.filter(p=>p.status==='open');
+  const closedPos=allPos.filter(p=>p.status!=='open');
+  const open=openPos.length;
+  const closed=closedPos.length;
+  const wins=closedPos.filter(p=>p.pnl>0).length;
+  const losses=closedPos.filter(p=>p.pnl<=0).length;
   const winRate=closed>0?Math.round(wins/closed*100):0;
+  const totalPnl=closedPos.reduce((s,p)=>s+(p.pnl||0),0);
+  const avgWin=wins?closedPos.filter(p=>p.pnl>0).reduce((s,p)=>s+p.pnl,0)/wins:0;
+  const avgLoss=losses?Math.abs(closedPos.filter(p=>p.pnl<=0).reduce((s,p)=>s+p.pnl,0)/losses):0;
+
+  // Build trade history HTML
+  let tradesHtml='';
+  if(!allPos.length){tradesHtml='<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">No trades yet. Go place your first trade!</div>';}
+  else{
+    tradesHtml=allPos.map(p=>{
+      const pl=p.pnl!=null?(p.pnl>=0?'+':'')+fmt$(p.pnl):'Open';
+      const pc=p.pnl!=null?(p.pnl>=0?'green':'red'):'';
+      const statusLabel=p.status==='open'?'<span style="color:var(--blue)">Open</span>':'Closed';
+      return'<div class="trade-hist-item" style="cursor:pointer" onclick="switchPage(\'markets\')"><span class="thi-side '+(p.side==='YES'?'yes':'no')+'">'+p.side+'</span><div class="thi-info"><div class="thi-q">'+esc(p.market_question||'Market')+'</div><div class="thi-meta">'+p.shares+' shares @ '+fmtPx(p.entry_price)+' · '+statusLabel+'</div></div><span class="thi-pnl" style="color:var(--'+(pc||'blue')+')">'+(p.status==='open'?'Open':pl)+'</span></div>';
+    }).join('');
+  }
 
   $('#dashContent').innerHTML=`
   <div class="dash-hero">
@@ -2387,53 +2426,50 @@ function renderDashboard(){
     </div>
   </div>
 
+  <!-- Stats -->
+  <div class="dash-stats" style="margin-bottom:0">
+    <div class="dash-stat"><div class="dash-stat-label">Total Trades</div><div class="dash-stat-val">${closed}</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">Avg Win</div><div class="dash-stat-val green">${wins?'+'+fmt$(avgWin):'--'}</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">Avg Loss</div><div class="dash-stat-val red">${losses?'-'+fmt$(avgLoss):'--'}</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">Open</div><div class="dash-stat-val">${open}</div></div>
+  </div>
+
+  ${isBeta?`
+  <!-- Beta: show Beta Rules expanded, others locked -->
+  <div class="beta-rules-expanded">
+    <div class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Beta Rules</div>
+    <div class="rule-row"><span class="rule-row-label">Starting Balance</span><span class="rule-row-val">$100,000 virtual capital</span></div>
+    <div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of balance per trade</span></div>
+    <div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">None — trade down to $0</span></div>
+    <div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">None</span></div>
+    <div class="rule-row"><span class="rule-row-label">Prizes</span><span class="rule-row-val">1st $10K · 2nd $3K · 3rd $2K</span></div>
+    <div class="rule-row"><span class="rule-row-label">Markets</span><span class="rule-row-val">All Polymarket (sports, crypto, politics & more)</span></div>
+  </div>
+  <div class="rules-dropdown locked"><div class="rules-dd-header"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 104 0M9 5a2 2 0 004 0m-5 9l2 2 4-4"/></svg> Eval Rules</span><span class="rules-dd-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Coming Soon</span></div></div>
+  <div class="rules-dropdown locked"><div class="rules-dd-header"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Coming Soon</span></div></div>
+  `:`
+  <!-- Non-beta: show Eval Progress + rules -->
   <div class="rules-section">
     <div class="rules-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 104 0M9 5a2 2 0 004 0m-5 9l2 2 4-4"/></svg> Eval Progress</div>
-
     <div class="rule-card">
       <div class="rule-top"><span class="rule-label">Profit Target (${a.phase==='verification'?'4%':'6%'})</span><span class="rule-value" style="color:var(--green)">${fmt$(profit)} / ${fmt$(targetVal)}</span></div>
       <div class="rule-bar-wrap"><div class="rule-bar green" style="width:${profitPct}%"></div></div>
       <div class="rule-sub"><span>Current profit</span><span>${profitPct.toFixed(1)}% complete</span></div>
     </div>
-
-    ${isBeta?`<div class="rule-card"><div class="rule-top"><span class="rule-label">Drawdown Limit</span><span class="rule-value" style="color:var(--text-3)">None</span></div><div class="rule-sub"><span>No drawdown limit during beta</span><span></span></div></div>`:`<div class="rule-card">
+    <div class="rule-card">
       <div class="rule-top"><span class="rule-label">Max Drawdown (4%)</span><span class="rule-value" style="color:${ddPct>60?'var(--red)':'var(--text-1)'}">${fmt$(dd)} / ${fmt$(maxDD)}</span></div>
       <div class="rule-bar-wrap"><div class="rule-bar ${ddPct>60?'red':'blue'}" style="width:${ddPct}%"></div></div>
       <div class="rule-sub"><span>Current loss</span><span>${ddPct.toFixed(1)}% used</span></div>
-    </div>`}
-  </div>
-
-  <div class="rules-dropdown">
-    <div class="rules-dd-header" onclick="this.classList.toggle('open')">
-      <span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> ${isBeta?'Beta Rules':'Eval Rules'}</span>
-      <span class="rules-dd-arrow">▾</span>
-    </div>
-    <div class="rules-dd-body">
-      ${isBeta?`<div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of current balance per trade</span></div>
-      <div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">None — trade down to $0</span></div>
-      <div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">None</span></div>
-      <div class="rule-row"><span class="rule-row-label">Markets</span><span class="rule-row-val">All Polymarket (sports, crypto, politics & more)</span></div>`:`<div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div>
-      <div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance (static)</span></div>
-      <div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div>
-      <div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div>
-      <div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">20% of account per trade</span></div>
-      <div class="rule-row"><span class="rule-row-label">Min Trading Days</span><span class="rule-row-val">7 days</span></div>
-      <div class="rule-row"><span class="rule-row-label">Consistency</span><span class="rule-row-val">No single day > 35% of total profit</span></div>
-      <div class="rule-row"><span class="rule-row-label">Markets</span><span class="rule-row-val">All Polymarket (sports, crypto, politics & more)</span></div>`}
     </div>
   </div>
+  <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Eval Rules</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div><div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance</span></div><div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div><div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div><div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">20% of account per trade</span></div></div></div>
+  <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Withdrawals</span><span class="rule-row-val">Keep 80% of profits</span></div><div class="rule-row"><span class="rule-row-label">Max Per Trade</span><span class="rule-row-val">50% of account</span></div><div class="rule-row"><span class="rule-row-label">Monthly Fee</span><span class="rule-row-val">None after passing</span></div></div></div>
+  `}
 
-  <div class="rules-dropdown">
-    <div class="rules-dd-header" onclick="this.classList.toggle('open')">
-      <span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span>
-      <span class="rules-dd-arrow">▾</span>
-    </div>
-    <div class="rules-dd-body">
-      <div class="rule-row"><span class="rule-row-label">Withdrawals</span><span class="rule-row-val">Keep 80% of profits, withdraw anytime</span></div>
-      <div class="rule-row"><span class="rule-row-label">Account Closes If</span><span class="rule-row-val">Balance drops below starting amount</span></div>
-      <div class="rule-row"><span class="rule-row-label">Max Per Trade</span><span class="rule-row-val">50% of account</span></div>
-      <div class="rule-row"><span class="rule-row-label">Monthly Fee</span><span class="rule-row-val">None after passing</span></div>
-    </div>
+  <!-- Past Trades -->
+  <div style="margin-top:24px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Past Trades</div>
+    ${tradesHtml}
   </div>
 
   ${renderSubManageSection(a)}`;
@@ -2522,9 +2558,10 @@ function cancelSubscription(){ toast('No subscription to cancel during beta','er
   }
 })();
 
-/* ============ ACCOUNT STATS ============ */
-function renderStats(){
-  if(!S.account){$('#statsContent').innerHTML='<div class="no-acct-banner"><h2>No Account</h2><p>Create an account to track stats.</p></div>';return}
+/* ============ ACCOUNT STATS (merged into dashboard) ============ */
+function renderStats(){ switchPage('dashboard'); return; }
+function _renderStats_legacy(){
+  if(!S.account){return}
   const a=S.account;
   const all=S.positions||[];
   const closed=all.filter(p=>p.status!=='open');
@@ -2562,9 +2599,10 @@ function renderStats(){
   $('#statsContent').innerHTML=html;
 }
 
-/* ============ ACTIVITY & RULES ============ */
-function renderActivity(){
-  if(!S.account){$('#activityContent').innerHTML='<div class="no-acct-banner"><h2>No Account</h2><p>Start an eval to track your progress.</p></div>';return}
+/* ============ ACTIVITY & RULES (merged into dashboard) ============ */
+function renderActivity(){ switchPage('dashboard'); return; }
+function _renderActivity_legacy(){
+  if(!S.account){return}
   const a=S.account,sz=a.size,bal=a.balance;
   const isBeta=a.is_beta||a.plan==='beta';
   const tPct=a.phase==='verification'?0.04:0.06;
@@ -2586,13 +2624,25 @@ function renderActivity(){
     </div>
   </div>
 
+  ${isBeta?`
+  <div class="beta-rules-expanded">
+    <div class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Beta Rules</div>
+    <div class="rule-row"><span class="rule-row-label">Starting Balance</span><span class="rule-row-val">$100,000 virtual capital</span></div>
+    <div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of balance per trade</span></div>
+    <div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">None — trade down to $0</span></div>
+    <div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">None</span></div>
+    <div class="rule-row"><span class="rule-row-label">Prizes</span><span class="rule-row-val">1st $10K · 2nd $3K · 3rd $2K</span></div>
+    <div class="rule-row"><span class="rule-row-label">Markets</span><span class="rule-row-val">All Polymarket (sports, crypto, politics & more)</span></div>
+  </div>
+  <div class="rules-dropdown locked"><div class="rules-dd-header"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 104 0M9 5a2 2 0 004 0m-5 9l2 2 4-4"/></svg> Eval Rules</span><span class="rules-dd-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Coming Soon</span></div></div>
+  <div class="rules-dropdown locked"><div class="rules-dd-header"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Coming Soon</span></div></div>
+  `:`
   <div class="rules-section">
     <div class="rules-title">Eval Tracking</div>
     <div class="rule-card"><div class="rule-top"><span class="rule-label">Profit Target (${a.phase==='verification'?'4%':'6%'})</span><span class="rule-value" style="color:var(--green)">${fmt$(profit)} / ${fmt$(targetVal)}</span></div><div class="rule-bar-wrap"><div class="rule-bar green" style="width:${profitPct}%"></div></div><div class="rule-sub"><span>${profitPct>=100?'TARGET HIT':'In progress'}</span><span>${profitPct.toFixed(1)}%</span></div></div>
-    ${isBeta?`<div class="rule-card"><div class="rule-top"><span class="rule-label">Drawdown Limit</span><span class="rule-value" style="color:var(--text-3)">None</span></div><div class="rule-sub"><span>No drawdown limit during beta</span><span></span></div></div>
-    <div class="rule-card"><div class="rule-top"><span class="rule-label">Position Cap</span><span class="rule-value">10% of balance</span></div><div class="rule-sub"><span>Max ${fmt$(bal*0.10)} per trade</span><span>Auto-capped</span></div></div>`:`<div class="rule-card"><div class="rule-top"><span class="rule-label">Max Drawdown (4%)</span><span class="rule-value" style="color:${ddPct>60?'var(--red)':'var(--text-1)'}">${fmt$(dd)} / ${fmt$(maxDD)}</span></div><div class="rule-bar-wrap"><div class="rule-bar ${ddPct>60?'red':ddPct>30?'yellow':'blue'}" style="width:${ddPct}%"></div></div><div class="rule-sub"><span>${ddPct>=100?'BREACHED':'Safe'}</span><span>${ddPct.toFixed(1)}% used</span></div></div>
-    <div class="rule-card"><div class="rule-top"><span class="rule-label">Position Cap</span><span class="rule-value">20%</span></div><div class="rule-bar-wrap"><div class="rule-bar blue" style="width:12%"></div></div><div class="rule-sub"><span>Per-trade limit</span><span>Within limits</span></div></div>`}
-  </div>`;
+    <div class="rule-card"><div class="rule-top"><span class="rule-label">Max Drawdown (4%)</span><span class="rule-value" style="color:${ddPct>60?'var(--red)':'var(--text-1)'}">${fmt$(dd)} / ${fmt$(maxDD)}</span></div><div class="rule-bar-wrap"><div class="rule-bar ${ddPct>60?'red':ddPct>30?'yellow':'blue'}" style="width:${ddPct}%"></div></div><div class="rule-sub"><span>${ddPct>=100?'BREACHED':'Safe'}</span><span>${ddPct.toFixed(1)}% used</span></div></div>
+    <div class="rule-card"><div class="rule-top"><span class="rule-label">Position Cap</span><span class="rule-value">20%</span></div><div class="rule-bar-wrap"><div class="rule-bar blue" style="width:12%"></div></div><div class="rule-sub"><span>Per-trade limit</span><span>Within limits</span></div></div>
+  </div>`}`;
 }
 
 /* ============ OTHER PAGES ============ */
@@ -3612,6 +3662,7 @@ async function renderPayoutsPage(){if(!S.account){$('#payoutsNoAcct').style.disp
 $('#signupModalClose').onclick=()=>$('#signupModal').style.display='none';
 $('#signupModal').onclick=e=>{};
 $('#signupToLogin').onclick=e=>{e.preventDefault();$('#signupModal').style.display='none';openLoginModal()};
+var _signupTwofaId=null;
 $('#signupModalForm').onsubmit=async e=>{
   e.preventDefault();
   const name=$('#signupName').value.trim(),email=$('#signupEmail').value.trim(),pass=$('#signupPassword').value,confirm=$('#signupConfirm').value;
@@ -3623,19 +3674,18 @@ $('#signupModalForm').onsubmit=async e=>{
   if(username.length<3){err.textContent='Username must be at least 3 characters';return}
   if(pass.length<8){err.textContent='Password must be 8+ characters';return}
   if(pass!==confirm){err.textContent='Passwords do not match';return}
-  btn.disabled=true;btn.textContent='Creating...';
+  btn.disabled=true;btn.textContent='Verifying...';
   try{
     const r=await fetch('/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:name,email,username,password:pass,ref})});
     const data=await r.json();
     if(!r.ok)throw new Error(data.error||'Signup failed');
-    localStorage.setItem('verdict_token',data.token);
-    localStorage.setItem('verdict_user',JSON.stringify(data.user));
-    S.token=data.token;S.user=data.user;
-    updateNavAuth();
-    $('#signupModal').style.display='none';
-    claimBetaAccount();
+    if(data.requires_2fa){_signupTwofaId=data.twofa_id;$('#signup2faMasked').textContent=data.masked_email;$('#signupStep1').style.display='none';$('#signupStep2').style.display='block';$('#signup2faCode').value='';$('#signup2faError').textContent='';$('#signup2faCode').focus();btn.disabled=false;btn.textContent='Create account & start trading';return}
+    localStorage.setItem('verdict_token',data.token);localStorage.setItem('verdict_user',JSON.stringify(data.user));S.token=data.token;S.user=data.user;updateNavAuth();$('#signupModal').style.display='none';claimBetaAccount();
   }catch(ex){err.textContent=ex.message||'Signup failed';btn.disabled=false;btn.textContent='SIGN UP'}
 };
+$('#signup2faSubmit').onclick=async()=>{const code=$('#signup2faCode').value.trim(),btn=$('#signup2faSubmit'),err=$('#signup2faError');err.textContent='';if(!code||code.length<6){err.textContent='Enter the 6-digit code';return}btn.disabled=true;btn.textContent='Creating account...';try{const r=await fetch('/api/signup/verify-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({twofa_id:_signupTwofaId,code})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Verification failed');localStorage.setItem('verdict_token',data.token);localStorage.setItem('verdict_user',JSON.stringify(data.user));S.token=data.token;S.user=data.user;updateNavAuth();$('#signupModal').style.display='none';$('#signupStep1').style.display='block';$('#signupStep2').style.display='none';claimBetaAccount()}catch(ex){err.textContent=ex.message||'Invalid code';btn.disabled=false;btn.textContent='VERIFY & CREATE ACCOUNT'}};
+$('#signup2faCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#signup2faSubmit').click()}};
+$('#signup2faBack').onclick=()=>{$('#signupStep1').style.display='block';$('#signupStep2').style.display='none';_signupTwofaId=null};
 
 /* ============ USERNAME PICKER ============ */
 function showUsernamePicker(){
@@ -3697,7 +3747,7 @@ function showCongratsOverlay(){
   })();
   setTimeout(function(){
     o.style.transition='opacity 1.2s ease';o.style.opacity='0';
-    setTimeout(function(){o.style.display='none';o.style.opacity='1';},1200);
+    setTimeout(function(){o.style.display='none';o.style.opacity='1';window.location.href='/leaderboard';},1200);
   },2500);
 }
 
@@ -3760,10 +3810,16 @@ setInterval(updateBetaRank,60000);
 setTimeout(updateBetaRank,2000);
 
 /* ============ LOGIN MODAL ============ */
-function openLoginModal(){$('#loginModal').style.display='flex';$('#loginEmail').focus()}
+function openLoginModal(){S._modalOpened=true;$('#ctaInterceptModal').style.display='none';$('#signupModal').style.display='none';$('#congratsModal').style.display='none';$('#loginModal').style.display='flex';$('#loginEmail').focus()}
 $('#loginModalClose').onclick=()=>$('#loginModal').style.display='none';
 $('#loginModal').onclick=e=>{if(e.target===e.currentTarget)$('#loginModal').style.display='none'};
 $('#loginToSignup').onclick=e=>{e.preventDefault();$('#loginModal').style.display='none';openSignupFlow()};
+/* Forgot Password */
+$('#loginForgotPw').onclick=e=>{e.preventDefault();$('#loginModal').style.display='none';$('#forgotPwModal').style.display='flex';$('#forgotPwEmail').value=$('#loginEmail').value||'';$('#forgotPwMsg').textContent='';$('#forgotPwMsg').style.color='';$('#forgotPwSubmit').disabled=false;$('#forgotPwSubmit').textContent='Send Reset Link';$('#forgotPwEmail').focus()};
+$('#forgotPwClose').onclick=()=>$('#forgotPwModal').style.display='none';
+$('#forgotPwModal').onclick=e=>{if(e.target===e.currentTarget)$('#forgotPwModal').style.display='none'};
+$('#forgotPwBackToLogin').onclick=e=>{e.preventDefault();$('#forgotPwModal').style.display='none';openLoginModal()};
+$('#forgotPwForm').onsubmit=async e=>{e.preventDefault();const email=$('#forgotPwEmail').value.trim(),btn=$('#forgotPwSubmit'),msg=$('#forgotPwMsg');msg.textContent='';msg.style.color='';if(!email){msg.textContent='Enter your email';msg.style.color='var(--red)';return}btn.disabled=true;btn.textContent='Sending...';try{const r=await fetch('/api/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Something went wrong');msg.textContent='Check your email for a reset link.';msg.style.color='var(--green)';btn.textContent='Sent!'}catch(ex){msg.textContent=ex.message;msg.style.color='var(--red)';btn.disabled=false;btn.textContent='Send Reset Link'}};
 /* CTA intercept modal dismiss */
 $('#ctaInterceptModal').onclick=e=>{};
 $('#congratsModal').onclick=e=>{if(e.target===e.currentTarget)$('#congratsModal').style.display='none'};
