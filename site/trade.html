@@ -2251,7 +2251,7 @@ $$('#sidebarForYou [data-page]').forEach(btn=>{btn.onclick=()=>{switchPage(btn.d
 
 /* ============ ACCOUNT ============ */
 let _loadingAcct=false;
-async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions()}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
+async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
 function getAcctName(){
   if(!S.account||!S.user)return'--';
   const name=(S.user.name||S.user.email||'USER').split(/[@\s]/)[0].toUpperCase();
@@ -3540,7 +3540,8 @@ function renderDetailTab(){
   if(tab==='positions'){
     const open=(S.positions||[]).filter(p=>p.status==='open'&&p.market_id===(S.selectedMarket||{}).id);
     if(!open.length){el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No positions on this market</div>';return}
-    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const upnl=p.unrealized_pnl!=null?p.unrealized_pnl:(p.pnl||0);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700">${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢</span><span style="color:${upnl>=0?'var(--green)':'var(--red)'};font-weight:700;font-family:JetBrains Mono,monospace">${upnl>=0?'+':''}${fmt$(upnl)}</span></div>`}).join('')+'</div>';
+    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const upnl=p.unrealized_pnl!=null?p.unrealized_pnl:(p.pnl||0);return`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700">${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢</span><span style="display:flex;align-items:center;gap:12px"><span style="color:${upnl>=0?'var(--green)':'var(--red)'};font-weight:700;font-family:JetBrains Mono,monospace">${upnl>=0?'+':''}${fmt$(upnl)}</span><button class="md-pos-close" data-id="${p.id}" style="padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text-3);border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;cursor:pointer;transition:all .15s">Close</button></span></div>`}).join('')+'</div>';
+    $$('.md-pos-close',el).forEach(b=>{b.onmouseenter=()=>{b.style.color='var(--red)';b.style.borderColor='var(--red)'};b.onmouseleave=()=>{b.style.color='var(--text-3)';b.style.borderColor='var(--border)'};b.onclick=async e=>{e.stopPropagation();b.disabled=true;b.textContent='Closing...';await closePos(b.dataset.id);renderDetailTab()}});
   }else if(tab==='orders'){
     el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No open orders</div>';
   }else if(tab==='history'){
