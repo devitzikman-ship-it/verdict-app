@@ -2251,7 +2251,7 @@ $$('#sidebarForYou [data-page]').forEach(btn=>{btn.onclick=()=>{switchPage(btn.d
 
 /* ============ ACCOUNT ============ */
 let _loadingAcct=false;
-async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
+async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}if(typeof drawChart==='function'&&S.selectedMarket&&S.chartData&&S.chartData.length&&document.getElementById('chartCanvas')){try{drawChart()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
 function getAcctName(){
   if(!S.account||!S.user)return'--';
   const name=(S.user.name||S.user.email||'USER').split(/[@\s]/)[0].toUpperCase();
@@ -2279,12 +2279,15 @@ function renderAcct(){
   _t('#acctName',getAcctName());
   _t('#balanceVal',fmt$(a.balance));_t('#navBalV',fmt$(a.balance));
   const pnl=$('#pnlVal'),np=$('#navPnl');
-  if(pnl){pnl.textContent=(a.pnl>=0?'+':'')+fmt$(a.pnl);pnl.className='ab-v '+(a.pnl>=0?'green':'red')}
-  if(np){np.textContent=(a.pnl>=0?'+':'')+fmt$(a.pnl);np.className='nav-bal-pnl '+(a.pnl>=0?'up':'dn')}
+  // Equity = cash balance + mark-to-market of open positions (server-provided `equity`).
+  // PnL / profit-line / loss-limit are equity-based so an open position isn't counted as a realized loss.
+  const eq=(a.equity!=null?Number(a.equity):Number(a.balance)),eqPnl=+(eq-a.size).toFixed(2);
+  if(pnl){pnl.textContent=(eqPnl>=0?'+':'')+fmt$(eqPnl);pnl.className='ab-v '+(eqPnl>=0?'green':'red')}
+  if(np){np.textContent=(eqPnl>=0?'+':'')+fmt$(eqPnl);np.className='nav-bal-pnl '+(eqPnl>=0?'up':'dn')}
   const tPctS=a.phase==='verification'?0.04:0.06;
-  const pct=Math.min(100,Math.max(0,(a.balance-a.size)/(a.size*(a.target_pct||tPctS))*100));
+  const pct=Math.min(100,Math.max(0,(eq-a.size)/(a.size*(a.target_pct||tPctS))*100));
   _t('#targetPctStrip',Math.max(0,pct).toFixed(0)+'%');
-  const lr=a.size-(a.loss_floor||a.size*0.96),lu=Math.max(0,a.size-a.balance),lp=lr>0?Math.min(100,lu/lr*100):0;
+  const lr=a.size-(a.loss_floor||a.size*0.96),lu=Math.max(0,a.size-eq),lp=lr>0?Math.min(100,lu/lr*100):0;
   const ddEl=$('#ddPctStrip');if(ddEl){ddEl.textContent=lp.toFixed(0)+'%';ddEl.classList.toggle('red',lp>60)}
   const pill=$('#statusPill'),rawSt=a.status||'eval',phase=a.phase||'eval',state=a.state||rawSt;
   let dispSt=phase==='eval'?'EVAL · P1':phase==='verification'?'EVAL · P2':phase==='funded'?'FUNDED':phase==='beta'?'BETA':rawSt==='failed'?'FAILED':rawSt==='beta_breached'?'BREACHED':rawSt==='live'?'LIVE':rawSt.replace('_',' ').toUpperCase();
@@ -2299,7 +2302,7 @@ async function createTestAccount(){try{await api('/api/account/test',{method:'PO
 function renderDashboard(){
   if(!S.account){$('#dashNoAcct').style.display='block';$('#dashContent').style.display='none';return}
   $('#dashNoAcct').style.display='none';$('#dashContent').style.display='block';
-  const a=S.account,sz=a.size,bal=a.balance,pnl=a.pnl||0;
+  const a=S.account,sz=a.size,bal=a.balance,eq=(a.equity!=null?Number(a.equity):Number(a.balance)),pnl=+(eq-sz).toFixed(2);
   const acctState=a.state||a.status;
 
   // PHASE 7: Activation Hero — shown when account passed but needs $49 activation
@@ -2340,9 +2343,9 @@ function renderDashboard(){
   const isBeta=a.is_beta||a.plan==='beta';
   const tPct=a.phase==='verification'?0.04:0.06;
   const targetVal=sz*(a.target_pct||tPct);
-  const profit=Math.max(0,bal-sz);
+  const profit=Math.max(0,eq-sz);
   const profitPct=Math.min(100,(profit/targetVal)*100);
-  const dd=Math.max(0,sz-bal);
+  const dd=Math.max(0,sz-eq);
   const maxDD=sz*(a.max_loss_pct||0.04);
   const ddPct=Math.min(100,(dd/maxDD)*100);
   const allPos=S.positions||[];
@@ -2389,7 +2392,7 @@ function renderDashboard(){
         <div>
           <div class="equity-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Equity</div>
           <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
-            <span class="equity-val">${fmt$(bal)}</span>
+            <span class="equity-val">${fmt$(eq)}</span>
             <span class="equity-change ${pnl>=0?'up':'dn'}">${pnl>=0?'▲':'▼'} ${(pnl>=0?'+':'')+fmt$(pnl)} (${((pnl/sz)*100).toFixed(2)}%)</span>
           </div>
         </div>
@@ -2464,7 +2467,7 @@ function renderDashboard(){
       <div class="rule-sub"><span>Current loss</span><span>${ddPct.toFixed(1)}% used</span></div>
     </div>
   </div>
-  <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Eval Rules</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div><div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance</span></div><div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div><div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div><div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">20% of account per trade</span></div></div></div>
+  <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Eval Rules</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div><div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance</span></div><div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div><div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div><div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of account per trade</span></div></div></div>
   <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Withdrawals</span><span class="rule-row-val">Keep 80% of profits</span></div><div class="rule-row"><span class="rule-row-label">Max Per Trade</span><span class="rule-row-val">50% of account</span></div><div class="rule-row"><span class="rule-row-label">Monthly Fee</span><span class="rule-row-val">None after passing</span></div></div></div>
   `}
 
@@ -2643,7 +2646,7 @@ function _renderActivity_legacy(){
     <div class="rules-title">Eval Tracking</div>
     <div class="rule-card"><div class="rule-top"><span class="rule-label">Profit Target (${a.phase==='verification'?'4%':'6%'})</span><span class="rule-value" style="color:var(--green)">${fmt$(profit)} / ${fmt$(targetVal)}</span></div><div class="rule-bar-wrap"><div class="rule-bar green" style="width:${profitPct}%"></div></div><div class="rule-sub"><span>${profitPct>=100?'TARGET HIT':'In progress'}</span><span>${profitPct.toFixed(1)}%</span></div></div>
     <div class="rule-card"><div class="rule-top"><span class="rule-label">Max Drawdown (4%)</span><span class="rule-value" style="color:${ddPct>60?'var(--red)':'var(--text-1)'}">${fmt$(dd)} / ${fmt$(maxDD)}</span></div><div class="rule-bar-wrap"><div class="rule-bar ${ddPct>60?'red':ddPct>30?'yellow':'blue'}" style="width:${ddPct}%"></div></div><div class="rule-sub"><span>${ddPct>=100?'BREACHED':'Safe'}</span><span>${ddPct.toFixed(1)}% used</span></div></div>
-    <div class="rule-card"><div class="rule-top"><span class="rule-label">Position Cap</span><span class="rule-value">20%</span></div><div class="rule-bar-wrap"><div class="rule-bar blue" style="width:12%"></div></div><div class="rule-sub"><span>Per-trade limit</span><span>Within limits</span></div></div>
+    <div class="rule-card"><div class="rule-top"><span class="rule-label">Position Cap</span><span class="rule-value">10%</span></div><div class="rule-bar-wrap"><div class="rule-bar blue" style="width:10%"></div></div><div class="rule-sub"><span>Per-trade limit</span><span>Within limits</span></div></div>
   </div>`}`;
 }
 
@@ -3382,7 +3385,7 @@ async function placeOrder(){
     try{
       const r=await api('/api/order',{method:'POST',body:JSON.stringify({market_id:S.selectedMarket.id,side:S.side,cost_usd:dollarAmt})});
       const multi=(r.fill.shares_filled/r.fill.cost).toFixed(2);
-      toast(`Risked ${fmt$(dollarAmt)} on ${S.side} @ ${(r.fill.price*100).toFixed(0)}¢ — wins ${fmt$(r.fill.shares_filled)} (${multi}x)`,'ok');
+      toast(`Risked ${fmt$(r.fill.cost)} on ${S.side} @ ${(r.fill.price*100).toFixed(0)}¢ — wins ${fmt$(r.fill.shares_filled)} (${multi}x)`,'ok');
       await loadAccount();updateTradePanel();
     }catch(e){toast(e.message,'err')}finally{btn.disabled=false;btn.textContent=`Buy ${S.side} @ ${Math.round((S.side==='YES'?S.selectedMarket.outcomePrices[0]:S.selectedMarket.outcomePrices[1])*100)}¢`}
   }
@@ -3499,7 +3502,7 @@ async function executeDetailTrade(){
   try{
     const r=await api('/api/order',{method:'POST',body:JSON.stringify({market_id:m.id,side:side,cost_usd:amt})});
     const multi=(r.fill.shares_filled/r.fill.cost).toFixed(2);
-    toast(`Risked ${fmt$(amt)} on ${side} @ ${(r.fill.price*100).toFixed(0)}¢ — wins ${fmt$(r.fill.shares_filled)} (${multi}x)`,'ok');
+    toast(`Risked ${fmt$(r.fill.cost)} on ${side} @ ${(r.fill.price*100).toFixed(0)}¢ — wins ${fmt$(r.fill.shares_filled)} (${multi}x)`,'ok');
     if(S.account)loadAccount();
     renderDetailTab();
   }catch(e){toast(e.message,'err')}
@@ -3580,7 +3583,14 @@ function genChart(p){const d=[];let pr=p;for(let i=96;i>=0;i--){d.push(pr);pr=Ma
 function tickChart(){if(!S.selectedMarket||!S.chartData.length)return;const l=S.chartData[S.chartData.length-1];S.chartData.push(Math.max(.01,Math.min(.99,l+(Math.random()-.5)*.005)));if(S.chartData.length>300)S.chartData.shift();drawChart()}
 async function refreshPrices(){if(!S.selectedMarket)return;try{const f=await api('/api/market/'+S.selectedMarket.id);if(f&&f.outcomePrices){S.selectedMarket.outcomePrices=f.outcomePrices;$('#chartPrice').textContent=Math.round(f.outcomePrices[0]*100)+'%';if(S.chartData.length)S.chartData[S.chartData.length-1]=f.outcomePrices[0]}}catch(e){}}
 async function loadHistory(m,range){const im={'1h':'1h','6h':'6h','1d':'1d','1w':'1w','1m':'1m','all':'max'};const fm={'1h':60,'6h':72,'1d':96,'1w':168,'1m':120,'all':200};try{const h=await api(`/api/market/${m.id}/history?interval=${im[range]||'1d'}&fidelity=${fm[range]||96}`);if(h&&h.length>2){S.chartData=h.map(p=>p.p);drawChart();return}}catch(e){}genChart(m.outcomePrices[0]);drawChart()}
-function drawChart(){const c=$('#chartCanvas');if(!c)return;const dpr=devicePixelRatio||1,rect=c.getBoundingClientRect();c.width=rect.width*dpr;c.height=rect.height*dpr;const ctx=c.getContext('2d');ctx.scale(dpr,dpr);const w=rect.width,h=rect.height,d=S.chartData;if(!d.length)return;const mn=Math.max(0,Math.min(...d)-.03),mx=Math.min(1,Math.max(...d)+.03),rng=mx-mn||.1;const tx=i=>(i/(d.length-1))*w,ty=v=>h-((v-mn)/rng*h*.85+h*.05);ctx.strokeStyle='rgba(42,42,50,.8)';ctx.lineWidth=1;for(let i=0;i<=4;i++){const y=h*.05+i*(h*.85/4);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.fillStyle='rgba(255,255,255,.15)';ctx.font='10px Inter';for(let i=0;i<=4;i++){const v=mx-(i/4)*rng;ctx.fillText(Math.round(v*100)+'%',4,h*.05+i*(h*.85/4)-4)}const lp=d[d.length-1],fp=d[0],up=lp>=fp,lc=up?'#00d4aa':'#ff4757',fc=up?'rgba(0,212,170,':'rgba(255,71,87,';const gr=ctx.createLinearGradient(0,0,0,h);gr.addColorStop(0,fc+'.15)');gr.addColorStop(1,fc+'0)');ctx.beginPath();ctx.moveTo(tx(0),h);for(let i=0;i<d.length;i++)ctx.lineTo(tx(i),ty(d[i]));ctx.lineTo(tx(d.length-1),h);ctx.closePath();ctx.fillStyle=gr;ctx.fill();ctx.beginPath();ctx.moveTo(tx(0),ty(d[0]));for(let i=1;i<d.length;i++)ctx.lineTo(tx(i),ty(d[i]));ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();const lx=tx(d.length-1),ly=ty(lp);ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();ctx.beginPath();ctx.arc(lx,ly,2,0,Math.PI*2);ctx.fillStyle='#0a0a0f';ctx.fill();ctx.fillStyle=lc;ctx.font='bold 11px Inter';ctx.fillText(Math.round(lp*100)+'%',lx-28,ly-8);const chg=lp-fp,cp=(chg/fp*100).toFixed(1);$('#chartChg').textContent=(chg>=0?'+':'')+cp+'%';$('#chartChg').style.color=up?'var(--green)':'var(--red)'}
+function drawChart(){const c=$('#chartCanvas');if(!c)return;const dpr=devicePixelRatio||1,rect=c.getBoundingClientRect();c.width=rect.width*dpr;c.height=rect.height*dpr;const ctx=c.getContext('2d');ctx.scale(dpr,dpr);const w=rect.width,h=rect.height,d=S.chartData;if(!d.length)return;
+  // Average-entry lines for the user's OPEN positions on this market (weighted by shares, mapped onto the YES-probability axis)
+  let entryLines=[];
+  try{const mid=S.selectedMarket&&S.selectedMarket.id;if(mid){const grp={};(S.positions||[]).filter(p=>p.status==='open'&&p.market_id===mid).forEach(p=>{const s=(p.side==='YES'||p.side==='yes')?'YES':'NO';const sh=Number(p.shares)||0,ep=Number(p.entry_price)||0;if(!grp[s])grp[s]={sh:0,cost:0};grp[s].sh+=sh;grp[s].cost+=sh*ep});Object.keys(grp).forEach(s=>{if(grp[s].sh<=0)return;const avg=grp[s].cost/grp[s].sh;entryLines.push({side:s,avg,yesEq:s==='YES'?avg:(1-avg),color:s==='YES'?'#00d4aa':'#ff4757'})})}}catch(_){}
+  const extra=entryLines.map(e=>e.yesEq);const mn=Math.max(0,Math.min(...d,...extra)-.03),mx=Math.min(1,Math.max(...d,...extra)+.03),rng=mx-mn||.1;const tx=i=>(i/(d.length-1))*w,ty=v=>h-((v-mn)/rng*h*.85+h*.05);ctx.strokeStyle='rgba(42,42,50,.8)';ctx.lineWidth=1;for(let i=0;i<=4;i++){const y=h*.05+i*(h*.85/4);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.fillStyle='rgba(255,255,255,.15)';ctx.font='10px Inter';for(let i=0;i<=4;i++){const v=mx-(i/4)*rng;ctx.fillText(Math.round(v*100)+'%',4,h*.05+i*(h*.85/4)-4)}const lp=d[d.length-1],fp=d[0],up=lp>=fp,lc=up?'#00d4aa':'#ff4757',fc=up?'rgba(0,212,170,':'rgba(255,71,87,';const gr=ctx.createLinearGradient(0,0,0,h);gr.addColorStop(0,fc+'.15)');gr.addColorStop(1,fc+'0)');ctx.beginPath();ctx.moveTo(tx(0),h);for(let i=0;i<d.length;i++)ctx.lineTo(tx(i),ty(d[i]));ctx.lineTo(tx(d.length-1),h);ctx.closePath();ctx.fillStyle=gr;ctx.fill();ctx.beginPath();ctx.moveTo(tx(0),ty(d[0]));for(let i=1;i<d.length;i++)ctx.lineTo(tx(i),ty(d[i]));ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();const lx=tx(d.length-1),ly=ty(lp);ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.fillStyle=lc;ctx.fill();ctx.beginPath();ctx.arc(lx,ly,2,0,Math.PI*2);ctx.fillStyle='#0a0a0f';ctx.fill();ctx.fillStyle=lc;ctx.font='bold 11px Inter';ctx.fillText(Math.round(lp*100)+'%',lx-28,ly-8);
+  // Render the avg-entry dashed lines + left-aligned labels
+  entryLines.forEach(e=>{const y=ty(e.yesEq);ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=e.color;ctx.globalAlpha=.85;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;const label=`${e.side} avg ${Math.round(e.avg*100)}¢`;ctx.font='bold 10px Inter';const tw=ctx.measureText(label).width;const by=Math.max(9,Math.min(h-9,y));ctx.fillStyle='rgba(10,10,15,.9)';if(ctx.roundRect){ctx.beginPath();ctx.roundRect(8,by-8,tw+12,16,4);ctx.fill()}else{ctx.fillRect(8,by-8,tw+12,16)}ctx.fillStyle=e.color;ctx.fillText(label,14,by+3);ctx.restore()});
+  const chg=lp-fp,cp=(chg/fp*100).toFixed(1);$('#chartChg').textContent=(chg>=0?'+':'')+cp+'%';$('#chartChg').style.color=up?'var(--green)':'var(--red)'}
 
 /* ============ ORDERBOOK + TRADES ============ */
 async function loadBook(market){const be=$('#detailBook'),te=$('#detailTrades');try{const[bd,td]=await Promise.all([api(`/api/market/${market.id}/book`).catch(()=>null),api(`/api/market/${market.id}/trades?limit=10`).catch(()=>[])]);if(bd&&bd.yes){const b=bd.yes;const br=(b.bids||[]).slice(0,5).map(o=>`<div style="display:flex;justify-content:space-between;padding:3px 6px;background:var(--green-bg);border-radius:4px;margin-bottom:2px;font-size:10px"><span style="color:var(--green)">${o.price.toFixed(3)}</span><span style="color:var(--text-3)">${o.size.toFixed(0)}</span></div>`).join('');const ar=(b.asks||[]).slice(0,5).map(o=>`<div style="display:flex;justify-content:space-between;padding:3px 6px;background:var(--red-bg);border-radius:4px;margin-bottom:2px;font-size:10px"><span style="color:var(--red)">${o.price.toFixed(3)}</span><span style="color:var(--text-3)">${o.size.toFixed(0)}</span></div>`).join('');be.innerHTML=`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:16px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">Order Book${b.spread!=null?' · Spread '+b.spread.toFixed(3):''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:9px;color:var(--green);font-weight:700;margin-bottom:4px">BIDS</div>${br||'<div style="color:var(--text-3);font-size:10px">—</div>'}</div><div><div style="font-size:9px;color:var(--red);font-weight:700;margin-bottom:4px">ASKS</div>${ar||'<div style="color:var(--text-3);font-size:10px">—</div>'}</div></div></div>`}else{be.innerHTML=''}if(td&&td.length){const tr=td.slice(0,8).map(t=>{const tm=t.timestamp?new Date(t.timestamp).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'--';const ib=t.side==='BUY'||t.side==='buy';return`<div style="display:flex;justify-content:space-between;padding:4px 6px;font-size:10px;border-bottom:1px solid var(--border)"><span style="color:${ib?'var(--green)':'var(--red)'};font-weight:700">${ib?'BUY':'SELL'}</span><span>${t.price.toFixed(3)}</span><span style="color:var(--text-3)">${t.size.toFixed(0)}</span><span style="color:var(--text-3);font-size:9px">${tm}</span></div>`}).join('');te.innerHTML=`<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:16px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">Recent Trades</div>${tr}</div>`}else{te.innerHTML=''}}catch(e){}}
