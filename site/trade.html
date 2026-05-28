@@ -2061,7 +2061,7 @@ const fmtPx=v=>(v*100).toFixed(1)+'¢';
 const fmtVol=v=>v>1e6?(v/1e6).toFixed(1)+'M':v>1e3?(v/1e3).toFixed(0)+'K':Math.round(v);
 const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
 function toast(m,k='ok'){const t=$('#toast');t.textContent=m;t.classList.remove('err','ok');t.classList.add(k);requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),3500)}
-async function api(p,o={}){const h={'Content-Type':'application/json'};if(S.token)h.Authorization='Bearer '+S.token;const r=await fetch(p,{...o,headers:h});if(r.status===401){localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;updateNavAuth();throw new Error('Session expired')}const d=await r.json();if(!r.ok)throw new Error(d.error||'fail');return d}
+async function api(p,o={}){const h={'Content-Type':'application/json'};if(S.token)h.Authorization='Bearer '+S.token;const r=await fetch(p,{...o,headers:h});if(r.status===401){localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;S.account=null;S.positions=[];updateNavAuth();throw new Error('Session expired')}const d=await r.json();if(!r.ok)throw new Error(d.error||'fail');return d}
 
 /* ============ USER DROPDOWN & NAV ============ */
 /* ============ AUTH-AWARE NAV ============ */
@@ -2091,7 +2091,7 @@ $('#navAvatar').onclick=()=>$('#userDD').classList.toggle('open');
 document.addEventListener('click',e=>{if(!e.target.closest('#userDD')&&!e.target.closest('#navAvatar'))$('#userDD').classList.remove('open')});
 if(S.user){const i=(S.user.name||S.user.email||'V')[0].toUpperCase();$('#navAvatar').textContent=i}
 $$('.user-dd-item[data-page]').forEach(b=>{b.onclick=()=>{switchPage(b.dataset.page);$('#userDD').classList.remove('open')}});
-$('#logoutBtn').onclick=()=>{localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;updateNavAuth()};
+$('#logoutBtn').onclick=()=>{localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;S.account=null;S.positions=[];updateNavAuth();location.reload()};
 
 /* Nav auth button handlers */
 $('#navLoginBtn').onclick=()=>openLoginModal();

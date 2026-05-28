@@ -2301,6 +2301,7 @@ app.post('/api/signup/verify-code', authLimiter, async (req, res) => {
       email: d.cleanEmail,
       password_hash: d.passwordHash,
       full_name: d.cleanName,
+      email_verified: true,
     };
     if (d.cleanUsername) userInsert.username = d.cleanUsername;
     const user = await dbInsert('users', userInsert);
