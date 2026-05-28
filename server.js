@@ -3687,24 +3687,11 @@ app.post('/api/beta/claim', authMiddleware, async (req, res) => {
       plan: 'beta',
       size: betaBalance,
       balance: betaBalance,
-      high_water: betaBalance,
       status: 'beta_active',
-      state: 'beta_active',
       phase: 'beta',
-      is_beta: true,
-      beta_starting_balance: betaBalance,
-      beta_ends_at: BETA_ENDS_AT,
-      profit_target_pct: 999, // No profit target in beta
-      max_loss_pct: MAX_LOSS,
-      eval_started_at: now.toISOString(),
-      eval_ends_at: BETA_ENDS_AT,
     });
 
-    await dbUpdate('users', { id: req.userId }, {
-      has_claimed_beta_account: true,
-      beta_signup_ip: ip,
-      handle: handle,
-    });
+    try { await dbUpdate('users', { id: req.userId }, { has_claimed_beta_account: true }); } catch (_) {}
 
     console.log(`[beta] account claimed by user ${req.userId} (${user.email}) — $${betaBalance.toLocaleString()} balance`);
 
