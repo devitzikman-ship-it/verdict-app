@@ -740,7 +740,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 @keyframes lt-row-enter{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 /* Nav account chip */
 .nav-account-chip{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(7,11,20,0.6);border:1px solid rgba(169,200,240,0.18);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px}
-.acct-id{color:rgba(255,255,255,0.55)}
+.acct-id{color:var(--ice);font-weight:700;font-size:11px;letter-spacing:.05em}
+.acct-user{color:#fff;font-weight:700;font-size:12px}
+.acct-user::before{content:'@';color:rgba(255,255,255,0.4)}
 .acct-state{padding:3px 8px;background:rgba(78,139,255,0.12);color:var(--ice);border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 .acct-equity-label{color:rgba(255,255,255,0.4);font-size:9px;letter-spacing:.18em;text-transform:uppercase}
 .acct-equity-val{color:#fff;font-weight:700}
@@ -1378,9 +1380,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   <div style="flex:1"></div>
   <div class="nav-right">
     <div class="nav-account-chip" id="navAccountChip" style="display:none">
-      <span class="acct-id" id="navChipId">#------</span>
-      <span class="acct-state" id="navChipState">beta</span>
-      <span class="acct-equity-label">EQUITY</span>
+      <span class="acct-user" id="navChipUser">trader</span>
+      <span class="acct-id" id="navChipId">DEMO0000</span>
+      <span class="acct-equity-label">BAL</span>
       <span class="acct-equity-val" id="navChipEquity">$0</span>
     </div>
     <div class="nav-avatar" id="navAvatar" title="Account" style="display:none">V</div>
@@ -2071,11 +2073,10 @@ function updateNavAuth(){
     // Show account chip if account exists
     if(S.account&&chip){
       chip.style.display='inline-flex';
-      const aid=String(S.account.id||'000000').slice(0,6).padStart(6,'0');
-      $('#navChipId').textContent='#'+aid;
-      const st=S.account.state||S.account.status||'eval';
-      const stLabel=st.includes('funded')||st==='live'?'Funded':st.includes('beta')?'Beta':'Evaluation';
-      $('#navChipState').textContent=stLabel;
+      const uname=(S.user.username||S.user.handle||S.user.name||(S.user.email?S.user.email.split('@')[0]:'trader'));
+      $('#navChipUser').textContent=uname;
+      const aid='DEMO'+String(S.account.id||0).padStart(4,'0');
+      $('#navChipId').textContent=aid;
       $('#navChipEquity').textContent=fmt$(S.account.balance);
     }
   }else{
@@ -2264,6 +2265,7 @@ async function resendVerification(){
 function renderAcct(){
   const has=!!S.account;
   const isAuth=!!S.token;
+  updateNavAuth();
   const _s=(id,prop,val)=>{const el=$(id);if(el)el.style[prop]=val};
   const _t=(id,val)=>{const el=$(id);if(el)el.textContent=val};
   _s('#acctBar','display',has?'flex':'none');
