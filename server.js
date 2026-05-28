@@ -2259,7 +2259,6 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     const maskedEmail = cleanEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 6)) + c);
 
-    console.log(`[signup-2fa-debug] code=${code} for ${cleanEmail} id=${twoFaId}`);
     sendEmail(cleanEmail, `${code} — Verify your VERDICT signup`, emailWrap(`
       <h2 style="color:#fff;margin:0 0 12px;font-size:20px">Verify Your Email</h2>
       <p style="color:#8b8b9e;font-size:14px;line-height:1.6;margin:0 0 20px">Enter this code to complete your signup:</p>
