@@ -3980,24 +3980,38 @@ app.get('/api/beta/status', authMiddleware, async (req, res) => {
     const account = accounts.find(a => a.is_beta);
     if (!account) return res.json({ has_account: false });
 
-    const allAccounts = await dbSelect('accounts', {});
-    const betaAccounts = allAccounts.filter(a => a.is_beta);
-    const ranked = betaAccounts
-      .map(a => ({ id: a.id, pnl: Number(a.balance) - Number(a.beta_starting_balance || a.size) }))
-      .sort((a, b) => b.pnl - a.pnl);
-    const rank = ranked.findIndex(a => a.id === account.id) + 1;
-
     const startBal = Number(account.beta_starting_balance || account.size);
     const curBal = Number(account.balance);
+    const myPnlCents = Math.round((curBal - startBal) * 100);
+
+    // Rank among ALL entries (real + fake) so it matches the leaderboard table
+    const allAccounts = await dbSelect('accounts', {});
+    const betaAccounts = allAccounts.filter(a => a.is_beta);
+    const realEntries = betaAccounts.map(a => ({
+      id: a.id,
+      pnl_cents: Math.round((Number(a.balance) - Number(a.beta_starting_balance || a.size)) * 100),
+    }));
+    const fakeEntries = getFakeLeaderboard().map(f => ({ id: 'fake_' + f.handle, pnl_cents: f.pnl_cents }));
+    const combined = [...realEntries, ...fakeEntries].sort((a, b) => b.pnl_cents - a.pnl_cents);
+    const rank = combined.findIndex(a => a.id === account.id) + 1;
+
+    // Get user handle
+    const user = await dbSelectOne('users', { id: req.userId });
+    const handle = user ? (user.username || user.handle || user.full_name || (user.email ? user.email.split('@')[0] : 'trader')) : 'trader';
+    const tradeCount = Number(account.trade_count) || 0;
+    const winRate = Number(account.win_rate) || 0;
 
     res.json({
       has_account: true,
       account_id: account.id,
-      pnl_cents: Math.round((curBal - startBal) * 100),
+      handle,
+      pnl_cents: myPnlCents,
       pnl_pct: startBal > 0 ? ((curBal - startBal) / startBal) * 100 : 0,
       current_balance: curBal,
       rank,
-      total_traders: betaAccounts.length,
+      total_traders: combined.length,
+      trade_count: tradeCount,
+      win_rate: winRate,
       state: account.state || account.status,
       beta_ends_at: BETA_ENDS_AT,
       time_remaining_ms: new Date(BETA_ENDS_AT).getTime() - Date.now(),

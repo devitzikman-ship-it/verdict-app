@@ -204,9 +204,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <a href="/learn" class="nav-link">How It Works</a>
   </div>
   <div style="flex:1"></div>
-  <div class="nav-right">
-    <button class="nav-btn-secondary" onclick="window.location='/markets#login'">Log In</button>
-    <button class="nav-btn-primary" onclick="window.location='/markets#signup'">Claim $100K Demo</button>
+  <div class="nav-right" id="navRight">
+    <button class="nav-btn-secondary" onclick="window.location='/markets#login'" id="navLoginBtn">Log In</button>
+    <button class="nav-btn-primary" onclick="window.location='/markets#signup'" id="navClaimBtn">Claim $100K Demo</button>
   </div>
 </nav>
 
@@ -262,7 +262,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
       <div class="lb-your-rank-label">WIN RATE</div>
       <div class="lb-your-pnl" id="yourWinRate" style="color:var(--text-1)">--%</div>
     </div>
-    <a href="/markets" class="lb-your-trade-link">Trade Now</a>
+    <a href="/markets" class="lb-your-trade-link" onclick="window.location='/markets';return false;">Trade Now</a>
   </div>
 </div>
 
@@ -455,6 +455,22 @@ async function loadMyRank(){
     }
   }catch(e){}
 }
+
+/* ============ NAV AUTH ============ */
+function updateNavAuth(){
+  const token=localStorage.getItem('verdict_token');
+  const user=JSON.parse(localStorage.getItem('verdict_user')||'null');
+  const loginBtn=document.getElementById('navLoginBtn');
+  const claimBtn=document.getElementById('navClaimBtn');
+  const navRight=document.getElementById('navRight');
+  if(token&&user){
+    const initial=(user.name||user.email||'V')[0].toUpperCase();
+    navRight.innerHTML=`
+      <a href="/markets" style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-2);transition:color .15s;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-2)'">Dashboard</a>
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;cursor:pointer" onclick="window.location='/markets'">${initial}</div>`;
+  }
+}
+updateNavAuth();
 
 /* ============ INIT ============ */
 loadLeaderboard();
