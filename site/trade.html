@@ -1172,6 +1172,45 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .featured-right{position:relative;min-height:280px}
 #featuredChart{width:100%;height:100%}
 
+/* Portfolio Hero (shown in place of featured hero when logged in) */
+.portfolio-hero{display:grid;grid-template-columns:1fr 1.4fr;gap:32px;padding:32px;border-bottom:1px solid var(--border)}
+.ph-left{display:flex;flex-direction:column;justify-content:center}
+.ph-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.2em;color:var(--text-3);text-transform:uppercase;margin-bottom:12px}
+.ph-equity{font-size:48px;font-weight:800;letter-spacing:-0.02em;color:var(--text-1);line-height:1;font-family:'JetBrains Mono',monospace}
+.ph-pnl-row{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px;font-weight:700;flex-wrap:wrap}
+.ph-pnl-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:14px}
+.ph-pnl-chip.up{background:rgba(0,212,170,0.12);color:var(--green)}
+.ph-pnl-chip.dn{background:rgba(255,71,87,0.12);color:var(--red)}
+.ph-pnl-label{font-size:12px;color:var(--text-3);font-weight:600}
+.ph-substats{display:flex;gap:24px;margin-top:22px}
+.ph-substat-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px}
+.ph-substat-val{font-size:18px;font-weight:800;color:var(--text-1);font-family:'JetBrains Mono',monospace}
+.ph-actions{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+.ph-actions .btn{padding:10px 18px;font-size:13px;font-weight:700;border-radius:var(--r)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text-2)}
+.btn.ghost:hover{border-color:var(--ice);color:var(--text-1)}
+.ph-right{display:flex;flex-direction:column;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ph-right-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--text-1)}
+.ph-right-hint{font-size:10px;font-weight:500;color:var(--text-3)}
+.ph-pos-list{flex:1;overflow-y:auto;max-height:300px;display:flex;flex-direction:column}
+.ph-pos{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background .12s}
+.ph-pos:hover{background:var(--bg-hover,rgba(255,255,255,0.03))}
+.ph-pos:last-child{border-bottom:none}
+.ph-pos-side{flex-shrink:0;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;font-family:'JetBrains Mono',monospace}
+.ph-pos-side.yes{background:rgba(0,212,170,0.14);color:var(--green)}
+.ph-pos-side.no{background:rgba(255,71,87,0.14);color:var(--red)}
+.ph-pos-mid{flex:1;min-width:0}
+.ph-pos-q{font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-pos-meta{font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.ph-pos-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.ph-pos-pnl{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.ph-pos-pnl.up{color:var(--green)}.ph-pos-pnl.dn{color:var(--red)}
+.ph-sell-btn{font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .12s}
+.ph-sell-btn:hover{background:var(--red);border-color:var(--red);color:#fff}
+.ph-empty{padding:36px 20px;text-align:center;color:var(--text-3);font-size:13px}
+@media(max-width:960px){.portfolio-hero{grid-template-columns:1fr;gap:20px;padding:20px}.ph-equity{font-size:38px}}
+@media(max-width:640px){.portfolio-hero{padding:16px}.ph-substats{gap:18px}.ph-pos-q{max-width:150px}}
+
 /* Sub-Markets Strip */
 .submkt-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:16px 32px;border-bottom:1px solid var(--border)}
 @media(max-width:1024px){.submkt-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -1565,6 +1604,27 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
               </div>
               <div class="featured-right">
                 <canvas id="featuredChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Portfolio Hero (replaces featured chart when logged in) -->
+            <div class="portfolio-hero" id="portfolioHero" style="display:none">
+              <div class="ph-left">
+                <div class="ph-eyebrow">YOUR PORTFOLIO</div>
+                <div class="ph-equity" id="phEquity">$0</div>
+                <div class="ph-pnl-row" id="phPnlRow"></div>
+                <div class="ph-substats" id="phSubstats"></div>
+                <div class="ph-actions">
+                  <button class="btn primary" onclick="switchPage('markets');document.getElementById('catTabs')&&document.getElementById('catTabs').scrollIntoView({behavior:'smooth'})">Browse Markets</button>
+                  <button class="btn ghost" onclick="switchPage('dashboard')">Full Dashboard &rarr;</button>
+                </div>
+              </div>
+              <div class="ph-right">
+                <div class="ph-right-head">
+                  <span id="phPosCount">Open Positions</span>
+                  <span class="ph-right-hint">Tap to view · Sell to cash out</span>
+                </div>
+                <div class="ph-pos-list" id="phPosList"></div>
               </div>
             </div>
 
@@ -2336,7 +2396,7 @@ $$('#sidebarForYou [data-page]').forEach(btn=>{btn.onclick=()=>{switchPage(btn.d
 
 /* ============ ACCOUNT ============ */
 let _loadingAcct=false;
-async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}if(S.page==='dashboard'&&S.account&&typeof renderDashboard==='function'){try{renderDashboard()}catch(_){}}if(typeof drawChart==='function'&&S.selectedMarket&&S.chartData&&S.chartData.length&&document.getElementById('chartCanvas')){try{drawChart()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
+async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}if(S.page==='dashboard'&&S.account&&typeof renderDashboard==='function'){try{renderDashboard()}catch(_){}}if(typeof renderFeaturedHero==='function'){try{renderFeaturedHero()}catch(_){}}if(typeof drawChart==='function'&&S.selectedMarket&&S.chartData&&S.chartData.length&&document.getElementById('chartCanvas')){try{drawChart()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
 function getAcctName(){
   if(!S.account||!S.user)return'--';
   const name=(S.user.name||S.user.email||'USER').split(/[@\s]/)[0].toUpperCase();
@@ -3025,6 +3085,17 @@ let _msSort='prob',_msCat='all',_msSearch='';
 function fmtBig(n){if(n>=1e9)return(n/1e9).toFixed(1)+'B';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(Math.round(n))}
 
 function renderFeaturedHero(){
+  // Logged-in users see their portfolio (open positions + live PnL) in place
+  // of the featured market chart on the home page.
+  const fh=document.getElementById('featuredHero'),ph=document.getElementById('portfolioHero');
+  if(S.token&&S.account){
+    if(fh)fh.style.display='none';
+    if(ph)ph.style.display='grid';
+    renderPortfolioHero();
+    return;
+  }
+  if(ph)ph.style.display='none';
+  if(fh)fh.style.display='grid';
   if(!S.markets||!S.markets.length)return;
   const m=S.markets.slice().sort((a,b)=>(b.volume24hr||0)-(a.volume24hr||0))[0];
   if(!m)return;
@@ -3089,6 +3160,80 @@ function drawFeaturedChart(m){
   ctx.fillStyle=grad;ctx.fill();
   // Price endpoint dot
   ctx.beginPath();ctx.arc(lastX,lastY,4,0,Math.PI*2);ctx.fillStyle='#a9c8f0';ctx.fill();
+}
+
+// Portfolio hero — replaces the featured chart with the user's open positions + live PnL
+function renderPortfolioHero(){
+  const a=S.account;if(!a)return;
+  const allPos=S.positions||[];
+  const openPos=allPos.filter(p=>p.status==='open');
+  const closedPos=allPos.filter(p=>p.status!=='open');
+  const sz=a.size||a.balance||0;
+  const eq=a.balance!=null?a.balance:sz;
+  const openPnl=openPos.reduce((s,p)=>{const u=posUnrealizedPnl(p);return s+(u!=null?u:0);},0);
+  const totalPnl=eq-sz;
+  // Header equity + PnL
+  const eqEl=document.getElementById('phEquity');if(eqEl)eqEl.textContent=fmt$(eq);
+  const pnlRow=document.getElementById('phPnlRow');
+  if(pnlRow){
+    const upCls=openPnl>=0?'up':'dn';
+    const totCls=totalPnl>=0?'green':'red';
+    pnlRow.innerHTML=`
+      <span class="ph-pnl-chip ${upCls}">${openPnl>=0?'▲':'▼'} ${fmtPnl$(openPnl)}</span>
+      <span class="ph-pnl-label">unrealized · <span style="color:var(--${totCls})">${fmtPnl$(totalPnl)}</span> total</span>`;
+  }
+  const subs=document.getElementById('phSubstats');
+  if(subs){
+    const wins=closedPos.filter(p=>p.pnl>0).length;
+    const winRate=closedPos.length?Math.round(wins/closedPos.length*100):0;
+    subs.innerHTML=`
+      <div><div class="ph-substat-label">Balance</div><div class="ph-substat-val">${fmt$(eq)}</div></div>
+      <div><div class="ph-substat-label">Open</div><div class="ph-substat-val">${openPos.length}</div></div>
+      <div><div class="ph-substat-label">Win Rate</div><div class="ph-substat-val">${winRate}%</div></div>`;
+  }
+  const cntEl=document.getElementById('phPosCount');
+  if(cntEl)cntEl.textContent='Open Positions ('+openPos.length+')';
+  // Positions list with live PnL + Sell button
+  const listEl=document.getElementById('phPosList');
+  if(listEl){
+    if(!openPos.length){
+      listEl.innerHTML='<div class="ph-empty">No open positions yet.<br>Browse markets below to place your first trade.</div>';
+    }else{
+      listEl.innerHTML=openPos.map(p=>{
+        const up=posUnrealizedPnl(p);const pct=posUnrealizedPct(p);
+        const cls=up!=null?(up>=0?'up':'dn'):'';
+        const pnlTxt=up!=null?(fmtPnl$(up)+(pct!=null?' ('+(pct>=0?'+':'')+pct+'%)':'')):'—';
+        const cp=posCurrentPrice(p);
+        const cpTxt=cp!=null?('now '+fmtPx(cp)):'';
+        const sideCls=(p.side==='YES'||p.side==='yes')?'yes':'no';
+        return `<div class="ph-pos" onclick="openPositionMarket('${esc(String(p.market_id))}')">
+          <span class="ph-pos-side ${sideCls}">${p.side}</span>
+          <div class="ph-pos-mid">
+            <div class="ph-pos-q">${esc(p.market_question||'Market')}</div>
+            <div class="ph-pos-meta">${p.shares} sh @ ${fmtPx(Number(p.entry_price)||0)}${cpTxt?' · '+cpTxt:''}</div>
+          </div>
+          <div class="ph-pos-right">
+            <span class="ph-pos-pnl ${cls}">${pnlTxt}</span>
+            <button class="ph-sell-btn" onclick="event.stopPropagation();sellPositionFromList('${esc(String(p.id))}')">Sell</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+// Sell (cash out) a position straight from the home portfolio list — like Polymarket
+async function sellPositionFromList(id){
+  const p=(S.positions||[]).find(x=>String(x.id)===String(id));
+  const up=p?posUnrealizedPnl(p):null;
+  const msg='Sell this position at the current market price?'+(up!=null?'\n\nEstimated PnL: '+fmtPnl$(up):'');
+  if(!window.confirm(msg))return;
+  try{
+    const r=await api('/api/position/'+id+'/close',{method:'POST'});
+    toast('Sold · '+(r.pnl>=0?'+':'')+fmt$(r.pnl),r.pnl>=0?'ok':'err');
+    await loadAccount();
+    renderFeaturedHero();
+  }catch(e){toast(e.message,'err')}
 }
 
 function renderSubmktStrip(){
