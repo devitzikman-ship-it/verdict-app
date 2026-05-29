@@ -2246,11 +2246,18 @@ async function handleInvoicePaymentFailed(invoice) {
 BETA_DISABLED_END */
 
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'site'), { extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, 'site'), {
+  extensions: ['html'],
+  setHeaders: (res, filePath) => {
+    // Never let browsers serve a stale HTML shell — always revalidate so a
+    // deploy's new JS is picked up on the next load (not cached in an open tab).
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  },
+}));
 
 // Clean URL aliases
-app.get('/markets', (req, res) => res.sendFile(path.join(__dirname, 'site', 'trade.html')));
-app.get('/learn', (req, res) => res.sendFile(path.join(__dirname, 'site', 'how-it-works.html')));
+app.get('/markets', (req, res) => { res.setHeader('Cache-Control', 'no-cache, must-revalidate'); res.sendFile(path.join(__dirname, 'site', 'trade.html')); });
+app.get('/learn', (req, res) => { res.setHeader('Cache-Control', 'no-cache, must-revalidate'); res.sendFile(path.join(__dirname, 'site', 'how-it-works.html')); });
 
 // ============ RATE LIMITING ============
 const globalLimiter = rateLimit({
