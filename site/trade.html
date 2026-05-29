@@ -1604,9 +1604,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
               <div class="chart-controls">
                 <div><span class="chart-price" id="chartPrice">--</span><span class="chart-chg" id="chartChg"></span></div>
                 <div class="time-toggle-group" id="timeBtns">
-                  <button class="time-btn" data-range="1h">1H</button>
+                  <button class="time-btn active" data-range="1h">1H</button>
                   <button class="time-btn" data-range="6h">6H</button>
-                  <button class="time-btn active" data-range="1d">1D</button>
+                  <button class="time-btn" data-range="1d">1D</button>
                   <button class="time-btn" data-range="1w">1W</button>
                   <button class="time-btn" data-range="1m">1M</button>
                   <button class="time-btn" data-range="all">ALL</button>
@@ -2061,7 +2061,7 @@ const S={
   markets:[],filtered:[],category:'props',search:'',sort:'volume',
   selectedMarket:null,side:null,shares:50,tradeMode:'buy',
   account:null,positions:[],
-  chartRange:'1d',chartData:[],chartInterval:null,
+  chartRange:'1h',chartData:[],chartInterval:null,
   sportFilter:'all',isSportsMode:false,sidebarFilter:'all',
   propsData:[],moneylinesData:[],propsSport:'basketball_nba',propsStatFilter:'all',
 };
@@ -2073,9 +2073,32 @@ const S={
 const $=s=>document.querySelector(s);
 const $$=(s,root)=>[...(root||document).querySelectorAll(s)];
 const fmt$=v=>'$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+// Signed money for PnL: -$355.52 / +$12.00 (sign before the $, never "$-355")
+const fmtPnl$=v=>{const n=Number(v)||0;return(n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});};
 const fmtPx=v=>(v*100).toFixed(1)+'¢';
 const fmtVol=v=>v>1e6?(v/1e6).toFixed(1)+'M':v>1e3?(v/1e3).toFixed(0)+'K':Math.round(v);
 const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
+// ── Live unrealized PnL for an open position ──
+// Order of preference: server MTM → live price from loaded markets → the
+// currently-open market. Keeps PnL identical & correct on every screen.
+function posCurrentPrice(p){
+  if(p.current_price!=null)return Number(p.current_price);
+  let mkt=(S.markets||[]).find(m=>String(m.id)===String(p.market_id));
+  if((!mkt||!mkt.outcomePrices)&&S.selectedMarket&&String(S.selectedMarket.id)===String(p.market_id))mkt=S.selectedMarket;
+  if(mkt&&mkt.outcomePrices)return Number((p.side==='YES'||p.side==='yes')?mkt.outcomePrices[0]:mkt.outcomePrices[1]);
+  return null;
+}
+function posUnrealizedPnl(p){
+  if(p.unrealized_pnl!=null)return Number(p.unrealized_pnl);
+  const cp=posCurrentPrice(p);
+  if(cp==null)return null;
+  return +(Number(p.shares)*cp-Number(p.cost)).toFixed(2);
+}
+function posUnrealizedPct(p){
+  const pnl=posUnrealizedPnl(p);const cost=Number(p.cost);
+  if(pnl==null||!(cost>0))return null;
+  return +((pnl/cost)*100).toFixed(1);
+}
 function toast(m,k='ok'){const t=$('#toast');t.textContent=m;t.classList.remove('err','ok');t.classList.add(k);requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),3500)}
 async function api(p,o={}){const h={'Content-Type':'application/json'};if(S.token)h.Authorization='Bearer '+S.token;const r=await fetch(p,{...o,headers:h});if(r.status===401){localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;S.account=null;S.positions=[];updateNavAuth();throw new Error('Session expired')}const d=await r.json();if(!r.ok)throw new Error(d.error||'fail');return d}
 
@@ -2141,6 +2164,7 @@ function requireAuth(){
 function switchPage(p){
   // Redirect old stats/activity pages to dashboard
   if(p==='stats'||p==='activity')p='dashboard';
+  S.page=p;
   // Always close detail view when switching pages
   if(S.chartInterval){clearInterval(S.chartInterval);S.chartInterval=null}
   $('#detailView').classList.remove('show');$('#marketsGridView').style.display='';
@@ -2270,7 +2294,7 @@ $$('#sidebarForYou [data-page]').forEach(btn=>{btn.onclick=()=>{switchPage(btn.d
 
 /* ============ ACCOUNT ============ */
 let _loadingAcct=false;
-async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}if(typeof drawChart==='function'&&S.selectedMarket&&S.chartData&&S.chartData.length&&document.getElementById('chartCanvas')){try{drawChart()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
+async function loadAccount(){if(_loadingAcct)return;_loadingAcct=true;try{const d=await api('/api/account');S.account=d.account;S.positions=d.positions||[];renderAcct();renderPositions();if(typeof renderDetailTab==='function'&&S.selectedMarket){try{renderDetailTab()}catch(_){}}if(S.page==='dashboard'&&S.account&&typeof renderDashboard==='function'){try{renderDashboard()}catch(_){}}if(typeof drawChart==='function'&&S.selectedMarket&&S.chartData&&S.chartData.length&&document.getElementById('chartCanvas')){try{drawChart()}catch(_){}}}catch(e){console.error(e.message)}finally{_loadingAcct=false}}
 function getAcctName(){
   if(!S.account||!S.user)return'--';
   const name=(S.user.name||S.user.email||'USER').split(/[@\s]/)[0].toUpperCase();
@@ -2380,14 +2404,20 @@ function renderDashboard(){
   const avgLoss=losses?Math.abs(closedPos.filter(p=>p.pnl<=0).reduce((s,p)=>s+p.pnl,0)/losses):0;
 
   // Build open-positions + past-trades HTML. Clicking a row opens that market.
+  // Open rows show LIVE unrealized PnL; closed rows show realized PnL.
   const posRow=(p,isOpen)=>{
-    const pl=p.pnl!=null?(p.pnl>=0?'+':'')+fmt$(p.pnl):'Open';
-    const pc=p.pnl!=null?(p.pnl>=0?'green':'red'):'';
+    let pnlTxt,col;
+    if(isOpen){const up=posUnrealizedPnl(p);const pct=posUnrealizedPct(p);if(up!=null){col=up>=0?'green':'red';pnlTxt=fmtPnl$(up)+(pct!=null?' ('+(pct>=0?'+':'')+pct+'%)':'');}else{col='blue';pnlTxt='Open';}}
+    else{col=p.pnl!=null?(p.pnl>=0?'green':'red'):'blue';pnlTxt=p.pnl!=null?fmtPnl$(p.pnl):'--';}
     const badge=isOpen?'<span style="color:var(--blue);font-weight:700">● OPEN</span>':'Closed';
-    return'<div class="trade-hist-item" style="cursor:pointer" onclick="openPositionMarket(\''+esc(p.market_id)+'\')"><span class="thi-side '+(p.side==='YES'?'yes':'no')+'">'+p.side+'</span><div class="thi-info"><div class="thi-q">'+esc(p.market_question||'Market')+'</div><div class="thi-meta">'+p.shares+' shares @ '+fmtPx(p.entry_price)+' · '+badge+'</div></div><span class="thi-pnl" style="color:var(--'+(pc||'blue')+')">'+(isOpen?'Open':pl)+'</span></div>';
+    const px=Number(p.entry_price)||0;
+    return'<div class="trade-hist-item" style="cursor:pointer" onclick="openPositionMarket(\''+esc(p.market_id)+'\')"><span class="thi-side '+(p.side==='YES'?'yes':'no')+'">'+p.side+'</span><div class="thi-info"><div class="thi-q">'+esc(p.market_question||'Market')+'</div><div class="thi-meta">'+p.shares+' shares @ '+fmtPx(px)+' · '+badge+'</div></div><span class="thi-pnl" style="color:var(--'+col+')">'+pnlTxt+'</span></div>';
   };
   const openPosHtml=openPos.length?openPos.map(p=>posRow(p,true)).join(''):'<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px">No open positions. Go place a trade!</div>';
   const tradesHtml=closedPos.length?closedPos.map(p=>posRow(p,false)).join(''):'<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px">No past trades yet.</div>';
+  // Total live unrealized PnL across all open positions
+  const openPnl=openPos.reduce((s,p)=>{const u=posUnrealizedPnl(p);return s+(u!=null?u:0);},0);
+  const openPnlCol=openPnl>=0?'green':'red';
 
   $('#dashContent').innerHTML=`
   <div class="dash-hero">
@@ -2403,21 +2433,19 @@ function renderDashboard(){
       </div>
       <button class="btn primary" onclick="switchPage('markets')">Trade</button>
     </div>
-    <!-- Equity Curve -->
-    <div class="equity-card">
+    <!-- Open Positions (replaces equity curve) -->
+    <div class="equity-card" id="dashPositions" style="scroll-margin-top:80px">
       <div class="equity-header">
         <div>
-          <div class="equity-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Equity</div>
-          <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+          <div class="equity-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Open Positions <span style="color:var(--text-3);font-weight:600">(${open})</span></div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px">
             <span class="equity-val">${fmt$(eq)}</span>
-            <span class="equity-change ${pnl>=0?'up':'dn'}">${pnl>=0?'▲':'▼'} ${(pnl>=0?'+':'')+fmt$(pnl)} (${((pnl/sz)*100).toFixed(2)}%)</span>
+            ${open?`<span class="equity-change ${openPnl>=0?'up':'dn'}">${openPnl>=0?'▲':'▼'} ${(openPnl>=0?'+':'')+fmt$(openPnl)} unrealized</span>`:'<span style="font-size:12px;color:var(--text-3)">equity</span>'}
           </div>
         </div>
-        <div style="display:flex;gap:4px" id="equityTimeframe">
-          <button class="eq-tf active" data-tf="all" style="padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;background:var(--bg-elevated);color:var(--text-2);border:1px solid var(--border);cursor:pointer">ALL</button>
-        </div>
+        <button class="btn primary" style="padding:6px 14px;font-size:12px" onclick="switchPage('markets')">+ Trade</button>
       </div>
-      <div class="equity-canvas-wrap"><canvas id="equityCurve"></canvas></div>
+      <div style="margin-top:10px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">${openPosHtml}</div>
     </div>
 
     <div class="dash-stats">
@@ -2487,12 +2515,6 @@ function renderDashboard(){
   <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Eval Rules</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div><div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance</span></div><div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div><div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div><div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of account per trade</span></div></div></div>
   <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Withdrawals</span><span class="rule-row-val">Keep 80% of profits</span></div><div class="rule-row"><span class="rule-row-label">Max Per Trade</span><span class="rule-row-val">50% of account</span></div><div class="rule-row"><span class="rule-row-label">Monthly Fee</span><span class="rule-row-val">None after passing</span></div></div></div>
   `}
-
-  <!-- My Positions (open) -->
-  <div id="dashPositions" style="margin-top:24px;scroll-margin-top:80px">
-    <div style="font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> My Positions <span style="color:var(--text-3);font-weight:600">(${open})</span></div>
-    ${openPosHtml}
-  </div>
 
   <!-- Past Trades -->
   <div style="margin-top:24px">
@@ -2742,14 +2764,12 @@ function renderPositions(){
   if(!open.length){l.innerHTML='<div style="color:var(--text-3);font-size:11px;text-align:center;padding:14px">No positions</div>';return}
   l.innerHTML=open.map(p=>{
     const risked=Number(p.cost);
-    // Current value from server MTM or local estimate
-    let curValue=p.mtm_value!=null?p.mtm_value:null;
-    if(curValue===null){
-      const mkt=S.markets.find(m=>m.id===p.market_id);
-      if(mkt){const cur=p.side==='YES'?mkt.outcomePrices[0]:mkt.outcomePrices[1];curValue=+(p.shares*cur).toFixed(2)}
-    }
-    const pnl=curValue!==null?+(curValue-risked).toFixed(2):null;
-    const pnlStr=pnl!==null?((pnl>=0?'+':'')+fmt$(pnl)):'--';
+    // Live PnL via shared helper (server MTM → live market price → selectedMarket fallback)
+    const pnl=posUnrealizedPnl(p);
+    const cp=posCurrentPrice(p);
+    let curValue=cp!=null?+(Number(p.shares)*cp).toFixed(2):(p.mtm_value!=null?p.mtm_value:null);
+    if(curValue===null&&pnl!==null)curValue=+(risked+pnl).toFixed(2);
+    const pnlStr=pnl!==null?fmtPnl$(pnl):'--';
     const pnlColor=pnl!==null?(pnl>=0?'var(--green)':'var(--red)'):'var(--text-3)';
     const pnlPct=pnl!==null&&risked>0?((pnl/risked)*100).toFixed(1)+'%':'';
     // Payout if wins = shares * $1
@@ -2758,7 +2778,7 @@ function renderPositions(){
     return`<div class="pos-item" data-mid="${esc(p.market_id)}"><div class="pos-item-top"><span class="pos-q">${esc(p.market_question||'Market')}</span><span class="pos-side-tag ${p.side==='YES'?'yes':'no'}">${p.side}</span></div><div class="pos-nums"><span>Risked ${fmt$(risked)} &middot; ${multi}x</span><span style="color:${pnlColor};font-weight:700">${pnlStr}${pnlPct?' ('+pnlPct+')':''}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:2px"><span>Value: ${curValue!==null?fmt$(curValue):'--'}</span><span>If wins: ${fmt$(payoutIfWin)}</span></div><button class="pos-close" data-id="${p.id}">Close Position</button></div>`;
   }).join('');
   $$('.pos-close',l).forEach(b=>{b.onclick=e=>{e.stopPropagation();closePos(b.dataset.id)}});
-  $$('.pos-item',l).forEach(el=>{el.onclick=()=>{const m=S.markets.find(x=>x.id===el.dataset.mid);if(m)openDetail(m)}});
+  $$('.pos-item',l).forEach(el=>{el.onclick=()=>{const m=S.markets.find(x=>String(x.id)===String(el.dataset.mid));if(m)openDetail(m)}});
 }
 async function closePos(id){try{const r=await api('/api/position/'+id+'/close',{method:'POST'});toast('Closed: '+(r.pnl>=0?'+':'')+fmt$(r.pnl),r.pnl>=0?'ok':'err');await loadAccount()}catch(e){toast(e.message,'err')}}
 
@@ -3433,7 +3453,7 @@ async function openPositionMarket(mid){
 
 function openDetail(market,side){
   if(!requireAuth())return;
-  S.selectedMarket=market;S.chartRange='1d';S.obSide='yes';S.detailTab='positions';
+  S.selectedMarket=market;S.chartRange='1h';S.obSide='yes';S.detailTab='positions';
   S.tpUnit='usd';S.tpOrderType='market';S.tpView='trade';
   if(side==='YES'||side==='NO')S.side=side;
   $('#marketsGridView').style.display='none';$('#detailView').classList.add('show');
@@ -3645,9 +3665,9 @@ function renderDetailTab(){
   const el=$('#mdTabContent');if(!el)return;
   const tab=S.detailTab||'positions';
   if(tab==='positions'){
-    const open=(S.positions||[]).filter(p=>p.status==='open'&&p.market_id===(S.selectedMarket||{}).id);
+    const open=(S.positions||[]).filter(p=>p.status==='open'&&String(p.market_id)===String((S.selectedMarket||{}).id));
     if(!open.length){el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No positions on this market</div>';return}
-    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const upnl=p.unrealized_pnl!=null?p.unrealized_pnl:(p.pnl||0);return`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span style="color:var(--blue);font-weight:800;font-size:10px;letter-spacing:.05em">● OPEN</span> ${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢</span><span style="display:flex;align-items:center;gap:12px"><span style="color:${upnl>=0?'var(--green)':'var(--red)'};font-weight:700;font-family:JetBrains Mono,monospace">${upnl>=0?'+':''}${fmt$(upnl)}</span><button class="md-pos-close" data-id="${p.id}" style="padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text-3);border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;cursor:pointer;transition:all .15s">Close</button></span></div>`}).join('')+'</div>';
+    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const cp=posCurrentPrice(p);const upnl=posUnrealizedPnl(p);const pct=posUnrealizedPct(p);const col=(upnl==null||upnl>=0)?'var(--green)':'var(--red)';const pnlTxt=upnl!=null?fmtPnl$(upnl)+(pct!=null?' ('+(pct>=0?'+':'')+pct+'%)':''):'Open';const cpTxt=cp!=null?Math.round(cp*100)+'¢':'--';return`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span style="color:var(--blue);font-weight:800;font-size:10px;letter-spacing:.05em">● OPEN</span> ${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢ · now ${cpTxt}</span><span style="display:flex;align-items:center;gap:12px"><span style="color:${col};font-weight:700;font-family:JetBrains Mono,monospace">${pnlTxt}</span><button class="md-pos-close" data-id="${p.id}" style="padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text-3);border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;cursor:pointer;transition:all .15s">Close</button></span></div>`}).join('')+'</div>';
     $$('.md-pos-close',el).forEach(b=>{b.onmouseenter=()=>{b.style.color='var(--red)';b.style.borderColor='var(--red)'};b.onmouseleave=()=>{b.style.color='var(--text-3)';b.style.borderColor='var(--border)'};b.onclick=async e=>{e.stopPropagation();b.disabled=true;b.textContent='Closing...';await closePos(b.dataset.id);renderDetailTab()}});
   }else if(tab==='orders'){
     el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No open orders</div>';
@@ -3685,7 +3705,7 @@ async function loadTopTraders(){
 /* ============ CHART ============ */
 function genChart(p){const d=[];let pr=p;for(let i=96;i>=0;i--){d.push(pr);pr=Math.max(.01,Math.min(.99,pr-(Math.random()-.5)*.01-(p-pr)*.02))}d.reverse();S.chartData=d}
 function tickChart(){if(!S.selectedMarket||!S.chartData.length)return;const l=S.chartData[S.chartData.length-1];S.chartData.push(Math.max(.01,Math.min(.99,l+(Math.random()-.5)*.005)));if(S.chartData.length>300)S.chartData.shift();drawChart()}
-async function refreshPrices(){if(!S.selectedMarket)return;try{const f=await api('/api/market/'+S.selectedMarket.id);if(f&&f.outcomePrices){S.selectedMarket.outcomePrices=f.outcomePrices;$('#chartPrice').textContent=Math.round(f.outcomePrices[0]*100)+'%';if(S.chartData.length)S.chartData[S.chartData.length-1]=f.outcomePrices[0]}}catch(e){}}
+async function refreshPrices(){if(!S.selectedMarket)return;try{const f=await api('/api/market/'+S.selectedMarket.id);if(f&&f.outcomePrices){S.selectedMarket.outcomePrices=f.outcomePrices;$('#chartPrice').textContent=Math.round(f.outcomePrices[0]*100)+'%';if(S.chartData.length)S.chartData[S.chartData.length-1]=f.outcomePrices[0];if(S.detailTab==='positions'&&typeof renderDetailTab==='function'){try{renderDetailTab()}catch(_){}}if(typeof updateDetailTP==='function'){try{updateDetailTP()}catch(_){}}}}catch(e){}}
 async function loadHistory(m,range){const im={'1h':'1h','6h':'6h','1d':'1d','1w':'1w','1m':'1m','all':'max'};const fm={'1h':60,'6h':72,'1d':96,'1w':168,'1m':120,'all':200};try{const h=await api(`/api/market/${m.id}/history?interval=${im[range]||'1d'}&fidelity=${fm[range]||96}`);if(h&&h.length>2){S.chartData=h.map(p=>p.p);drawChart();return}}catch(e){}genChart(m.outcomePrices[0]);drawChart()}
 function drawChart(){const c=$('#chartCanvas');if(!c)return;const dpr=devicePixelRatio||1,rect=c.getBoundingClientRect();c.width=rect.width*dpr;c.height=rect.height*dpr;const ctx=c.getContext('2d');ctx.scale(dpr,dpr);const w=rect.width,h=rect.height,d=S.chartData;if(!d.length)return;
   // Average-entry lines for the user's OPEN positions on this market (weighted by shares, mapped onto the YES-probability axis)

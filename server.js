@@ -2968,7 +2968,7 @@ app.get('/api/account', authMiddleware, async (req, res) => {
         daily_loss_today:   dailyLoss,
         daily_loss_remaining: Math.max(0, sz * DAILY_LOSS_LIMIT - dailyLoss),
       },
-      positions: positions.map(p => {
+      positions: await Promise.all(positions.map(async p => {
         const pos = {
           ...p,
           shares:      Number(p.shares),
@@ -2977,9 +2977,14 @@ app.get('/api/account', authMiddleware, async (req, res) => {
           exit_price:  p.exit_price != null ? Number(p.exit_price) : null,
           pnl:         p.pnl != null ? Number(p.pnl) : null,
         };
-        // Add live MTM for open positions
+        // Add live MTM for open positions. Check the in-memory index first
+        // (instant); if the market isn't loaded there, fetch it directly so
+        // PnL is correct for EVERY open position, not just trending markets.
         if (p.status === 'open') {
-          const mkt = marketIndex.byId[p.market_id];
+          let mkt = marketIndex.byId[p.market_id];
+          if (!mkt || !mkt.outcomePrices) {
+            try { mkt = await pmFetchMarket(p.market_id); } catch (_) { mkt = null; }
+          }
           if (mkt && mkt.outcomePrices) {
             const currentPrice = (p.side === 'YES' || p.side === 'yes')
               ? Number(mkt.outcomePrices[0])
@@ -2988,10 +2993,19 @@ app.get('/api/account', authMiddleware, async (req, res) => {
             pos.current_price = currentPrice;
             pos.mtm_value = +mtmValue.toFixed(2);
             pos.unrealized_pnl = +(mtmValue - Number(p.cost)).toFixed(2);
+            pos.unrealized_pnl_pct = Number(p.cost) > 0 ? +(((mtmValue - Number(p.cost)) / Number(p.cost)) * 100).toFixed(2) : 0;
+          } else {
+            // Market lookup failed (e.g. resolved/archived market dropped from
+            // the feed). Mirror computeEquity's conservative fallback: value the
+            // position at cost so equity and the position row never disagree.
+            pos.current_price = Number(p.entry_price);
+            pos.mtm_value = +Number(p.cost).toFixed(2);
+            pos.unrealized_pnl = 0;
+            pos.unrealized_pnl_pct = 0;
           }
         }
         return pos;
-      }),
+      })),
       fills,
     });
   } catch (e) {
