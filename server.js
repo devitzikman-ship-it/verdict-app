@@ -334,9 +334,68 @@ async function sendTemplateEmail(templateName, user, extraData) {
 // In-memory token store for password resets & email verification
 // { token: { userId, email, type, expiresAt } }
 const tokenStore = new Map();
-setInterval(() => {
+
+// ---- Durable auth-token store --------------------------------------------
+// Signup 2FA codes, email-verification links and password-reset codes used to
+// live ONLY in the in-memory Map above, so every deploy/restart wiped pending
+// signups & resets. These helpers persist them to the Supabase `auth_tokens`
+// table in production (survives restarts) and fall back to the Map in dev.
+//   auth_tokens(token text pk, type text, code text, user_id bigint,
+//               email text, attempts int default 0, payload jsonb,
+//               expires_at timestamptz)
+async function authSet(token, entry) {
+  if (DEV_MODE) { tokenStore.set(token, entry); return; }
+  const row = {
+    token,
+    type: entry.type || null,
+    code: entry.code != null ? String(entry.code) : null,
+    user_id: entry.userId != null ? entry.userId : null,
+    email: entry.email || null,
+    attempts: entry.attempts || 0,
+    payload: entry.signupData || null,
+    expires_at: new Date(entry.expiresAt).toISOString(),
+  };
+  const { error } = await supabase.from('auth_tokens').upsert(row, { onConflict: 'token' });
+  if (error) throw new Error(`auth_tokens set: ${error.message}`);
+}
+async function authGet(token) {
+  if (DEV_MODE) return tokenStore.get(token) || null;
+  const { data, error } = await supabase.from('auth_tokens').select('*').eq('token', token).limit(1);
+  if (error) throw new Error(`auth_tokens get: ${error.message}`);
+  const r = data && data[0];
+  if (!r) return null;
+  return {
+    type: r.type,
+    code: r.code,
+    userId: r.user_id,
+    email: r.email,
+    attempts: r.attempts || 0,
+    signupData: r.payload,
+    expiresAt: new Date(r.expires_at).getTime(),
+  };
+}
+async function authDelete(token) {
+  if (DEV_MODE) { tokenStore.delete(token); return; }
+  await supabase.from('auth_tokens').delete().eq('token', token);
+}
+async function authSetAttempts(token, attempts) {
+  if (DEV_MODE) { const e = tokenStore.get(token); if (e) e.attempts = attempts; return; }
+  await supabase.from('auth_tokens').update({ attempts }).eq('token', token);
+}
+async function authDeleteByUserType(userId, type) {
+  if (DEV_MODE) {
+    for (const [k, v] of tokenStore) { if (v.userId === userId && v.type === type) tokenStore.delete(k); }
+    return;
+  }
+  await supabase.from('auth_tokens').delete().eq('user_id', userId).eq('type', type);
+}
+
+setInterval(async () => {
   const now = Date.now();
   for (const [k, v] of tokenStore) { if (v.expiresAt < now) tokenStore.delete(k); }
+  if (!DEV_MODE && supabase) {
+    try { await supabase.from('auth_tokens').delete().lt('expires_at', new Date().toISOString()); } catch (_) {}
+  }
 }, 60000); // clean expired tokens every minute
 
 // ============ IN-MEMORY DEV DB ============
@@ -2249,7 +2308,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     // Don't create user yet — send 2FA code first
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const twoFaId = crypto.randomBytes(16).toString('hex');
-    tokenStore.set(twoFaId, {
+    await authSet(twoFaId, {
       type: 'signup_2fa',
       code,
       attempts: 0,
@@ -2280,16 +2339,17 @@ app.post('/api/signup/verify-code', authLimiter, async (req, res) => {
     const { twofa_id, code } = req.body || {};
     if (!twofa_id || !code) return res.status(400).json({ error: 'code required' });
 
-    const entry = tokenStore.get(twofa_id);
+    const entry = await authGet(twofa_id);
     if (!entry || entry.type !== 'signup_2fa') return res.status(400).json({ error: 'Invalid or expired session. Try signing up again.' });
-    if (entry.expiresAt < Date.now()) { tokenStore.delete(twofa_id); return res.status(400).json({ error: 'Code expired. Try signing up again.' }); }
+    if (entry.expiresAt < Date.now()) { await authDelete(twofa_id); return res.status(400).json({ error: 'Code expired. Try signing up again.' }); }
 
-    entry.attempts = (entry.attempts || 0) + 1;
-    if (entry.attempts > 5) { tokenStore.delete(twofa_id); return res.status(400).json({ error: 'Too many attempts. Try signing up again.' }); }
+    const attempts = (entry.attempts || 0) + 1;
+    if (attempts > 5) { await authDelete(twofa_id); return res.status(400).json({ error: 'Too many attempts. Try signing up again.' }); }
+    await authSetAttempts(twofa_id, attempts);
 
     if (String(code).trim() !== entry.code) return res.status(400).json({ error: 'Incorrect code' });
 
-    tokenStore.delete(twofa_id);
+    await authDelete(twofa_id);
     const d = entry.signupData;
 
     // Re-check email isn't taken (race condition guard)
@@ -2367,12 +2427,12 @@ app.get('/api/verify-email', async (req, res) => {
     const { token } = req.query;
     if (!token) return res.status(400).send(verifyPage('Invalid link', false));
 
-    const entry = tokenStore.get(token);
+    const entry = await authGet(token);
     if (!entry || entry.type !== 'verify') return res.status(400).send(verifyPage('Link expired or invalid', false));
-    if (entry.expiresAt < Date.now()) { tokenStore.delete(token); return res.status(400).send(verifyPage('Link has expired — request a new one', false)); }
+    if (entry.expiresAt < Date.now()) { await authDelete(token); return res.status(400).send(verifyPage('Link has expired — request a new one', false)); }
 
     try { await dbUpdate('users', { id: entry.userId }, { email_verified: true }); } catch (_) {}
-    tokenStore.delete(token);
+    await authDelete(token);
 
     return res.send(verifyPage('Email verified! You can close this tab and start trading.', true));
   } catch (e) {
@@ -2398,7 +2458,7 @@ app.post('/api/resend-verification', authMiddleware, async (req, res) => {
     if (user.email_verified) return res.json({ ok: true, message: 'already verified' });
 
     const verifyCode = crypto.randomBytes(32).toString('hex');
-    tokenStore.set(verifyCode, { userId: user.id, email: user.email, type: 'verify', expiresAt: Date.now() + 24 * 3600 * 1000 });
+    await authSet(verifyCode, { userId: user.id, email: user.email, type: 'verify', expiresAt: Date.now() + 24 * 3600 * 1000 });
     const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
     const verifyLink = `${origin}/api/verify-email?token=${verifyCode}`;
     await sendEmail(user.email, 'Verify your VERDICT account', `
@@ -2441,7 +2501,7 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
     if (!user) return res.json({ ok: true, message: 'If that email exists, a reset link has been sent.' });
 
     const resetCode = crypto.randomBytes(32).toString('hex');
-    tokenStore.set(resetCode, { userId: user.id, email: cleanEmail, type: 'reset', expiresAt: Date.now() + 60 * 60 * 1000 }); // 1 hour
+    await authSet(resetCode, { userId: user.id, email: cleanEmail, type: 'reset', expiresAt: Date.now() + 60 * 60 * 1000 }); // 1 hour
 
     const origin = APP_URL || req.headers.origin || `https://${req.headers.host}`;
     const resetLink = `${origin}/reset-password.html?token=${resetCode}`;
@@ -2469,18 +2529,16 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
     if (typeof password !== 'string' || password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
     if (password.length > 128) return res.status(400).json({ error: 'password too long' });
 
-    const entry = tokenStore.get(token);
+    const entry = await authGet(token);
     if (!entry || entry.type !== 'reset') return res.status(400).json({ error: 'invalid or expired reset link' });
-    if (entry.expiresAt < Date.now()) { tokenStore.delete(token); return res.status(400).json({ error: 'reset link has expired' }); }
+    if (entry.expiresAt < Date.now()) { await authDelete(token); return res.status(400).json({ error: 'reset link has expired' }); }
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     await dbUpdate('users', { id: entry.userId }, { password_hash: passwordHash });
-    tokenStore.delete(token);
+    await authDelete(token);
 
-    // Invalidate all old tokens for this user
-    for (const [k, v] of tokenStore) {
-      if (v.userId === entry.userId && v.type === 'reset') tokenStore.delete(k);
-    }
+    // Invalidate all old reset tokens for this user
+    await authDeleteByUserType(entry.userId, 'reset');
 
     return res.json({ ok: true, message: 'password updated — you can now log in' });
   } catch (e) {

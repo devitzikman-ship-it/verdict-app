@@ -1377,7 +1377,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <div class="search-dropdown" id="searchDropdown"></div>
   </div>
   <div class="nav-links">
-    <a href="/markets" class="nav-link active">Markets</a>
+    <a href="/markets" class="nav-link active" data-nav="markets" onclick="if(!event.metaKey&&!event.ctrlKey){event.preventDefault();switchPage('markets')}">Markets</a>
+    <a href="#" class="nav-link" data-nav="dashboard" onclick="event.preventDefault();switchPage('dashboard')">Dashboard</a>
     <a href="/leaderboard" class="nav-link">Leaderboard</a>
     <a href="/learn" class="nav-link">How It Works</a>
   </div>
@@ -1400,6 +1401,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 <!-- User dropdown -->
 <div class="user-dd" id="userDD">
   <button class="user-dd-item" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</button>
+  <button class="user-dd-item" id="myPositionsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> My Positions</button>
   <button class="user-dd-item" data-page="affiliate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Affiliate</button>
   <button class="user-dd-item" data-page="payouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg> Payouts</button>
   <button class="user-dd-item" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/></svg> Profile &amp; Settings</button>
@@ -1683,7 +1685,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
               <button class="tp-submit" id="tpTradeBtn" disabled>Select outcome</button>
               <div class="tp-footer">
                 <span>Available: <strong id="tpBalance">--</strong></span>
+                <span style="margin-left:auto">Max/trade: <strong id="tpMaxOrder">--</strong></span>
               </div>
+              <div id="tpCapNote" style="display:none;font-size:11px;color:var(--ice);margin-top:6px;font-weight:600">Capped to 10% of balance per trade</div>
             </div>
           </div>
         </div>
@@ -2095,6 +2099,7 @@ $('#navAvatar').onclick=()=>$('#userDD').classList.toggle('open');
 document.addEventListener('click',e=>{if(!e.target.closest('#userDD')&&!e.target.closest('#navAvatar'))$('#userDD').classList.remove('open')});
 if(S.user){const i=(S.user.name||S.user.email||'V')[0].toUpperCase();$('#navAvatar').textContent=i}
 $$('.user-dd-item[data-page]').forEach(b=>{b.onclick=()=>{switchPage(b.dataset.page);$('#userDD').classList.remove('open')}});
+$('#myPositionsBtn').onclick=()=>{switchPage('dashboard');$('#userDD').classList.remove('open');setTimeout(()=>{const el=$('#dashPositions');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},120)};
 $('#logoutBtn').onclick=()=>{localStorage.removeItem('verdict_token');localStorage.removeItem('verdict_user');S.token=null;S.user=null;S.account=null;S.positions=[];updateNavAuth();location.reload()};
 
 /* Nav auth button handlers */
@@ -2132,6 +2137,8 @@ function switchPage(p){
   if(S.chartInterval){clearInterval(S.chartInterval);S.chartInterval=null}
   $('#detailView').classList.remove('show');$('#marketsGridView').style.display='';
   $$('.page-section').forEach(s=>{s.classList.remove('active');s.style.removeProperty('display')});const t=document.getElementById('page-'+p);if(t)t.classList.add('active');if(p==='dashboard')renderDashboard();if(p==='affiliate')loadAffiliate();if(p==='profile')renderProfile();if(p==='markets')showGrid();if(p==='payouts')renderPayoutsPage()
+  // Keep nav-bar highlight in sync with the active in-SPA page
+  $$('.nav-link[data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===p));
 }
 
 /* ============ FILTER STATE MACHINE ============ */
@@ -2364,17 +2371,15 @@ function renderDashboard(){
   const avgWin=wins?closedPos.filter(p=>p.pnl>0).reduce((s,p)=>s+p.pnl,0)/wins:0;
   const avgLoss=losses?Math.abs(closedPos.filter(p=>p.pnl<=0).reduce((s,p)=>s+p.pnl,0)/losses):0;
 
-  // Build trade history HTML
-  let tradesHtml='';
-  if(!allPos.length){tradesHtml='<div style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">No trades yet. Go place your first trade!</div>';}
-  else{
-    tradesHtml=allPos.map(p=>{
-      const pl=p.pnl!=null?(p.pnl>=0?'+':'')+fmt$(p.pnl):'Open';
-      const pc=p.pnl!=null?(p.pnl>=0?'green':'red'):'';
-      const statusLabel=p.status==='open'?'<span style="color:var(--blue)">Open</span>':'Closed';
-      return'<div class="trade-hist-item" style="cursor:pointer" onclick="switchPage(\'markets\')"><span class="thi-side '+(p.side==='YES'?'yes':'no')+'">'+p.side+'</span><div class="thi-info"><div class="thi-q">'+esc(p.market_question||'Market')+'</div><div class="thi-meta">'+p.shares+' shares @ '+fmtPx(p.entry_price)+' · '+statusLabel+'</div></div><span class="thi-pnl" style="color:var(--'+(pc||'blue')+')">'+(p.status==='open'?'Open':pl)+'</span></div>';
-    }).join('');
-  }
+  // Build open-positions + past-trades HTML. Clicking a row opens that market.
+  const posRow=(p,isOpen)=>{
+    const pl=p.pnl!=null?(p.pnl>=0?'+':'')+fmt$(p.pnl):'Open';
+    const pc=p.pnl!=null?(p.pnl>=0?'green':'red'):'';
+    const badge=isOpen?'<span style="color:var(--blue);font-weight:700">● OPEN</span>':'Closed';
+    return'<div class="trade-hist-item" style="cursor:pointer" onclick="openPositionMarket(\''+esc(p.market_id)+'\')"><span class="thi-side '+(p.side==='YES'?'yes':'no')+'">'+p.side+'</span><div class="thi-info"><div class="thi-q">'+esc(p.market_question||'Market')+'</div><div class="thi-meta">'+p.shares+' shares @ '+fmtPx(p.entry_price)+' · '+badge+'</div></div><span class="thi-pnl" style="color:var(--'+(pc||'blue')+')">'+(isOpen?'Open':pl)+'</span></div>';
+  };
+  const openPosHtml=openPos.length?openPos.map(p=>posRow(p,true)).join(''):'<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px">No open positions. Go place a trade!</div>';
+  const tradesHtml=closedPos.length?closedPos.map(p=>posRow(p,false)).join(''):'<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px">No past trades yet.</div>';
 
   $('#dashContent').innerHTML=`
   <div class="dash-hero">
@@ -2474,6 +2479,12 @@ function renderDashboard(){
   <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg> Eval Rules</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Profit Target</span><span class="rule-row-val">Phase 1: +6% · Phase 2: +4%</span></div><div class="rule-row"><span class="rule-row-label">Max Drawdown</span><span class="rule-row-val">-4% from starting balance</span></div><div class="rule-row"><span class="rule-row-label">Daily Loss Limit</span><span class="rule-row-val">-2% per day</span></div><div class="rule-row"><span class="rule-row-label">Time Limit</span><span class="rule-row-val">30 days per phase</span></div><div class="rule-row"><span class="rule-row-label">Position Cap</span><span class="rule-row-val">10% of account per trade</span></div></div></div>
   <div class="rules-dropdown"><div class="rules-dd-header" onclick="this.classList.toggle('open')"><span class="rules-dd-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg> Live Account</span><span class="rules-dd-arrow">▾</span></div><div class="rules-dd-body"><div class="rule-row"><span class="rule-row-label">Withdrawals</span><span class="rule-row-val">Keep 80% of profits</span></div><div class="rule-row"><span class="rule-row-label">Max Per Trade</span><span class="rule-row-val">50% of account</span></div><div class="rule-row"><span class="rule-row-label">Monthly Fee</span><span class="rule-row-val">None after passing</span></div></div></div>
   `}
+
+  <!-- My Positions (open) -->
+  <div id="dashPositions" style="margin-top:24px;scroll-margin-top:80px">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> My Positions <span style="color:var(--text-3);font-weight:600">(${open})</span></div>
+    ${openPosHtml}
+  </div>
 
   <!-- Past Trades -->
   <div style="margin-top:24px">
@@ -3403,6 +3414,15 @@ function showGrid(){$('#marketsGridView').style.display='';$('#detailView').clas
 }
 $('#detailBack').onclick=showGrid;
 
+// Open the market detail for a given position's market_id (used by dashboard rows)
+async function openPositionMarket(mid){
+  if(!requireAuth())return;
+  let m=(S.markets||[]).find(x=>String(x.id)===String(mid));
+  if(!m){try{m=await api('/api/market/'+mid)}catch(_){}}
+  if(m&&m.id){switchPage('markets');openDetail(m);}
+  else{toast('Market not available right now','err');}
+}
+
 function openDetail(market,side){
   if(!requireAuth())return;
   S.selectedMarket=market;S.chartRange='1d';S.obSide='yes';S.detailTab='positions';
@@ -3477,15 +3497,19 @@ function openDetail(market,side){
   // Trade button
   $('#tpTradeBtn').onclick=()=>executeDetailTrade();
 }
+// Max risk per single trade = 10% of current cash balance (matches server cap)
+function tpMaxOrder(){const bal=S.account?Number(S.account.balance):0;return Math.max(0,Math.floor(bal*0.10));}
 // Update detail trade panel
 function updateDetailTP(){
   if(!S.selectedMarket)return;
   const m=S.selectedMarket,y=m.outcomePrices[0],n=m.outcomePrices[1],pct=Math.round(y*100);
   const side=S.side||'YES';
   const price=side==='YES'?y:n;
-  const amt=parseFloat($('#tpAmount').value)||0;
+  const reqAmt=parseFloat($('#tpAmount').value)||0;
+  const maxOrder=tpMaxOrder();
+  const capped=maxOrder>0&&reqAmt>maxOrder;
+  const amt=capped?maxOrder:reqAmt; // never let a single trade exceed 10% of balance
   const shares=price>0?Math.floor(amt/price):0;
-  const toWin=shares>0?fmt$(shares-amt):'--';
   $('#tpYesBtn').textContent='Yes '+pct+'¢';$('#tpNoBtn').textContent='No '+(100-pct)+'¢';
   $('#tpYesBtn').classList.toggle('active',side==='YES');$('#tpNoBtn').classList.toggle('active',side==='NO');
   $('#tpBestAsk').textContent=Math.round(price*100)+'¢';
@@ -3493,15 +3517,22 @@ function updateDetailTP(){
   $('#tpSharesOut').textContent=shares.toLocaleString();
   $('#tpTotal').textContent=fmt$(amt);
   $('#tpToWin').textContent=shares>amt?'+'+fmt$(shares-amt):'--';
+  if(S.account)$('#tpBalance').textContent=fmt$(S.account.balance);
+  const mo=$('#tpMaxOrder');if(mo)mo.textContent=maxOrder>0?fmt$(maxOrder):'--';
+  const note=$('#tpCapNote');if(note)note.style.display=capped?'block':'none';
   $('#tpTradeBtn').disabled=!side||amt<=0;
-  $('#tpTradeBtn').textContent=side?'Buy '+side+' - '+fmt$(amt):'Select outcome';
+  $('#tpTradeBtn').textContent=side?('Buy '+side+' - '+fmt$(amt)+(capped?' (10% cap)':'')):'Select outcome';
   // Update outcome chips
   $$('.outcome-chip').forEach((c,i)=>{c.classList.toggle('active',(i===0&&side==='YES')||(i===1&&side==='NO'))});
 }
 async function executeDetailTrade(){
   const m=S.selectedMarket;if(!m||!S.token)return;
-  const side=S.side||'YES',amt=parseFloat($('#tpAmount').value)||0;
-  if(amt<=0){toast('Enter an amount','err');return}
+  const side=S.side||'YES';
+  const reqAmt=parseFloat($('#tpAmount').value)||0;
+  if(reqAmt<=0){toast('Enter an amount','err');return}
+  const maxOrder=tpMaxOrder();
+  const amt=(maxOrder>0&&reqAmt>maxOrder)?maxOrder:reqAmt;
+  if(maxOrder>0&&reqAmt>maxOrder){toast(`Single-trade cap is 10% of balance — risking ${fmt$(maxOrder)} instead of ${fmt$(reqAmt)}`,'err');}
   const btn=$('#tpTradeBtn');btn.disabled=true;btn.textContent='Executing...';
   try{
     const r=await api('/api/order',{method:'POST',body:JSON.stringify({market_id:m.id,side:side,cost_usd:amt})});
@@ -3547,7 +3578,7 @@ function renderDetailTab(){
   if(tab==='positions'){
     const open=(S.positions||[]).filter(p=>p.status==='open'&&p.market_id===(S.selectedMarket||{}).id);
     if(!open.length){el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No positions on this market</div>';return}
-    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const upnl=p.unrealized_pnl!=null?p.unrealized_pnl:(p.pnl||0);return`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700">${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢</span><span style="display:flex;align-items:center;gap:12px"><span style="color:${upnl>=0?'var(--green)':'var(--red)'};font-weight:700;font-family:JetBrains Mono,monospace">${upnl>=0?'+':''}${fmt$(upnl)}</span><button class="md-pos-close" data-id="${p.id}" style="padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text-3);border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;cursor:pointer;transition:all .15s">Close</button></span></div>`}).join('')+'</div>';
+    el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+open.map(p=>{const ep=(p.entry_price||p.avg_price||0);const upnl=p.unrealized_pnl!=null?p.unrealized_pnl:(p.pnl||0);return`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-elevated);border-radius:8px;font-size:12px"><span style="font-weight:700;display:flex;align-items:center;gap:8px"><span style="color:var(--blue);font-weight:800;font-size:10px;letter-spacing:.05em">● OPEN</span> ${p.side} ${p.shares} shares @ ${(ep*100).toFixed(0)}¢</span><span style="display:flex;align-items:center;gap:12px"><span style="color:${upnl>=0?'var(--green)':'var(--red)'};font-weight:700;font-family:JetBrains Mono,monospace">${upnl>=0?'+':''}${fmt$(upnl)}</span><button class="md-pos-close" data-id="${p.id}" style="padding:5px 12px;background:none;border:1px solid var(--border);color:var(--text-3);border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:inherit;cursor:pointer;transition:all .15s">Close</button></span></div>`}).join('')+'</div>';
     $$('.md-pos-close',el).forEach(b=>{b.onmouseenter=()=>{b.style.color='var(--red)';b.style.borderColor='var(--red)'};b.onmouseleave=()=>{b.style.color='var(--text-3)';b.style.borderColor='var(--border)'};b.onclick=async e=>{e.stopPropagation();b.disabled=true;b.textContent='Closing...';await closePos(b.dataset.id);renderDetailTab()}});
   }else if(tab==='orders'){
     el.innerHTML='<div style="color:var(--text-3);font-size:12px;text-align:center;padding:24px">No open orders</div>';
