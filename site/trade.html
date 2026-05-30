@@ -701,10 +701,28 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .tp-trading-chip{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace}
 .tp-trading-label{font-size:10px;letter-spacing:.18em;color:var(--text-3);font-weight:700}
 .tp-trading-val{font-size:12px;color:var(--text-1);font-weight:600}
-.tp-side-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tp-side-btn{padding:14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;font-weight:800;font-size:15px;cursor:pointer;color:var(--text-2);transition:all .1s;font-family:inherit;text-align:center}
+.tp-buysell{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:4px}
+.tp-bs-btn{padding:9px;background:transparent;border:none;border-radius:7px;font-weight:800;font-size:13px;letter-spacing:.02em;cursor:pointer;color:var(--text-3);transition:all .15s;font-family:inherit}
+.tp-bs-btn.active{background:var(--bg-elevated);color:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,0.25)}
+.tp-bs-btn[data-bs="sell"].active{color:var(--red)}
+.tp-side-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tp-side-btn{padding:16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;color:var(--text-2);transition:all .1s;font-family:inherit;text-align:center}
 .tp-side-btn.yes.active{background:rgba(78,139,255,0.18);border-color:var(--ice);color:var(--ice)}
 .tp-side-btn.no.active{background:rgba(255,90,90,0.15);border-color:var(--red);color:var(--red)}
+.tp-buy-only{display:flex;flex-direction:column;gap:14px}
+/* Collapsible order details */
+.tp-details-toggle{display:flex;justify-content:space-between;align-items:center;width:100%;background:transparent;border:none;padding:0 0 2px;font-family:inherit;font-size:11px;font-weight:700;color:var(--text-3);cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
+.tp-details-toggle:hover{color:var(--text-2)}
+.tp-details-chev{transition:transform .18s;font-size:12px}
+.tp-details-chev.open{transform:rotate(180deg)}
+.tp-details-body{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+/* Sell-mode position info */
+.tp-sell-info{display:flex;flex-direction:column;gap:10px;padding:14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px}
+.tp-sell-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-2)}
+.tp-sell-row .mono{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-1)}
+.tp-sell-empty{font-size:12px;color:var(--text-3);text-align:center;padding:8px 0}
+.tp-submit.sell{background:var(--red);color:#fff}
+.tp-submit.sell:hover{background:#ff6b6b}
 .tp-row{display:flex;justify-content:space-between;align-items:center}
 .tp-row-label{font-size:12px;color:var(--text-2);font-weight:500}
 .tp-toggle{display:inline-flex;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:2px}
@@ -1756,39 +1774,52 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
             </div>
             <div class="tp-inner" id="tpInner">
               <div id="tpTradeBody">
+              <div class="tp-buysell" id="tpBuySell">
+                <button type="button" class="tp-bs-btn active" data-bs="buy">Buy</button>
+                <button type="button" class="tp-bs-btn" data-bs="sell">Sell</button>
+              </div>
               <div class="tp-side-buttons" id="tpSideBtns">
                 <button class="tp-side-btn yes active" id="tpYesBtn" data-side="YES">Yes --</button>
                 <button class="tp-side-btn no" id="tpNoBtn" data-side="NO">No --</button>
               </div>
-              <div class="tp-row">
-                <span class="tp-row-label">Order Type</span>
-                <div class="tp-toggle"><button type="button" class="tp-toggle-btn active" data-ot="market">MARKET</button><button type="button" class="tp-toggle-btn" data-ot="limit">LIMIT</button></div>
+              <div class="tp-buy-only">
+                <div class="tp-row">
+                  <span class="tp-row-label">Order Type</span>
+                  <div class="tp-toggle"><button type="button" class="tp-toggle-btn active" data-ot="market">MARKET</button><button type="button" class="tp-toggle-btn" data-ot="limit">LIMIT</button></div>
+                </div>
+                <div class="tp-row">
+                  <span class="tp-row-label">Amount</span>
+                  <div class="tp-toggle"><button type="button" class="tp-toggle-btn active" data-au="usd">USD</button><button type="button" class="tp-toggle-btn" data-au="shares">SHARES</button></div>
+                </div>
+                <div class="tp-amount-input-wrap">
+                  <span class="tp-amount-prefix" id="tpAmountPrefix">$</span>
+                  <input class="tp-amount-input" type="number" id="tpAmount" value="50" min="1" step="1" />
+                </div>
+                <div class="tp-row" id="tpLimitRow" style="display:none">
+                  <span class="tp-row-label">Limit Price (¢)</span>
+                  <div class="tp-amount-input-wrap" style="flex:0 0 120px"><input class="tp-amount-input" type="number" id="tpLimitPrice" value="50" min="1" max="99" step="1" style="text-align:right" /></div>
+                </div>
+                <div class="tp-quick-amounts">
+                  <button type="button" class="tp-quick" data-q="10">$10</button>
+                  <button type="button" class="tp-quick" data-q="25">$25</button>
+                  <button type="button" class="tp-quick" data-q="50">$50</button>
+                  <button type="button" class="tp-quick" data-q="100">$100</button>
+                  <button type="button" class="tp-quick" data-q="max" id="tpMaxBtn">MAX</button>
+                </div>
               </div>
-              <div class="tp-row">
-                <span class="tp-row-label">Amount</span>
-                <div class="tp-toggle"><button type="button" class="tp-toggle-btn active" data-au="usd">USD</button><button type="button" class="tp-toggle-btn" data-au="shares">SHARES</button></div>
-              </div>
-              <div class="tp-amount-input-wrap">
-                <span class="tp-amount-prefix" id="tpAmountPrefix">$</span>
-                <input class="tp-amount-input" type="number" id="tpAmount" value="50" min="1" step="1" />
-              </div>
-              <div class="tp-row" id="tpLimitRow" style="display:none">
-                <span class="tp-row-label">Limit Price (¢)</span>
-                <div class="tp-amount-input-wrap" style="flex:0 0 120px"><input class="tp-amount-input" type="number" id="tpLimitPrice" value="50" min="1" max="99" step="1" style="text-align:right" /></div>
-              </div>
-              <div class="tp-quick-amounts">
-                <button type="button" class="tp-quick" data-q="10">$10</button>
-                <button type="button" class="tp-quick" data-q="25">$25</button>
-                <button type="button" class="tp-quick" data-q="50">$50</button>
-                <button type="button" class="tp-quick" data-q="100">$100</button>
-                <button type="button" class="tp-quick" data-q="max" id="tpMaxBtn">MAX</button>
-              </div>
+              <div class="tp-sell-info" id="tpSellInfo" style="display:none"></div>
               <div class="tp-summary" id="tpSummary">
-                <div class="tp-summary-row"><span>Best Ask</span><span class="mono" id="tpBestAsk">--</span></div>
-                <div class="tp-summary-row"><span>Est. Avg Price</span><span class="mono" id="tpAvgPrice">--</span></div>
-                <div class="tp-summary-row"><span>Shares</span><span class="mono" id="tpSharesOut">--</span></div>
-                <div class="tp-summary-row tp-summary-divider"><span>Total</span><span class="mono" id="tpTotal">--</span></div>
-                <div class="tp-summary-row"><span>To win</span><span class="mono positive" id="tpToWin">--</span></div>
+                <button type="button" class="tp-details-toggle" id="tpDetailsToggle" aria-expanded="false">
+                  <span>Order details</span>
+                  <span class="tp-details-chev" id="tpDetailsChev">&#9662;</span>
+                </button>
+                <div class="tp-details-body" id="tpDetailsBody" style="display:none">
+                  <div class="tp-summary-row"><span>Best Ask</span><span class="mono" id="tpBestAsk">--</span></div>
+                  <div class="tp-summary-row"><span>Est. Avg Price</span><span class="mono" id="tpAvgPrice">--</span></div>
+                  <div class="tp-summary-row"><span id="tpSharesLabel">Shares</span><span class="mono" id="tpSharesOut">--</span></div>
+                </div>
+                <div class="tp-summary-row tp-summary-divider"><span id="tpTotalLabel">Total</span><span class="mono" id="tpTotal">--</span></div>
+                <div class="tp-summary-row"><span id="tpToWinLabel">To win</span><span class="mono positive" id="tpToWin">--</span></div>
               </div>
               <button type="button" class="tp-submit" id="tpTradeBtn" disabled>Select outcome</button>
               <div class="tp-footer">
@@ -3641,7 +3672,7 @@ async function openPositionMarket(mid){
 function openDetail(market,side){
   if(!requireAuth())return;
   S.selectedMarket=market;S.chartRange='1h';S.obSide='yes';S.detailTab='positions';
-  S.tpUnit='usd';S.tpOrderType='market';S.tpView='trade';
+  S.tpUnit='usd';S.tpOrderType='market';S.tpView='trade';S.tpMode='buy';
   if(side==='YES'||side==='NO')S.side=side;
   $('#marketsGridView').style.display='none';$('#detailView').classList.add('show');
   /* Hide old sidebars — new 3-col layout has its own trade panel */
@@ -3713,6 +3744,11 @@ function openDetail(market,side){
   const lp=$('#tpLimitPrice');if(lp)lp.oninput=()=>updateDetailTP();
   // Trade / Outcomes tab switch
   $$('.tp-tab').forEach(t=>{t.onclick=()=>{S.tpView=t.dataset.tpt;$$('.tp-tab').forEach(x=>x.classList.toggle('active',x.dataset.tpt===S.tpView));applyTpView();}});
+  // Buy / Sell mode toggle
+  $$('[data-bs]').forEach(b=>{b.classList.toggle('active',b.dataset.bs===(S.tpMode||'buy'));b.onclick=()=>{S.tpMode=b.dataset.bs;$$('[data-bs]').forEach(x=>x.classList.toggle('active',x.dataset.bs===S.tpMode));updateDetailTP();}});
+  // Collapsible order details
+  const dt=$('#tpDetailsToggle');
+  if(dt)dt.onclick=()=>{const body=$('#tpDetailsBody'),chev=$('#tpDetailsChev');const open=body.style.display==='none';body.style.display=open?'flex':'none';if(chev)chev.classList.toggle('open',open);dt.setAttribute('aria-expanded',open?'true':'false');};
   // Order Type (Market / Limit)
   $$('[data-ot]').forEach(b=>{b.onclick=()=>{S.tpOrderType=b.dataset.ot;$$('[data-ot]').forEach(x=>x.classList.toggle('active',x.dataset.ot===S.tpOrderType));updateDetailTP();}});
   // Amount unit (USD / SHARES)
@@ -3749,6 +3785,16 @@ function renderTpOutcomes(){
 }
 // Max risk per single trade = 10% of current cash balance (matches server cap)
 function tpMaxOrder(){const bal=S.account?Number(S.account.balance):0;return Math.max(0,Math.floor(bal*0.10));}
+// Aggregate open position on a given side for the selected market (for Sell mode)
+function tpSidePosition(side){
+  const m=S.selectedMarket;if(!m)return null;
+  const ps=(S.positions||[]).filter(p=>p.status==='open'&&String(p.market_id)===String(m.id)&&(p.side===side||p.side===side.toLowerCase()));
+  if(!ps.length)return null;
+  let shares=0,cost=0;ps.forEach(p=>{shares+=Number(p.shares)||0;cost+=Number(p.cost)||0;});
+  const cp=(side==='NO'?m.outcomePrices[1]:m.outcomePrices[0]);
+  const value=shares*cp;
+  return {ids:ps.map(p=>p.id),shares,cost,price:cp,value,pnl:+(value-cost).toFixed(2)};
+}
 // Compute the requested USD amount from the input, honoring the USD/SHARES unit.
 // Limit orders use the user's limit price; market orders use the live price.
 function tpEffectivePrice(){
@@ -3767,9 +3813,53 @@ function updateDetailTP(){
   if(!S.selectedMarket)return;
   const m=S.selectedMarket,y=m.outcomePrices[0],n=m.outcomePrices[1],pct=Math.round(y*100);
   const side=S.side||'YES';
+  const isSell=S.tpMode==='sell';
+  const btn=$('#tpTradeBtn');
+  // Always refresh side button labels + active state
+  $('#tpYesBtn').textContent='Yes '+pct+'¢';$('#tpNoBtn').textContent='No '+(100-pct)+'¢';
+  $('#tpYesBtn').classList.toggle('active',side==='YES');$('#tpNoBtn').classList.toggle('active',side==='NO');
+  $$('.outcome-chip').forEach((c,i)=>{c.classList.toggle('active',(i===0&&side==='YES')||(i===1&&side==='NO'))});
+  if(S.account)$('#tpBalance').textContent=fmt$(S.account.balance);
+  // Toggle buy-only controls vs sell info
+  $$('.tp-buy-only').forEach(el=>el.style.display=isSell?'none':'');
+  const sellInfo=$('#tpSellInfo');if(sellInfo)sellInfo.style.display=isSell?'flex':'none';
+  if(btn)btn.classList.toggle('sell',isSell);
+
+  if(isSell){
+    // ── SELL MODE: cash out the open position on the chosen side ──
+    const posn=tpSidePosition(side);
+    $('#tpSharesLabel').textContent='Shares held';
+    $('#tpTotalLabel').textContent='Est. proceeds';
+    $('#tpToWinLabel').textContent='Est. PnL';
+    const tw=$('#tpToWin');
+    if(posn){
+      $('#tpBestAsk').textContent=Math.round(posn.price*100)+'¢';
+      $('#tpAvgPrice').textContent=Math.round((posn.cost/posn.shares)*100)+'¢';
+      $('#tpSharesOut').textContent=Math.round(posn.shares).toLocaleString();
+      $('#tpTotal').textContent=fmt$(posn.value);
+      tw.textContent=fmtPnl$(posn.pnl);
+      tw.classList.toggle('positive',posn.pnl>=0);
+      tw.style.color=posn.pnl>=0?'':'var(--red)';
+      sellInfo.innerHTML=`
+        <div class="tp-sell-row"><span>Position</span><span class="mono">${Math.round(posn.shares).toLocaleString()} ${side} shares</span></div>
+        <div class="tp-sell-row"><span>Avg entry</span><span class="mono">${Math.round((posn.cost/posn.shares)*100)}¢</span></div>
+        <div class="tp-sell-row"><span>Now</span><span class="mono">${Math.round(posn.price*100)}¢</span></div>
+        <div class="tp-sell-row"><span>Est. PnL</span><span class="mono" style="color:${posn.pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl$(posn.pnl)}</span></div>`;
+      btn.disabled=false;
+      btn.textContent='Sell '+side+' — '+fmt$(posn.value);
+    }else{
+      $('#tpBestAsk').textContent='--';$('#tpAvgPrice').textContent='--';$('#tpSharesOut').textContent='--';
+      $('#tpTotal').textContent='--';tw.textContent='--';tw.style.color='';
+      sellInfo.innerHTML=`<div class="tp-sell-empty">You have no open ${side} position on this market.</div>`;
+      btn.disabled=true;
+      btn.textContent='Nothing to sell on '+side;
+    }
+    return;
+  }
+
+  // ── BUY MODE ──
   const price=Math.max(0.0001,tpEffectivePrice());
   const isLimit=S.tpOrderType==='limit';
-  // Show / hide the limit price row + amount prefix per unit
   const lr=$('#tpLimitRow');if(lr)lr.style.display=isLimit?'':'none';
   const pfx=$('#tpAmountPrefix');if(pfx){pfx.textContent=S.tpUnit==='shares'?'#':'$';}
   const reqAmt=tpRequestedUsd();
@@ -3777,25 +3867,41 @@ function updateDetailTP(){
   const capped=maxOrder>0&&reqAmt>maxOrder;
   const amt=capped?maxOrder:reqAmt; // never let a single trade exceed 10% of balance
   const shares=price>0?Math.floor(amt/price):0;
-  $('#tpYesBtn').textContent='Yes '+pct+'¢';$('#tpNoBtn').textContent='No '+(100-pct)+'¢';
-  $('#tpYesBtn').classList.toggle('active',side==='YES');$('#tpNoBtn').classList.toggle('active',side==='NO');
+  $('#tpSharesLabel').textContent='Shares';
+  $('#tpTotalLabel').textContent='Total';
+  $('#tpToWinLabel').textContent='To win';
   $('#tpBestAsk').textContent=Math.round(price*100)+'¢';
   $('#tpAvgPrice').textContent=Math.round(price*100)+'¢';
   $('#tpSharesOut').textContent=shares.toLocaleString();
   $('#tpTotal').textContent=fmt$(amt);
-  $('#tpToWin').textContent=shares>amt?'+'+fmt$(shares-amt):'--';
-  if(S.account)$('#tpBalance').textContent=fmt$(S.account.balance);
+  const tw=$('#tpToWin');tw.textContent=shares>amt?'+'+fmt$(shares-amt):'--';tw.style.color='';tw.classList.add('positive');
   const mo=$('#tpMaxOrder');if(mo)mo.textContent=maxOrder>0?fmt$(maxOrder):'--';
   const note=$('#tpCapNote');if(note)note.style.display=capped?'block':'none';
-  $('#tpTradeBtn').disabled=!side||amt<=0;
+  btn.disabled=!side||amt<=0;
   const verb=isLimit?'Place Limit':'Buy';
-  $('#tpTradeBtn').textContent=side?(verb+' '+side+' - '+fmt$(amt)+(capped?' (10% cap)':'')):'Select outcome';
-  // Update outcome chips
-  $$('.outcome-chip').forEach((c,i)=>{c.classList.toggle('active',(i===0&&side==='YES')||(i===1&&side==='NO'))});
+  btn.textContent=side?(verb+' '+side+' - '+fmt$(amt)+(capped?' (10% cap)':'')):'Select outcome';
 }
 async function executeDetailTrade(){
   const m=S.selectedMarket;if(!m||!S.token)return;
   const side=S.side||'YES';
+  // ── SELL MODE: close the open position(s) on this side at market ──
+  if(S.tpMode==='sell'){
+    const posn=tpSidePosition(side);
+    if(!posn){toast('No open '+side+' position to sell','err');return}
+    const btn=$('#tpTradeBtn');btn.disabled=true;btn.textContent='Selling...';
+    let total=0,ok=0;
+    try{
+      for(const id of posn.ids){
+        try{const r=await api('/api/position/'+id+'/close',{method:'POST'});total+=(r.pnl||0);ok++;}catch(_){}
+      }
+      if(ok)toast('Sold '+side+' · '+(total>=0?'+':'')+fmt$(total),total>=0?'ok':'err');
+      else toast('Could not sell position','err');
+      await loadAccount();
+      renderDetailTab();
+    }catch(e){toast(e.message,'err')}
+    btn.disabled=false;updateDetailTP();
+    return;
+  }
   const reqAmt=tpRequestedUsd();
   if(reqAmt<=0){toast('Enter an amount','err');return}
   const maxOrder=tpMaxOrder();
