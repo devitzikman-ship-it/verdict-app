@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "youtube-clipper": {
+      "source": "op7418/Youtube-clipper-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "73b6412584e9eb75485f096734b6742cb1d56e22bffd8907b17cc877e243d09b"
+    }
+  }
+}
